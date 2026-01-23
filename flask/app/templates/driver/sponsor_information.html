@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Sponsor Information{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<style>
+  .sponsor-info-page {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 2.5rem;
+  }
+
+  .sponsor-info-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .sponsor-info-header-icon {
+    font-size: 3rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .sponsor-info-header-content h1 {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .sponsor-info-header-content p {
+    margin: 0;
+    color: var(--text-secondary);
+  }
+
+  .sponsor-info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+
+  .sponsor-info-section {
+    margin-bottom: 2rem;
+  }
+
+  .sponsor-info-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .sponsor-info-section h2 {
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .sponsor-info-section h2 i {
+    color: var(--accent);
+    font-size: 1.25rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .info-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .info-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+
+  .info-value--highlight {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .info-value--empty {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .billing-address {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    line-height: 1.6;
+  }
+
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+  }
+
+  .back-button:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+    transform: translateY(-1px);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .feature-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--info-soft);
+    border: 1px solid var(--info);
+    border-radius: 999px;
+    color: var(--info);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .sponsor-info-page {
+      padding: 0 1rem 2rem;
+    }
+
+    .sponsor-info-header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .sponsor-info-card {
+      padding: 1.5rem;
+    }
+
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sponsor-info-page">
+  <header class="sponsor-info-header">
+    <div class="sponsor-info-header-icon">
+      <i class="fas fa-building" aria-hidden="true"></i>
+    </div>
+    <div class="sponsor-info-header-content">
+      <h1>Sponsor Information</h1>
+      <p>View information about your current sponsor environment</p>
+    </div>
+  </header>
+
+  <div class="sponsor-info-card">
+    <section class="sponsor-info-section">
+      <h2>
+        <i class="fas fa-building" aria-hidden="true"></i>
+        Company Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Company Name</span>
+          <span class="info-value info-value--highlight">{{ sponsor_info.company_name }}</span>
+        </div>
+        {% if sponsor_info.company_name_official and sponsor_info.company_name_official != sponsor_info.company_name %}
+        <div class="info-item">
+          <span class="info-label">Official Company Name</span>
+          <span class="info-value">{{ sponsor_info.company_name_official }}</span>
+        </div>
+        {% endif %}
+        {% if sponsor_info.created_at %}
+        <div class="info-item">
+          <span class="info-label">Account Created</span>
+          <span class="info-value">{{ sponsor_info.created_at.strftime('%B %d, %Y') }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="sponsor-info-section">
+      <h2>
+        <i class="fas fa-coins" aria-hidden="true"></i>
+        Points & Rewards
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Point to Dollar Rate</span>
+          <span class="info-value info-value--highlight">${{ "%.4f"|format(sponsor_info.point_to_dollar_rate) }} per point</span>
+        </div>
+        {% if sponsor_info.company_point_rate and sponsor_info.company_point_rate != sponsor_info.point_to_dollar_rate %}
+        <div class="info-item">
+          <span class="info-label">Company Point Rate</span>
+          <span class="info-value">${{ "%.4f"|format(sponsor_info.company_point_rate) }} per point</span>
+        </div>
+        {% endif %}
+        <div class="info-item">
+          <span class="info-label">Minimum Points per Transaction</span>
+          <span class="info-value">{{ sponsor_info.min_points_per_txn }} points</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Maximum Points per Transaction</span>
+          <span class="info-value">{{ sponsor_info.max_points_per_txn }} points</span>
+        </div>
+      </div>
+    </section>
+
+    {% if sponsor_info.sponsor_account_email or sponsor_info.sponsor_account_name %}
+    <section class="sponsor-info-section">
+      <h2>
+        <i class="fas fa-user" aria-hidden="true"></i>
+        Contact Information
+      </h2>
+      <div class="info-grid">
+        {% if sponsor_info.sponsor_account_name %}
+        <div class="info-item">
+          <span class="info-label">Primary Contact</span>
+          <span class="info-value">{{ sponsor_info.sponsor_account_name }}</span>
+        </div>
+        {% endif %}
+        {% if sponsor_info.sponsor_account_email %}
+        <div class="info-item">
+          <span class="info-label">Contact Email</span>
+          <span class="info-value">
+            <a href="mailto:{{ sponsor_info.sponsor_account_email }}" style="color: var(--accent); text-decoration: none;">
+              {{ sponsor_info.sponsor_account_email }}
+            </a>
+          </span>
+        </div>
+        {% endif %}
+        {% if sponsor_info.billing_email %}
+        <div class="info-item">
+          <span class="info-label">Billing Email</span>
+          <span class="info-value">
+            <a href="mailto:{{ sponsor_info.billing_email }}" style="color: var(--accent); text-decoration: none;">
+              {{ sponsor_info.billing_email }}
+            </a>
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if sponsor_info.billing_street or sponsor_info.company_billing_street %}
+    <section class="sponsor-info-section">
+      <h2>
+        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+        Billing Address
+      </h2>
+      <div class="info-grid">
+        {% if sponsor_info.company_billing_street or sponsor_info.company_billing_city %}
+        <div class="info-item">
+          <span class="info-label">Company Address</span>
+          <div class="info-value billing-address">
+            {% if sponsor_info.company_billing_street %}
+              {{ sponsor_info.company_billing_street }}<br>
+            {% endif %}
+            {% if sponsor_info.company_billing_city or sponsor_info.company_billing_state or sponsor_info.company_billing_postal %}
+              {% if sponsor_info.company_billing_city %}{{ sponsor_info.company_billing_city }}{% endif %}{% if sponsor_info.company_billing_city and sponsor_info.company_billing_state %}, {% endif %}{% if sponsor_info.company_billing_state %}{{ sponsor_info.company_billing_state }}{% endif %} {% if sponsor_info.company_billing_postal %}{{ sponsor_info.company_billing_postal }}{% endif %}<br>
+            {% endif %}
+            {% if sponsor_info.company_billing_country %}
+              {{ sponsor_info.company_billing_country }}
+            {% endif %}
+            {% if not sponsor_info.company_billing_street and not sponsor_info.company_billing_city %}
+              <span class="info-value--empty">Not provided</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if sponsor_info.billing_street or sponsor_info.billing_city %}
+        <div class="info-item">
+          <span class="info-label">Sponsor Address</span>
+          <div class="info-value billing-address">
+            {% if sponsor_info.billing_street %}
+              {{ sponsor_info.billing_street }}<br>
+            {% endif %}
+            {% if sponsor_info.billing_city or sponsor_info.billing_state or sponsor_info.billing_postal %}
+              {% if sponsor_info.billing_city %}{{ sponsor_info.billing_city }}{% endif %}{% if sponsor_info.billing_city and sponsor_info.billing_state %}, {% endif %}{% if sponsor_info.billing_state %}{{ sponsor_info.billing_state }}{% endif %} {% if sponsor_info.billing_postal %}{{ sponsor_info.billing_postal }}{% endif %}<br>
+            {% endif %}
+            {% if sponsor_info.billing_country %}
+              {{ sponsor_info.billing_country }}
+            {% endif %}
+            {% if not sponsor_info.billing_street and not sponsor_info.billing_city %}
+              <span class="info-value--empty">Not provided</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if sponsor_info.features and sponsor_info.features|length > 0 %}
+    <section class="sponsor-info-section">
+      <h2>
+        <i class="fas fa-star" aria-hidden="true"></i>
+        Features & Capabilities
+      </h2>
+      <div class="features-list">
+        {% for feature, enabled in sponsor_info.features.items() %}
+          {% if enabled %}
+          <span class="feature-badge">
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            {{ feature|replace('_', ' ')|title }}
+          </span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <a href="{{ url_for('dashboard') }}" class="back-button">
+    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+    Back to Dashboard
+  </a>
+</div>
+{% endblock %}
+

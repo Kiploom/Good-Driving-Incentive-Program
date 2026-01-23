@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import Accounts{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-file-upload" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Bulk Import Accounts</h1>
+        <p>
+          Upload a pipe-delimited text file to create driver and sponsor profiles for {{ company_name }} in one batch.
+        </p>
+      </div>
+      <div class="settings-header-actions">
+        <a href="{{ url_for('sponsor.manage_drivers') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to Driver Management
+        </a>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="settings-card">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+          {{ message }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="settings-card">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+          <h2>Upload Your Pipe File</h2>
+        </div>
+        <p class="settings-section-description">
+          Every account created from this upload is automatically assigned to <strong>{{ company_name }}</strong>.
+        </p>
+
+        <div class="settings-callout info">
+          <i class="fas fa-building" aria-hidden="true"></i>
+          <div>
+            <strong>{{ company_name }}</strong> will appear as the sponsor company for all imported users.
+            Upload a pipe-delimited <code>.txt</code> or <code>.csv</code> file and every account starts with the temporary password <code>TempPassword123!</code>.
+          </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="bulk_import_accounts" />
+
+          <div class="inline-form">
+            <div class="form-control">
+              <label for="csv_file">Select pipe-delimited .txt or .csv file</label>
+              <input type="file" id="csv_file" name="csv_file" accept=".txt,.csv" required />
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <button class="btn btn-primary" type="submit">
+              <i class="fas fa-file-import" aria-hidden="true"></i>
+              Upload and Import
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-table" aria-hidden="true"></i>
+          <h2>Text File Format Guide</h2>
+        </div>
+        <p class="settings-section-description">
+          Structure the file exactly as shown below. Use the pipe character (<code>|</code>) as the delimiter and leave the second column blank.
+        </p>
+
+        <div class="settings-callout warning">
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <div>
+            <strong>Remember:</strong> The second column must stay empty&mdash;the platform automatically assigns each account to {{ company_name }}.
+          </div>
+        </div>
+
+        <h3>Column order</h3>
+        <ul>
+          <li><strong>Column 1:</strong> Account type code (<code>D</code> for driver, <code>S</code> for sponsor user)</li>
+          <li><strong>Column 2:</strong> Leave blank</li>
+          <li><strong>Column 3:</strong> First name</li>
+          <li><strong>Column 4:</strong> Last name</li>
+          <li><strong>Column 5:</strong> Email address</li>
+        </ul>
+
+        <h3>Example rows</h3>
+        <pre class="settings-code-block">D||Joe|Driver|joe.driver@example.com
+D||Jane|Smith|jane.smith@example.com
+S||Jill|Sponsor|jill.sponsor@example.com
+D||Bob|Johnson|bob.johnson@example.com</pre>
+
+        <h3>Import tips</h3>
+        <ul>
+          <li>Save the file with a <code>.txt</code> or <code>.csv</code> extension; other file types are rejected.</li>
+          <li>Only <code>D</code> (driver) and <code>S</code> (sponsor user) account types are supported.</li>
+          <li>Ensure each email address is unique&mdash;duplicates are skipped automatically.</li>
+          <li>Accounts start in <em>Active</em> status and receive an email verification link.</li>
+          <li>Large files may take a moment to process; stay on the page until you see a confirmation.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="settings-card settings-card--nested">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+          <h2>Review Your Import</h2>
+        </div>
+        <p class="settings-section-description">
+          Need to audit past uploads or troubleshoot a failed row? Open the bulk import log for history and detailed errors.
+        </p>
+        <div class="settings-actions">
+          <a class="btn btn-secondary" href="{{ url_for('sponsor.bulk_import_audit_log') }}">
+            <i class="fas fa-list" aria-hidden="true"></i>
+            View Bulk Import Logs
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

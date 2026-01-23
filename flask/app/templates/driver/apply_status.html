@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Application status</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <style>
+    body{font-family:system-ui,Arial;margin:24px;background:#f7f7f7}
+    .card{max-width:680px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .muted{opacity:.75}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Thanks for applying!</h1>
+    {% if app.ReviewedAt %}
+      <p class="muted">Submitted: {{ app.SubmittedAt }}</p>
+      {% if app.DecisionReason %}
+        <p><strong>Decision:</strong> {{ app.DecisionReason }}</p>
+      {% else %}
+        <p><strong>Status:</strong> Reviewed</p>
+      {% endif %}
+    {% else %}
+      <p>Your application is <strong>under review</strong>. Thank you for your patience.</p>
+      <p class="muted">Submitted: {{ app.SubmittedAt }}</p>
+    {% endif %}
+  </div>
+</body>
+</html>

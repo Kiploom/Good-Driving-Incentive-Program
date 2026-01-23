@@ -1,0 +1,140 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Overrides{% endblock %}
+{% block body %}
+<h2>Overrides</h2>
+
+<div class="row">
+    <div class="col">
+        <h3>Pinned Items</h3>
+        <form onsubmit="return addPin(event)">
+            <div class="row">
+                <div class="col"><input id="pin-id" placeholder="eBay Item ID" required></div>
+                <div class="col"><input id="pin-rank" type="number" placeholder="Rank (1 = top)"></div>
+                <div class="col" style="max-width:160px;"><button class="btn primary" type="submit">Add Pin</button>
+                </div>
+            </div>
+        </form>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item ID</th>
+                    <th>Rank</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pins %}
+                <tr>
+                    <td>{{ p.item_id }}</td>
+                    <td>{{ p.pin_rank or '' }}</td>
+                    <td><button class="btn" onclick="del('pin', '{{ p.id }}')">Remove</button></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="muted">No pinned items.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col">
+        <h3>Inclusions</h3>
+        <form onsubmit="return addInclusion(event)">
+            <div class="row">
+                <div class="col"><input id="inc-id" placeholder="eBay Item ID" required></div>
+                <div class="col" style="max-width:160px;"><button class="btn primary" type="submit">Add
+                        Inclusion</button></div>
+            </div>
+        </form>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item ID</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in inclusions %}
+                <tr>
+                    <td>{{ i.item_id }}</td>
+                    <td><button class="btn" onclick="del('inclusion', '{{ i.id }}')">Remove</button></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="muted">No inclusions.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col">
+        <h3>Exclusions</h3>
+        <form onsubmit="return addExclusion(event)">
+            <div class="row">
+                <div class="col"><input id="exc-id" placeholder="eBay Item ID" required></div>
+                <div class="col" style="max-width:160px;"><button class="btn primary" type="submit">Add
+                        Exclusion</button></div>
+            </div>
+        </form>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item ID</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in exclusions %}
+                <tr>
+                    <td>{{ e.item_id }}</td>
+                    <td><button class="btn" onclick="del('exclusion', '{{ e.id }}')">Remove</button></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="muted">No exclusions.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    async function addPin(ev) {
+        ev.preventDefault();
+        const fd = new FormData();
+        fd.append('item_id', document.getElementById('pin-id').value.trim());
+        fd.append('is_pinned', 'true');
+        const pr = document.getElementById('pin-rank').value;
+        if (pr) fd.append('pin_rank', pr);
+        const r = await fetch('/sponsor-catalog/overrides/include', { method: 'POST', body: fd });
+        if (r.ok) location.reload(); else alert('Failed');
+        return false;
+    }
+    async function addInclusion(ev) {
+        ev.preventDefault();
+        const fd = new FormData();
+        fd.append('item_id', document.getElementById('inc-id').value.trim());
+        fd.append('is_pinned', 'false');
+        const r = await fetch('/sponsor-catalog/overrides/include', { method: 'POST', body: fd });
+        if (r.ok) location.reload(); else alert('Failed');
+        return false;
+    }
+    async function addExclusion(ev) {
+        ev.preventDefault();
+        const fd = new FormData();
+        fd.append('item_id', document.getElementById('exc-id').value.trim());
+        const r = await fetch('/sponsor-catalog/overrides/exclude', { method: 'POST', body: fd });
+        if (r.ok) location.reload(); else alert('Failed');
+        return false;
+    }
+    async function del(kind, id) {
+        if (!confirm('Remove this item?')) return;
+        const r = await fetch(`/sponsor-catalog/overrides/${kind}/${id}/delete`, { method: 'POST' });
+        if (r.ok) location.reload(); else alert('Failed');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Driver Profile Changes Audit Log{% endblock %}
+{% block content %}
+{% set page_title = (selected_sponsor.Company ~ ' Driver Profile Changes Audit Log') if selected_sponsor else 'Driver Profile Changes Audit Log' %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">{{ page_title }}</h1>
+      <p class="page-description">
+        Track driver profile updates, compare old and new values, and filter by sponsor, field, or timeframe.
+      </p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search driver, email, field, sponsor…">
+    {% if not selected_sponsor %}
+      <select name="sponsor_filter" onchange="this.form.submit()">
+        <option value="">All sponsors</option>
+        {% for sponsor_id, sponsor_name in sponsors %}
+          <option value="{{ sponsor_id }}" {% if sponsor_filter == sponsor_id %}selected{% endif %}>{{ sponsor_name }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <input type="hidden" name="sponsor_filter" value="{{ sponsor_filter }}">
+    {% endif %}
+    <select name="field" onchange="this.form.submit()">
+      <option value="">All fields</option>
+      {% for field in fields %}
+        <option value="{{ field }}" {% if field_filter==field %}selected{% endif %}>{{ field }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      {% if selected_sponsor %}
+        <a href="{{ url_for('admin.audit_driver_profile_changes', sponsor_filter=sponsor_filter) }}" class="btn btn-ghost">Reset</a>
+      {% else %}
+        <a href="{{ url_for('admin.audit_driver_profile_changes') }}" class="btn btn-ghost">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Changed At</th>
+          <th>Driver</th>
+          <th>Sponsor</th>
+          <th>Field</th>
+          <th>Old Value</th>
+          <th>New Value</th>
+          <th>Changed By</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for audit, driver, driver_account, changed_by, sponsor in rows %}
+            {% set driver_name = (driver_account.WholeName
+                                 or ((driver_account.FirstName or '') ~ (' ' if (driver_account.FirstName or driver_account.LastName) else '') ~ (driver_account.LastName or ''))).strip() %}
+            {% set sponsor_name = sponsor and sponsor.Company %}
+            {% set actor_name = changed_by and (
+                  changed_by.WholeName
+                  or ((changed_by.FirstName or '') ~ (' ' if (changed_by.FirstName or changed_by.LastName) else '') ~ (changed_by.LastName or ''))
+                ) %}
+            <tr>
+              <td class="text-muted">
+                {{ audit.ChangedAt.strftime('%Y-%m-%d %H:%M') if audit.ChangedAt else '—' }}
+              </td>
+              <td>
+                <div class="table-strong">
+                  {{ driver_name if driver_name else (driver and driver.DriverID and ('Driver #' ~ driver.DriverID) or 'Driver') }}
+                </div>
+                <div class="table-meta">{{ driver_account.Email or '—' }}</div>
+                {% if driver and driver.DriverID %}
+                  <div class="table-meta">DriverID: {{ driver.DriverID[:8] }}…</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if sponsor %}
+                  <div class="table-strong">{{ sponsor_name }}</div>
+                  {% if sponsor.SponsorID %}
+                    <div class="table-meta">SponsorID: {{ sponsor.SponsorID[:8] }}…</div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">No sponsor</span>
+                {% endif %}
+              </td>
+              <td class="table-strong">
+                {{ audit.FieldName }}
+              </td>
+              <td>
+                {% if audit.OldValue %}
+                  <span class="mono-chip mono-chip--old">{{ audit.OldValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if audit.NewValue %}
+                  <span class="mono-chip mono-chip--new">{{ audit.NewValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if changed_by %}
+                  <div class="table-strong">
+                    {{ actor_name and actor_name.strip() or (changed_by.Username or changed_by.Email or changed_by.AccountID) }}
+                  </div>
+                  <div class="table-meta">{{ changed_by.Email or '—' }}</div>
+                  <div class="table-meta">{{ changed_by.AccountType or '—' }}</div>
+                {% else %}
+                  <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">
+                {{ audit.ChangeReason or '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="table-empty">No driver profile changes found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

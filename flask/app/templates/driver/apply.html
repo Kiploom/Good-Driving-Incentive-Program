@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Sponsor Applications{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<style>
+  .flash-container {
+    margin-bottom: 20px;
+  }
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #34d399;
+  }
+  .alert.alert-danger {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+  }
+  .alert.alert-warning {
+    background: #fff7ed;
+    color: #c2410c;
+    border-color: #fcd34d;
+  }
+  .pending-apps-card {
+    margin-bottom: 24px;
+  }
+  .pending-apps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .pending-apps-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid #e5e7eb;
+  }
+  .pending-apps-row:first-child {
+    border-top: none;
+  }
+  .pending-apps-sponsor {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .pending-apps-meta {
+    display: block;
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 4px;
+  }
+  .pending-apps-status {
+    font-weight: 600;
+    color: #d97706;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .pending-apps-status i {
+    color: #f59e0b;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page" id="application-top">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Sponsor Applications</h1>
+        <p>
+          Share your experience and availability so sponsors can review your request.
+          You can revisit this page to submit additional applications or check on pending ones at any time.
+        </p>
+      </div>
+    </header>
+
+    {% if pending_apps %}
+      <section class="settings-card pending-apps-card" aria-labelledby="pending-apps-title">
+        <div class="settings-section-header">
+          <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+          <h2 id="pending-apps-title">Pending Sponsor Applications</h2>
+        </div>
+        <p class="settings-section-description">
+          These applications are still under review. We'll notify you as soon as a sponsor makes a decision.
+        </p>
+        <ul class="pending-apps-list">
+          {% for item in pending_apps %}
+            {% set app = item.application %}
+            <li class="pending-apps-row">
+              <div>
+                <span class="pending-apps-sponsor">{{ item.sponsor_name }}</span>
+                <span class="pending-apps-meta">
+                  Submitted {{ app.SubmittedAt.strftime('%b %d, %Y at %I:%M %p') if app.SubmittedAt else '—' }}
+                </span>
+              </div>
+              <span class="pending-apps-status">
+                <i class="fas fa-clock" aria-hidden="true"></i>
+                Under review
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('apply.apply_submit') }}" class="settings-card" onsubmit="return packIncidents();">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-building" aria-hidden="true"></i>
+          <h2>Sponsor Selection</h2>
+        </div>
+        <div class="inline-form">
+          <div class="form-control">
+            <label for="SponsorCompanyID">Sponsor company you’re applying to</label>
+            <select id="SponsorCompanyID" name="SponsorCompanyID" required>
+              <option value="">Select a sponsor company…</option>
+              {% for company in sponsor_companies %}
+              <option value="{{ company.SponsorCompanyID }}">{{ company.CompanyName }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-id-card" aria-hidden="true"></i>
+          <h2>Experience</h2>
+        </div>
+        <div class="inline-form two-column">
+          <div class="form-control">
+            <label for="CDLClass">CDL Class</label>
+            <select id="CDLClass" name="CDLClass">
+              <option value="">Select…</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label for="Transmission">Transmission Preference</label>
+            <select id="Transmission" name="Transmission">
+              <option value="">Select…</option>
+              <option value="AUTOMATIC">Automatic</option>
+              <option value="MANUAL">Manual</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label for="ExperienceYears">Experience (years)</label>
+            <input id="ExperienceYears" name="ExperienceYears" type="number" min="0" step="1">
+          </div>
+          <div class="form-control">
+            <label for="ExperienceMonths">Experience (months)</label>
+            <input id="ExperienceMonths" name="ExperienceMonths" type="number" min="0" max="11" step="1">
+          </div>
+          <div class="form-control">
+            <label for="PreferredWeeklyHours">Preferred weekly hours</label>
+            <input id="PreferredWeeklyHours" name="PreferredWeeklyHours" type="number" min="0" step="1">
+          </div>
+          <div class="form-control">
+            <label for="ViolationsCount3Y">Moving violations (last 3 years)</label>
+            <input id="ViolationsCount3Y" name="ViolationsCount3Y" type="number" min="0" step="1">
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-car-crash" aria-hidden="true"></i>
+          <h2>Accidents &amp; Incidents</h2>
+        </div>
+        <p class="settings-section-description">
+          Log any accidents from the past five years. You can add as many as you need.
+        </p>
+        <div id="acc-list" class="settings-grid">
+          <!-- accidents are injected here -->
+        </div>
+        <button class="btn btn-secondary" type="button" onclick="addAcc()">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          Add an accident
+        </button>
+        <div class="inline-form">
+          <div class="form-control">
+            <label for="ViolationsNotes">Additional notes (optional)</label>
+            <textarea id="ViolationsNotes" rows="3" placeholder="Share any context about violations or incidents…"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <h2>Suspensions</h2>
+        </div>
+        <div class="inline-form two-column">
+          <div class="form-control">
+            <label for="Suspensions5Y">Any CDL suspensions or revocations in the last 5 years?</label>
+            <select id="Suspensions5Y" name="Suspensions5Y">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label for="SuspensionsDetail">If yes, explain</label>
+            <input id="SuspensionsDetail" name="SuspensionsDetail" type="text" placeholder="Brief explanation">
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-file-signature" aria-hidden="true"></i>
+          <h2>Consent &amp; Signature</h2>
+        </div>
+        <div class="settings-card settings-card--nested">
+          <label>
+            <input type="checkbox" name="ConsentedDataUse" value="1">
+            I consent to my data being used to process this application.
+          </label>
+          <label>
+            <input type="checkbox" name="AgreedTerms" value="1" required>
+            I agree to the program terms and conditions.
+          </label>
+          <div class="inline-form">
+            <div class="form-control">
+              <label for="ESignature">Signature (type full name)</label>
+              <input id="ESignature" name="ESignature" type="text" required>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <input id="IncidentsJSON" name="IncidentsJSON" type="hidden">
+
+      <div class="settings-actions">
+        <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">Cancel</a>
+        <button class="btn btn-primary" type="submit">
+          <i class="fas fa-paper-plane" aria-hidden="true"></i>
+          Submit application
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<template id="accident-template">
+  <div class="settings-card settings-card--nested acc-entry">
+    <div class="inline-form two-column">
+      <div class="form-control">
+        <label>Date</label>
+        <input type="date" class="acc-date">
+      </div>
+      <div class="form-control">
+        <label>Type</label>
+        <input class="acc-type" placeholder="Rear-end, rollover, etc.">
+      </div>
+      <div class="form-control">
+        <label>At fault?</label>
+        <select class="acc-fault">
+          <option value="">–</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="form-control">
+        <label>Injuries?</label>
+        <select class="acc-inj">
+          <option value="">–</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+    </div>
+    <div class="inline-form">
+      <div class="form-control">
+        <label>Notes</label>
+        <input class="acc-notes" placeholder="Optional details">
+      </div>
+    </div>
+    <button class="btn btn-secondary" type="button" onclick="removeAcc(this)">
+      <i class="fas fa-trash" aria-hidden="true"></i>
+      Remove
+    </button>
+  </div>
+</template>
+
+<script>
+function addAcc(initialData = {}) {
+  const template = document.getElementById('accident-template');
+  if (!template) return;
+  const node = template.content.firstElementChild.cloneNode(true);
+
+  node.querySelector('.acc-date').value = initialData.date || '';
+  node.querySelector('.acc-type').value = initialData.type || '';
+  node.querySelector('.acc-fault').value = initialData.at_fault || '';
+  node.querySelector('.acc-inj').value = initialData.injuries || '';
+  node.querySelector('.acc-notes').value = initialData.notes || '';
+
+  document.getElementById('acc-list').appendChild(node);
+}
+
+function removeAcc(trigger) {
+  const container = trigger.closest('.acc-entry');
+  if (container) {
+    container.remove();
+  }
+}
+
+function packIncidents() {
+  const entries = [...document.querySelectorAll('.acc-entry')].map(entry => ({
+    date: entry.querySelector('.acc-date').value || null,
+    type: entry.querySelector('.acc-type').value || null,
+    at_fault: (entry.querySelector('.acc-fault').value || '').toLowerCase(),
+    injuries: (entry.querySelector('.acc-inj').value || '').toLowerCase(),
+    notes: entry.querySelector('.acc-notes').value || null,
+  }));
+
+  const payload = {
+    accidents: entries,
+    violations_notes: document.getElementById('ViolationsNotes').value || null,
+  };
+
+  document.getElementById('IncidentsJSON').value = JSON.stringify(payload);
+  return true;
+}
+</script>
+{% endblock %}
+

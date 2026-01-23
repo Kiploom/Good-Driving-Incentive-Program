@@ -1,0 +1,1139 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Driver-Sponsor Relations{% endblock %}
+
+{% block content %}
+<style>
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .toolbar h1 {
+    margin: 0;
+    color: #111827;
+    font-size: 1.875rem;
+    font-weight: 700;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn:hover {
+    background: #2563eb;
+  }
+  
+  .btn-secondary {
+    background: #6b7280;
+  }
+  
+  .btn-secondary:hover {
+    background: #4b5563;
+  }
+  
+  .btn-danger {
+    background: #dc2626;
+  }
+  
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+  
+  .btn-success {
+    background: #059669;
+  }
+  
+  .btn-success:hover {
+    background: #047857;
+  }
+  
+  .btn-warning {
+    background: #d97706;
+  }
+  
+  .btn-warning:hover {
+    background: #b45309;
+  }
+  
+  .management-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+    overflow: visible;
+  }
+  
+  .section-header {
+    background: #f9fafb;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .section-header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+  
+  .section-content {
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .section-content .searchable-select-wrapper.active {
+    z-index: 999999 !important;
+  }
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  
+  .form-group .searchable-select-wrapper.active {
+    z-index: 999999 !important;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .form-group select,
+  .form-group input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #111827;
+  }
+  
+  [data-theme="dark"] .form-group select,
+  [data-theme="dark"] .form-group input {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .form-group input[type="number"] {
+    width: 100%;
+  }
+  
+  .form-group input::placeholder {
+    color: #9ca3af;
+  }
+  
+  [data-theme="dark"] .form-group input::placeholder {
+    color: #6b7280;
+  }
+  
+  .table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    overflow: visible;
+  }
+  
+  .table-container .table {
+    overflow: visible;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+  }
+  
+  .table tbody tr:hover {
+    background: #f9fafb;
+  }
+  
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  
+  .status-active {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  .status-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .status-pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .points-balance {
+    font-weight: 600;
+    color: #059669;
+  }
+  
+  .no-data {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .action-buttons .btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .sortable-header {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+  
+  .sortable-header:hover {
+    background: #f3f4f6;
+  }
+  
+  [data-theme="dark"] .sortable-header:hover {
+    background: #374151;
+  }
+  
+  .sort-indicator {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+  
+  .sortable-header.active .sort-indicator::after {
+    content: '▼';
+  }
+  
+  .sortable-header.active.asc .sort-indicator::after {
+    content: '▲';
+  }
+  
+  .sortable-header.active.desc .sort-indicator::after {
+    content: '▼';
+  }
+  
+  .sort-controls {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  
+  [data-theme="dark"] .sort-controls {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .sort-controls-inner {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .filter-group label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  
+  [data-theme="dark"] .filter-group label {
+    color: #f9fafb;
+  }
+  
+  .filter-group select,
+  .filter-group input[type="text"],
+  .filter-group input[type="number"] {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #111827;
+    font-size: 0.875rem;
+    min-width: 120px;
+  }
+  
+  [data-theme="dark"] .filter-group select,
+  [data-theme="dark"] .filter-group input[type="text"],
+  [data-theme="dark"] .filter-group input[type="number"] {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .filter-group input[type="number"] {
+    min-width: 80px;
+  }
+  
+  .sort-apply-btn {
+    padding: 6px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+  }
+  
+  .sort-apply-btn:hover {
+    background: #2563eb;
+  }
+  
+  .sort-clear-btn {
+    padding: 6px 16px;
+    background: #6b7280;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+  }
+  
+  .sort-clear-btn:hover {
+    background: #4b5563;
+  }
+  
+  .table-row-hidden {
+    display: none;
+  }
+  
+  /* Searchable select styles */
+  .searchable-select-wrapper {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .searchable-select-wrapper.active {
+    z-index: 999999 !important;
+    position: relative;
+  }
+  
+  .searchable-select-input {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.875rem;
+    color: #111827;
+    cursor: pointer;
+  }
+  
+  [data-theme="dark"] .searchable-select-input {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .searchable-select-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .searchable-select-input::placeholder {
+    color: #9ca3af;
+  }
+  
+  [data-theme="dark"] .searchable-select-input::placeholder {
+    color: #6b7280;
+  }
+  
+  .searchable-select-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6b7280;
+    font-size: 0.75rem;
+  }
+  
+  [data-theme="dark"] .searchable-select-wrapper::after {
+    color: #9ca3af;
+  }
+  
+  .searchable-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 160px;
+    overflow-y: auto;
+    background: white !important;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    z-index: 999999 !important;
+    display: none;
+    margin-top: -1px;
+    isolation: isolate;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  [data-theme="dark"] .searchable-select-dropdown {
+    background: #1f2937 !important;
+    border-color: #374151;
+  }
+  
+  .searchable-select-wrapper.active .searchable-select-dropdown {
+    display: block;
+  }
+  
+  .searchable-select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #111827;
+    font-size: 0.875rem;
+    position: relative;
+    z-index: 1;
+    background: inherit;
+  }
+  
+  [data-theme="dark"] .searchable-select-option {
+    color: #f9fafb;
+  }
+  
+  .searchable-select-option:hover,
+  .searchable-select-option.highlighted {
+    background: #f3f4f6;
+  }
+  
+  [data-theme="dark"] .searchable-select-option:hover,
+  [data-theme="dark"] .searchable-select-option.highlighted {
+    background: #374151;
+  }
+  
+  .searchable-select-option[data-value=""] {
+    color: #9ca3af;
+    font-style: italic;
+  }
+  
+  [data-theme="dark"] .searchable-select-option[data-value=""] {
+    color: #6b7280;
+  }
+  
+  .searchable-select-wrapper select {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+  }
+</style>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div>
+      <h1>Manage Driver-Sponsor Relations</h1>
+      <p style="color:#6b7280;">Assign drivers to sponsors, reassign relationships, or remove driver-sponsor connections.</p>
+    </div>
+    <a class="btn" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+  </div>
+
+  <!-- Assign New Relationship -->
+  <div class="management-section">
+    <div class="section-header">
+      <h3>➕ Assign Driver to Sponsor</h3>
+    </div>
+    <div class="section-content">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="action" value="assign">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="driver_id">Select Driver:</label>
+            <div class="searchable-select-wrapper" data-select-id="driver_id">
+              <input type="text" class="searchable-select-input" id="driver_id_input" placeholder="Type to search drivers..." autocomplete="off" readonly>
+              <select name="driver_id" id="driver_id" required>
+                <option value="">Choose a driver...</option>
+                {% for driver, account in drivers %}
+                  <option value="{{ driver.DriverID }}" data-search-text="{{ (account.FirstName + ' ' + account.LastName + ' ' + account.Email)|lower }}">{{ account.FirstName }} {{ account.LastName }} ({{ account.Email }})</option>
+                {% endfor %}
+              </select>
+              <div class="searchable-select-dropdown" id="driver_id_dropdown"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="sponsor_company_id">Select Sponsor Company:</label>
+            <div class="searchable-select-wrapper" data-select-id="sponsor_company_id">
+              <input type="text" class="searchable-select-input" id="sponsor_company_id_input" placeholder="Type to search companies..." autocomplete="off" readonly>
+              <select name="sponsor_company_id" id="sponsor_company_id" required onchange="updateSponsorAccounts()">
+                <option value="">Choose a company...</option>
+                {% for company in sponsor_companies %}
+                  <option value="{{ company.SponsorCompanyID }}" data-search-text="{{ company.CompanyName|lower }}">{{ company.CompanyName }}</option>
+                {% endfor %}
+              </select>
+              <div class="searchable-select-dropdown" id="sponsor_company_id_dropdown"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="points_balance">Initial Points Balance:</label>
+            <input type="number" name="points_balance" id="points_balance" value="0" min="0" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success">Assign Driver to Sponsor Company</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Remove Relationship -->
+  <div class="management-section">
+    <div class="section-header">
+      <h3>🗑️ Remove Driver-Sponsor Relationship</h3>
+    </div>
+    <div class="section-content">
+      <form method="POST" onsubmit="return validateRemoveForm()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="action" value="remove">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="remove_sponsor_company_id">Select Sponsor Company:</label>
+            <div class="searchable-select-wrapper" data-select-id="remove_sponsor_company_id">
+              <input type="text" class="searchable-select-input" id="remove_sponsor_company_id_input" placeholder="Type to search companies..." autocomplete="off" readonly>
+              <select name="remove_sponsor_company_id" id="remove_sponsor_company_id" required onchange="updateRemoveDrivers()">
+                <option value="">Choose a company...</option>
+                {% for company in sponsor_companies %}
+                  <option value="{{ company.SponsorCompanyID }}" data-search-text="{{ company.CompanyName|lower }}">{{ company.CompanyName }}</option>
+                {% endfor %}
+              </select>
+              <div class="searchable-select-dropdown" id="remove_sponsor_company_id_dropdown"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="remove_driver_id">Select Driver to Remove:</label>
+            <div class="searchable-select-wrapper" data-select-id="remove_driver_id">
+              <input type="text" class="searchable-select-input" id="remove_driver_id_input" placeholder="Type to search drivers..." autocomplete="off" readonly>
+              <select name="remove_driver_id" id="remove_driver_id" required onchange="setDriverSponsorId()">
+                <option value="">Choose a driver...</option>
+                {% for driver_sponsor, driver, account, sponsor, sponsor_account, sponsor_company in relationships %}
+                  {% if driver_sponsor.Status == 'ACTIVE' %}
+                    <option value="{{ driver.DriverID }}" data-company-id="{{ sponsor_company.SponsorCompanyID }}" data-driver-sponsor-id="{{ driver_sponsor.DriverSponsorID }}" data-search-text="{{ (account.FirstName + ' ' + account.LastName + ' ' + account.Email)|lower }}">
+                      {{ account.FirstName }} {{ account.LastName }} ({{ account.Email }})
+                    </option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              <div class="searchable-select-dropdown" id="remove_driver_id_dropdown"></div>
+            </div>
+          </div>
+          <input type="hidden" name="driver_sponsor_id" id="remove_driver_sponsor_id" value="">
+          <input type="hidden" name="remove_sponsor_id" id="remove_sponsor_id" value="">
+        </div>
+        <button type="submit" class="btn btn-danger">Remove Relationship</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Current Relationships Table -->
+  <div class="table-container">
+    <div class="section-header">
+      <h3>📋 Current Driver-Sponsor Relationships</h3>
+    </div>
+    {% if relationships %}
+      <div class="sort-controls">
+        <div class="sort-controls-inner">
+          <div class="filter-group">
+            <label for="filter_driver">Filter by Driver:</label>
+            <input type="text" id="filter_driver" placeholder="Search driver name or email..." autocomplete="off">
+          </div>
+          <div class="filter-group">
+            <label for="filter_sponsor">Filter by Sponsor:</label>
+            <input type="text" id="filter_sponsor" placeholder="Search sponsor company..." autocomplete="off">
+          </div>
+          <div class="filter-group">
+            <label for="filter_status">Filter by Status:</label>
+            <select id="filter_status">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="sort_by">Sort by:</label>
+            <select id="sort_by">
+              <option value="driver">Driver Name</option>
+              <option value="sponsor">Sponsor Company</option>
+              <option value="points">Points Balance</option>
+              <option value="status">Status</option>
+              <option value="created">Created Date</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="sort_order">Order:</label>
+            <select id="sort_order">
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+          <button type="button" onclick="applyFiltersAndSort()" class="sort-apply-btn">Apply Filters & Sort</button>
+          <button type="button" onclick="clearFilters()" class="sort-clear-btn">Clear Filters</button>
+        </div>
+      </div>
+      <table class="table" id="relationships_table">
+        <thead>
+          <tr>
+            <th data-sort="driver" class="sortable-header">Driver <span class="sort-indicator"></span></th>
+            <th data-sort="sponsor" class="sortable-header">Sponsor Company <span class="sort-indicator"></span></th>
+            <th data-sort="points" class="sortable-header">Points Balance <span class="sort-indicator"></span></th>
+            <th data-sort="status" class="sortable-header">Status <span class="sort-indicator"></span></th>
+            <th data-sort="created" class="sortable-header">Created Date <span class="sort-indicator"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="relationships_tbody">
+          {% for driver_sponsor, driver, account, sponsor, sponsor_account, sponsor_company in relationships %}
+            <tr data-driver-name="{{ (account.FirstName + ' ' + account.LastName)|lower }}" 
+                data-driver-email="{{ account.Email|lower }}"
+                data-sponsor-name="{{ sponsor_company.CompanyName|lower }}"
+                data-points="{{ driver_sponsor.PointsBalance }}"
+                data-status="{{ driver_sponsor.Status|lower }}"
+                data-created="{{ driver_sponsor.CreatedAt.timestamp() if driver_sponsor.CreatedAt else 0 }}">
+              <td>
+                <strong>{{ account.FirstName }} {{ account.LastName }}</strong>
+                <br><small style="color: #6b7280;">{{ account.Email }}</small>
+              </td>
+              <td>
+                <strong>{{ sponsor_company.CompanyName }}</strong>
+              </td>
+              <td>
+                <span class="points-balance">{{ "{:,}".format(driver_sponsor.PointsBalance) }}</span>
+              </td>
+              <td>
+                <span class="status-badge status-{{ driver_sponsor.Status.lower() }}">
+                  {{ driver_sponsor.Status }}
+                </span>
+              </td>
+              <td>
+                {{ driver_sponsor.CreatedAt.strftime('%Y-%m-%d %H:%M') if driver_sponsor.CreatedAt else 'N/A' }}
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <!-- Quick action buttons removed - use forms above -->
+                  <span style="color: #6b7280; font-size: 0.875rem;">Use forms above</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="no-data">
+        <h3>No relationships found</h3>
+        <p>No driver-sponsor relationships exist yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Searchable select functionality - combined input and dropdown
+function initSearchableSelect(selectId) {
+    const wrapper = document.querySelector(`[data-select-id="${selectId}"]`);
+    if (!wrapper) return;
+    
+    const input = wrapper.querySelector('.searchable-select-input');
+    const select = document.getElementById(selectId);
+    const dropdown = wrapper.querySelector('.searchable-select-dropdown');
+    
+    if (!input || !select || !dropdown) return;
+    
+    let highlightedIndex = -1;
+    let filteredOptions = [];
+    
+    // Store original options
+    if (!select.dataset.originalOptionsStored) {
+        const originalOptions = Array.from(select.options).map(opt => ({
+            value: opt.value,
+            text: opt.textContent,
+            searchText: opt.getAttribute('data-search-text') || opt.textContent.toLowerCase(),
+            dataset: Object.assign({}, opt.dataset)
+        }));
+        select.dataset.originalOptions = JSON.stringify(originalOptions);
+        select.dataset.originalOptionsStored = 'true';
+    }
+    
+    function getOriginalOptions() {
+        return JSON.parse(select.dataset.originalOptions || '[]');
+    }
+    
+    function renderDropdown(searchTerm = '') {
+        const originalOptions = getOriginalOptions();
+        const term = searchTerm.toLowerCase().trim();
+        
+        filteredOptions = originalOptions.filter(opt => {
+            if (opt.value === '') return true; // Always show placeholder
+            return term === '' || opt.searchText.includes(term);
+        });
+        
+        dropdown.innerHTML = '';
+        highlightedIndex = -1;
+        
+        filteredOptions.forEach((opt, index) => {
+            const div = document.createElement('div');
+            div.className = 'searchable-select-option';
+            div.dataset.value = opt.value;
+            div.textContent = opt.text;
+            if (opt.value === '') {
+                div.style.fontStyle = 'italic';
+            }
+            div.addEventListener('click', () => selectOption(opt));
+            dropdown.appendChild(div);
+        });
+        
+        if (filteredOptions.length === 0) {
+            const div = document.createElement('div');
+            div.className = 'searchable-select-option';
+            div.textContent = 'No results found';
+            div.style.color = '#9ca3af';
+            div.style.cursor = 'default';
+            dropdown.appendChild(div);
+        }
+    }
+    
+    function selectOption(opt) {
+        select.value = opt.value;
+        if (opt.value === '') {
+            input.value = '';
+            input.placeholder = input.getAttribute('data-placeholder') || input.placeholder;
+        } else {
+            input.value = opt.text;
+            input.placeholder = '';
+        }
+        input.readOnly = true;
+        wrapper.classList.remove('active');
+        highlightedIndex = -1;
+        
+        // Trigger change event for dependent selects
+        select.dispatchEvent(new Event('change'));
+    }
+    
+    function openDropdown() {
+        wrapper.classList.add('active');
+        input.readOnly = false;
+        const currentValue = input.value;
+        if (currentValue && currentValue !== input.placeholder) {
+            input.value = currentValue;
+        } else {
+            input.value = '';
+        }
+        input.focus();
+        renderDropdown(input.value);
+        
+        // Ensure dropdown is positioned correctly and visible
+        const rect = input.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // If dropdown would be cut off at bottom, position it above the input
+        if (rect.bottom + dropdownRect.height > viewportHeight && rect.top > dropdownRect.height) {
+            dropdown.style.top = 'auto';
+            dropdown.style.bottom = '100%';
+            dropdown.style.marginTop = '0';
+            dropdown.style.marginBottom = '-1px';
+            dropdown.style.borderRadius = '6px 6px 0 0';
+            dropdown.style.borderTop = '1px solid #d1d5db';
+            dropdown.style.borderBottom = 'none';
+        } else {
+            dropdown.style.top = '100%';
+            dropdown.style.bottom = 'auto';
+            dropdown.style.marginTop = '-1px';
+            dropdown.style.marginBottom = '0';
+            dropdown.style.borderRadius = '0 0 6px 6px';
+            dropdown.style.borderTop = 'none';
+            dropdown.style.borderBottom = '1px solid #d1d5db';
+        }
+    }
+    
+    function closeDropdown() {
+        wrapper.classList.remove('active');
+        input.readOnly = true;
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.value !== '') {
+            input.value = selectedOption.textContent;
+        } else {
+            input.value = '';
+            input.placeholder = input.getAttribute('data-placeholder') || input.placeholder;
+        }
+    }
+    
+    // Click to open/close
+    input.addEventListener('click', function(e) {
+        if (this.readOnly) {
+            openDropdown();
+        }
+    });
+    
+    // Typing to filter
+    input.addEventListener('input', function() {
+        renderDropdown(this.value);
+        highlightedIndex = -1;
+    });
+    
+    // Keyboard navigation
+    input.addEventListener('keydown', function(e) {
+        if (!wrapper.classList.contains('active')) {
+            if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                openDropdown();
+                return;
+            }
+        }
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (highlightedIndex < filteredOptions.length - 1) {
+                highlightedIndex++;
+                updateHighlight();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (highlightedIndex > 0) {
+                highlightedIndex--;
+                updateHighlight();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
+                selectOption(filteredOptions[highlightedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            closeDropdown();
+        }
+    });
+    
+    function updateHighlight() {
+        const options = dropdown.querySelectorAll('.searchable-select-option');
+        options.forEach((opt, index) => {
+            opt.classList.toggle('highlighted', index === highlightedIndex);
+        });
+        if (highlightedIndex >= 0 && options[highlightedIndex]) {
+            options[highlightedIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+    
+    // Store original placeholder
+    input.setAttribute('data-placeholder', input.placeholder);
+    
+    // Initialize display
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.value !== '') {
+        input.value = selectedOption.textContent;
+        input.placeholder = '';
+    } else {
+        input.value = '';
+    }
+}
+
+// Filter remove drivers by company selection
+function updateRemoveDrivers() {
+    const companySelect = document.getElementById('remove_sponsor_company_id');
+    const driverSelect = document.getElementById('remove_driver_id');
+    const selectedCompanyId = companySelect.value;
+    
+    // Reset and show/hide options based on company selection
+    Array.from(driverSelect.options).forEach(option => {
+        if (option.value === '') {
+            // Always show the "choose" option
+            option.style.display = 'block';
+        } else if (!selectedCompanyId || selectedCompanyId === '') {
+            // Hide all options if no company is selected
+            option.style.display = 'none';
+        } else if (option.dataset.companyId === selectedCompanyId) {
+            // Show only drivers from matching company
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Reset the selection and hidden field
+    driverSelect.value = '';
+    document.getElementById('remove_driver_sponsor_id').value = '';
+}
+
+// Set the driver_sponsor_id hidden field when a driver is selected
+function setDriverSponsorId() {
+    const driverSelect = document.getElementById('remove_driver_id');
+    const selectedOption = driverSelect.options[driverSelect.selectedIndex];
+    const driverSponsorId = selectedOption.dataset.driverSponsorId;
+    document.getElementById('remove_driver_sponsor_id').value = driverSponsorId || '';
+    console.log('DriverSponsorID set to:', driverSponsorId);
+}
+
+// Validate remove form before submission
+function validateRemoveForm() {
+    const driverSponsorId = document.getElementById('remove_driver_sponsor_id').value;
+    const driverId = document.getElementById('remove_driver_id').value;
+    const sponsorId = document.getElementById('remove_sponsor_id').value;
+    
+    console.log('Validating remove form - driver_sponsor_id:', driverSponsorId, 'driver_id:', driverId, 'sponsor_id:', sponsorId);
+    
+    if (!driverSponsorId && (!driverId || !sponsorId)) {
+        alert('Please select both a company and a driver.');
+        return false;
+    }
+    
+    return confirm('Are you sure you want to remove this driver-sponsor relationship? This will mark the relationship as inactive.');
+}
+
+// Filter sponsor accounts by company selection
+function updateSponsorAccounts() {
+    const companySelect = document.getElementById('sponsor_company_id');
+    const accountSelect = document.getElementById('sponsor_id');
+    const selectedCompanyId = companySelect.value;
+    
+    // Reset and show/hide options based on company selection
+    Array.from(accountSelect.options).forEach(option => {
+        if (option.value === '') {
+            // Always show the "Auto-select" option
+            option.style.display = 'block';
+        } else if (!selectedCompanyId || selectedCompanyId === '') {
+            // Hide all options if no company is selected
+            option.style.display = 'none';
+        } else if (option.dataset.companyId === selectedCompanyId) {
+            // Show only matching company accounts
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Reset the selection to auto-select
+    accountSelect.value = '';
+}
+
+// Table filtering and sorting functionality
+function applyFiltersAndSort() {
+    const tbody = document.getElementById('relationships_tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Get filter values
+    const filterDriver = document.getElementById('filter_driver').value.toLowerCase().trim();
+    const filterSponsor = document.getElementById('filter_sponsor').value.toLowerCase().trim();
+    const filterStatus = document.getElementById('filter_status').value.toLowerCase().trim();
+    const sortBy = document.getElementById('sort_by').value;
+    const sortOrder = document.getElementById('sort_order').value;
+    
+    // Filter rows
+    let visibleRows = allRows.filter(row => {
+        // Driver filter (name or email)
+        if (filterDriver) {
+            const driverName = row.dataset.driverName || '';
+            const driverEmail = row.dataset.driverEmail || '';
+            if (!driverName.includes(filterDriver) && !driverEmail.includes(filterDriver)) {
+                return false;
+            }
+        }
+        
+        // Sponsor filter
+        if (filterSponsor) {
+            const sponsorName = row.dataset.sponsorName || '';
+            if (!sponsorName.includes(filterSponsor)) {
+                return false;
+            }
+        }
+        
+        // Status filter
+        if (filterStatus) {
+            const status = row.dataset.status || '';
+            if (status !== filterStatus) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    // Remove active class from all headers
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.classList.remove('active', 'asc', 'desc');
+    });
+    
+    // Add active class to current sort header
+    const activeHeader = document.querySelector(`[data-sort="${sortBy}"]`);
+    if (activeHeader) {
+        activeHeader.classList.add('active', sortOrder);
+    }
+    
+    // Sort visible rows
+    visibleRows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(sortBy) {
+            case 'driver':
+                aValue = a.dataset.driverName || '';
+                bValue = b.dataset.driverName || '';
+                break;
+            case 'sponsor':
+                aValue = a.dataset.sponsorName || '';
+                bValue = b.dataset.sponsorName || '';
+                break;
+            case 'points':
+                aValue = parseInt(a.dataset.points || 0);
+                bValue = parseInt(b.dataset.points || 0);
+                break;
+            case 'status':
+                aValue = a.dataset.status || '';
+                bValue = b.dataset.status || '';
+                break;
+            case 'created':
+                aValue = parseFloat(a.dataset.created || 0);
+                bValue = parseFloat(b.dataset.created || 0);
+                break;
+            default:
+                return 0;
+        }
+        
+        let comparison = 0;
+        if (aValue < bValue) {
+            comparison = -1;
+        } else if (aValue > bValue) {
+            comparison = 1;
+        }
+        
+        return sortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    // Hide all rows first
+    allRows.forEach(row => {
+        row.classList.add('table-row-hidden');
+    });
+    
+    // Show and reorder visible rows
+    visibleRows.forEach(row => {
+        row.classList.remove('table-row-hidden');
+        tbody.appendChild(row);
+    });
+}
+
+function clearFilters() {
+    document.getElementById('filter_driver').value = '';
+    document.getElementById('filter_sponsor').value = '';
+    document.getElementById('filter_status').value = '';
+    document.getElementById('sort_by').value = 'driver';
+    document.getElementById('sort_order').value = 'asc';
+    
+    // Show all rows and reset order
+    const tbody = document.getElementById('relationships_tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    allRows.forEach(row => {
+        row.classList.remove('table-row-hidden');
+    });
+    
+    // Remove active class from headers
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.classList.remove('active', 'asc', 'desc');
+    });
+}
+
+// Make headers clickable
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize searchable selects
+    initSearchableSelect('driver_id');
+    initSearchableSelect('sponsor_company_id');
+    initSearchableSelect('remove_sponsor_company_id');
+    initSearchableSelect('remove_driver_id');
+    
+    // Initialize filters
+    updateSponsorAccounts();
+    updateRemoveDrivers();
+    
+    // Add click handlers to sortable headers
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const currentSort = document.getElementById('sort_by').value;
+            const currentOrder = document.getElementById('sort_order').value;
+            
+            // Set sort by
+            document.getElementById('sort_by').value = sortBy;
+            
+            // Toggle order if clicking same column
+            if (currentSort === sortBy) {
+                document.getElementById('sort_order').value = currentOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                document.getElementById('sort_order').value = 'asc';
+            }
+            
+            applyFiltersAndSort();
+        });
+    });
+});
+</script>
+{% endblock %}

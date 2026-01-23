@@ -1,0 +1,241 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Filter Set Audit History{% endblock %}
+
+{% block page_title %}Filter Set Audit History{% endblock %}
+{% block page_subtitle %}
+Track every change applied to your filter sets, who made it, and when it occurred.
+{% endblock %}
+{% block hero_actions %}
+<a href="{{ url_for('sponsor_catalog.filter_sets') }}" class="btn btn-muted">← Back to Filter Sets</a>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+
+<style>
+    .audit-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-card);
+        box-shadow: 0 18px 32px var(--shadow-sm);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .audit-table thead {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .audit-table th {
+        padding: 14px 18px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .audit-table td {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text-secondary);
+    }
+
+    .audit-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .audit-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .action-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .action-badge.create {
+        background: rgba(16, 185, 129, 0.18);
+        color: #047857;
+    }
+
+    .action-badge.update {
+        background: rgba(245, 158, 11, 0.18);
+        color: #b45309;
+    }
+
+    .action-badge.delete {
+        background: rgba(239, 68, 68, 0.18);
+        color: #b91c1c;
+    }
+
+    .action-badge.change {
+        background: rgba(59, 130, 246, 0.18);
+        color: #1d4ed8;
+    }
+
+    .action-badge.export {
+        background: rgba(139, 92, 246, 0.18);
+        color: #7c3aed;
+    }
+
+    .actor-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .actor-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .actor-email {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .timestamp {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .detail-info {
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .no-logs {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-muted);
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        background: var(--bg-secondary);
+    }
+
+    .no-logs-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .details-toggle {
+        font-size: 12px;
+        color: var(--accent);
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 4px;
+        display: inline-block;
+    }
+
+    .details-toggle:hover {
+        color: var(--accent-hover);
+    }
+
+    .json-details {
+        display: none;
+        margin-top: 8px;
+        padding: 8px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        max-width: 500px;
+        overflow-x: auto;
+    }
+
+    .json-details.show {
+        display: block;
+    }
+</style>
+
+{% if audit_logs %}
+<table class="audit-table">
+    <thead>
+        <tr>
+            <th style="width: 150px;">Timestamp</th>
+            <th style="width: 140px;">Action</th>
+            <th>Details</th>
+            <th style="width: 200px;">Actor</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in audit_logs %}
+        <tr>
+            <td class="timestamp">
+                {% if log.created_at %}
+                    {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                {% if 'CREATE' in log.action %}
+                    <span class="action-badge create">Create</span>
+                {% elif 'UPDATE' in log.action %}
+                    <span class="action-badge update">Update</span>
+                {% elif 'DELETE' in log.action %}
+                    <span class="action-badge delete">Delete</span>
+                {% elif 'CHANGE' in log.action %}
+                    <span class="action-badge change">Change</span>
+                {% elif 'EXPORT' in log.action %}
+                    <span class="action-badge export">Export</span>
+                {% else %}
+                    <span class="action-badge">{{ log.action_display }}</span>
+                {% endif %}
+            </td>
+            <td>
+                <div class="detail-info">{{ log.detail_info }}</div>
+                {% if log.details_json %}
+                <span class="details-toggle" onclick="toggleDetails('{{ log.id }}')">
+                    View raw details →
+                </span>
+                <div id="details-{{ log.id }}" class="json-details">
+                    <pre>{{ log.details_json | tojson(indent=2) }}</pre>
+                </div>
+                {% endif %}
+            </td>
+            <td>
+                <div class="actor-info">
+                    <span class="actor-name">{{ log.actor_name }}</span>
+                    {% if log.actor_email %}
+                    <span class="actor-email">{{ log.actor_email }}</span>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="no-logs">
+    <div class="no-logs-icon">📋</div>
+    <h3>No Audit History</h3>
+    <p>No filter set changes have been recorded yet.</p>
+</div>
+{% endif %}
+
+</section>
+
+<script>
+    function toggleDetails(id) {
+        const elem = document.getElementById('details-' + id);
+        if (elem) {
+            elem.classList.toggle('show');
+        }
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Point Disputes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Point Change Disputes</h1>
+    <div class="btn-group" role="group">
+      <a href="{{ url_for('sponsor.manage_disputes', status='pending') }}" 
+         class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        Pending
+      </a>
+      <a href="{{ url_for('sponsor.manage_disputes', status='resolved') }}" 
+         class="btn btn-sm {% if status_filter == 'resolved' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        Resolved
+      </a>
+      <a href="{{ url_for('sponsor.manage_disputes', status='all') }}" 
+         class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        All
+      </a>
+    </div>
+  </div>
+  
+  {% if disputes %}
+    <div class="alert alert-info mb-3">
+      <i class="fas fa-info-circle"></i> Showing {{ disputes|length }} dispute{{ 's' if disputes|length != 1 else '' }} 
+      {% if status_filter == 'pending' %}(pending only){% elif status_filter == 'resolved' %}(resolved only){% else %}(all statuses){% endif %}
+      {% if all_disputes_count is defined and all_disputes_count > disputes|length %}
+        <br><small>Note: There are {{ all_disputes_count }} total disputes in the database, but only {{ disputes|length }} match your sponsor filter.</small>
+      {% endif %}
+    </div>
+  {% elif all_disputes_count is defined and all_disputes_count > 0 %}
+    <div class="alert alert-warning mb-3">
+      <i class="fas fa-exclamation-triangle"></i> No disputes found for your filter, but there are {{ all_disputes_count }} total disputes in the database. 
+      This may indicate a SponsorID mismatch. Check the application logs for details.
+    </div>
+  {% endif %}
+
+  {% if disputes %}
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>Points Deducted</th>
+                <th>Original Reason</th>
+                <th>Driver's Explanation</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for dispute in disputes %}
+                <tr>
+                  <td>{{ dispute.CreatedAt.strftime('%Y-%m-%d %H:%M') if dispute.CreatedAt else '—' }}</td>
+                  <td>
+                    {% if dispute.driver and dispute.driver.Account %}
+                      {{ dispute.driver.Account.FirstName or '' }} {{ dispute.driver.Account.LastName or '' }}
+                      <br><small class="text-muted">{{ dispute.driver.Account.Email or '' }}</small>
+                    {% else %}
+                      Unknown
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="text-danger">
+                      {{ dispute.point_change.DeltaPoints if dispute.point_change else '—' }}
+                    </span>
+                  </td>
+                  <td>{{ dispute.point_change.Reason if dispute.point_change and dispute.point_change.Reason else 'No reason provided' }}</td>
+                  <td>
+                    <div style="max-width: 300px;">
+                      {{ dispute.DriverReason or '—' }}
+                    </div>
+                  </td>
+                  <td>
+                    {% if dispute.Status == 'pending' %}
+                      <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif dispute.Status == 'approved' %}
+                      <span class="badge bg-success">Approved</span>
+                    {% elif dispute.Status == 'denied' %}
+                      <span class="badge bg-secondary">Denied</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ dispute.Status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if dispute.Status == 'pending' %}
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ dispute.DisputeID }}">
+                          <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#denyModal{{ dispute.DisputeID }}">
+                          <i class="fas fa-times"></i> Deny
+                        </button>
+                      </div>
+                    {% else %}
+                      {% if dispute.SponsorNotes %}
+                        <small class="text-muted" title="{{ dispute.SponsorNotes }}">
+                          <i class="fas fa-comment"></i> Notes
+                        </small>
+                      {% endif %}
+                      {% if dispute.ResolvedAt %}
+                        <br><small class="text-muted">Resolved: {{ dispute.ResolvedAt.strftime('%Y-%m-%d %H:%M') }}</small>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i> No disputes found{% if status_filter == 'pending' %} pending{% elif status_filter == 'resolved' %} resolved{% endif %}.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Approve/Deny Modals -->
+{% for dispute in disputes %}
+  {% if dispute.Status == 'pending' %}
+    <!-- Approve Modal for Dispute {{ dispute.DisputeID }} -->
+    <div class="modal fade" id="approveModal{{ dispute.DisputeID }}" tabindex="-1" aria-labelledby="approveModalLabel{{ dispute.DisputeID }}" aria-hidden="true" role="dialog" style="display: none;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="approveModalLabel{{ dispute.DisputeID }}">Approve Dispute</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ url_for('sponsor.approve_dispute', dispute_id=dispute.DisputeID) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+              <p><strong>This will restore {% if dispute.point_change and dispute.point_change.DeltaPoints < 0 %}{{ -dispute.point_change.DeltaPoints }}{% else %}{{ dispute.point_change.DeltaPoints if dispute.point_change else 0 }}{% endif %} points to the driver.</strong></p>
+              <div class="mb-3">
+                <label for="approveNotes{{ dispute.DisputeID }}" class="form-label">Notes (optional)</label>
+                <textarea class="form-control" id="approveNotes{{ dispute.DisputeID }}" name="sponsor_notes" rows="3" placeholder="Add any notes about this approval..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Approve & Restore Points</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <!-- End Approve Modal for Dispute {{ dispute.DisputeID }} -->
+
+    <!-- Deny Modal for Dispute {{ dispute.DisputeID }} -->
+    <div class="modal fade" id="denyModal{{ dispute.DisputeID }}" tabindex="-1" aria-labelledby="denyModalLabel{{ dispute.DisputeID }}" aria-hidden="true" role="dialog" style="display: none;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="denyModalLabel{{ dispute.DisputeID }}">Deny Dispute</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ url_for('sponsor.deny_dispute', dispute_id=dispute.DisputeID) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+              <p><strong>The point deduction will remain unchanged.</strong></p>
+              <div class="mb-3">
+                <label for="denyNotes{{ dispute.DisputeID }}" class="form-label">Notes (optional)</label>
+                <textarea class="form-control" id="denyNotes{{ dispute.DisputeID }}" name="sponsor_notes" rows="3" placeholder="Add any notes about why this dispute was denied..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger">Deny Dispute</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <!-- End Deny Modal for Dispute {{ dispute.DisputeID }} -->
+  {% endif %}
+{% endfor %}
+
+<script>
+// Ensure modals are properly hidden and only one shows at a time
+document.addEventListener('DOMContentLoaded', function() {
+  // Hide all modals on page load
+  document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  });
+  
+  // Remove any existing backdrop
+  const existingBackdrop = document.querySelector('.modal-backdrop');
+  if (existingBackdrop) {
+    existingBackdrop.remove();
+  }
+  
+  // Ensure body doesn't have modal-open class
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+});
+</script>
+{% endblock %}
+

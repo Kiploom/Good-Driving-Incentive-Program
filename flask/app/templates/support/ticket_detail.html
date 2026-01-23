@@ -1,0 +1,220 @@
+{% extends "support/base.html" %}
+
+{% block title %}{{ ticket.Title }}{% endblock %}
+
+{% block content %}
+<div class="support-container">
+    <div class="support-header">
+        <h1>{{ ticket.Title }}</h1>
+        <p>Ticket #{{ ticket.TicketID[:8] }} • {{ ticket.Status|title }}</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Ticket Details -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3><i class="fas fa-info-circle"></i> Ticket Details</h3>
+                        <span class="ticket-status {{ ticket.Status }}">{{ ticket.Status }}</span>
+                    </div>
+                </div>
+                <div class="support-card-body">
+                    <div class="ticket-meta mb-3">
+                        <span><i class="fas fa-calendar"></i> Created: {{ ticket.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span><i class="fas fa-clock"></i> Updated: {{ ticket.UpdatedAt.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% if ticket.ClosedAt %}
+                        <span><i class="fas fa-lock"></i> Closed: {{ ticket.ClosedAt.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% endif %}
+                        {% if ticket.category %}
+                        <span><i class="fas fa-tag"></i> Category: {{ ticket.category.Name }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ticket-description">
+                        <h5>Description:</h5>
+                        <div class="message-body">{{ ticket.Body }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Thread -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <h3><i class="fas fa-comments"></i> Conversation ({{ messages|length }} messages)</h3>
+                </div>
+                <div class="support-card-body">
+                    {% if messages %}
+                        <div class="message-thread">
+                            {% for message in messages %}
+                            <div class="message {{ message.AuthorRole }}">
+                                <div class="message-header">
+                                    <span class="message-author">
+                                        {% if message.AuthorRole == 'admin' %}
+                                            <i class="fas fa-user-shield text-primary"></i> Admin
+                                        {% elif message.AuthorRole == 'sponsor' %}
+                                            <i class="fas fa-building text-success"></i> Sponsor
+                                        {% else %}
+                                            <i class="fas fa-user text-warning"></i> Driver
+                                        {% endif %}
+                                    </span>
+                                    <span class="message-time">{{ message.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </div>
+                                <div class="message-body">{{ message.Body }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <h4>No messages yet</h4>
+                            <p>This ticket doesn't have any messages yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Add Message Form -->
+            {% if ticket.Status != 'closed' %}
+            <div class="support-card">
+                <div class="support-card-header">
+                    <h3><i class="fas fa-reply"></i> Add Message</h3>
+                </div>
+                <div class="support-card-body">
+                    <form method="POST" action="/support/tickets/{{ ticket.TicketID }}/reply">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-3">
+                            <label for="message_body" class="form-label">
+                                <strong>Your Message</strong>
+                            </label>
+                            <textarea class="form-control" 
+                                      id="message_body" 
+                                      name="message_body" 
+                                      rows="4" 
+                                      placeholder="Type your message here..."
+                                      required></textarea>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> Your message will be visible to support staff and will be added to this ticket's conversation.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('support_ui.my_tickets') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Tickets
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <!-- Ticket Actions -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <h3><i class="fas fa-cogs"></i> Actions</h3>
+                </div>
+                <div class="support-card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('support_ui.my_tickets') }}" class="btn btn-secondary">
+                            <i class="fas fa-list"></i> All Tickets
+                        </a>
+                        <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> New Ticket
+                        </a>
+                        
+                        {% if can_close %}
+                        <form method="POST" action="{{ url_for('support_ui.close_ticket', ticket_id=ticket.TicketID) }}" 
+                              onsubmit="return confirm('Are you sure you want to close this ticket? This action cannot be undone.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-check"></i> Close Ticket
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket Status Info -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <h3><i class="fas fa-info-circle"></i> Status Information</h3>
+                </div>
+                <div class="support-card-body">
+                    <div class="mb-3">
+                        <strong>Current Status:</strong><br>
+                        <span class="ticket-status {{ ticket.Status }}">{{ ticket.Status }}</span>
+                    </div>
+                    
+                    <div class="status-info">
+                        {% if ticket.Status == 'new' %}
+                            <p class="text-info">
+                                <i class="fas fa-clock"></i> Your ticket has been received and is waiting to be reviewed by our support team.
+                            </p>
+                        {% elif ticket.Status == 'open' %}
+                            <p class="text-warning">
+                                <i class="fas fa-eye"></i> Your ticket is being actively worked on by our support team.
+                            </p>
+                        {% elif ticket.Status == 'waiting' %}
+                            <p class="text-info">
+                                <i class="fas fa-pause"></i> We're waiting for additional information from you. Please check the conversation above.
+                            </p>
+                        {% elif ticket.Status == 'resolved' %}
+                            <p class="text-success">
+                                <i class="fas fa-check"></i> Your issue has been resolved. You can close this ticket if you're satisfied with the solution.
+                            </p>
+                        {% elif ticket.Status == 'closed' %}
+                            <p class="text-muted">
+                                <i class="fas fa-lock"></i> This ticket has been closed and no further messages can be added.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Help -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <h3><i class="fas fa-question-circle"></i> Need More Help?</h3>
+                </div>
+                <div class="support-card-body">
+                    <p>If this ticket doesn't address your issue, you can:</p>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('support_ui.new_ticket') }}">Create a new ticket</a></li>
+                        <li><a href="{{ url_for('support_ui.support_hub') }}">Visit our help center</a></li>
+                        <li>Contact us directly at support@example.com</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to bottom of message thread
+    const messageThread = document.querySelector('.message-thread');
+    if (messageThread) {
+        messageThread.scrollTop = messageThread.scrollHeight;
+    }
+    
+    // Auto-resize textarea
+    const messageTextarea = document.getElementById('message_body');
+    if (messageTextarea) {
+        messageTextarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    }
+    
+    // Form validation removed
+});
+</script>
+{% endblock %}

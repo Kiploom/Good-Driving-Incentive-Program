@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Active Sessions{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Active Sessions</h1>
+        <p>
+          Review where your account is signed in and revoke any devices you no longer recognize.
+        </p>
+      </div>
+    </header>
+
+    <div class="settings-card">
+      <div class="settings-actions" style="justify-content: space-between; flex-wrap: wrap;">
+        <div class="settings-callout info" style="flex: 1; margin-right: 12px;">
+          <i class="fas fa-info-circle" aria-hidden="true"></i>
+          <div>
+            <strong>Tip:</strong> Revoking a session immediately logs that device out. Your current session stays active.
+          </div>
+        </div>
+        <button class="btn btn-destructive" onclick="revokeAllSessions()">
+          <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+          Revoke all other sessions
+        </button>
+      </div>
+
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      {% if sessions %}
+      <div class="session-card-grid">
+        {% for session in sessions %}
+        {% set time_label = session.time_since_activity %}
+        {% set chip_class = 'stale' %}
+        {% if 'minute' in time_label or 'second' in time_label %}
+          {% set chip_class = 'recent' %}
+        {% elif 'hour' in time_label %}
+          {% set chip_class = 'warning' %}
+        {% endif %}
+        <article class="session-card {% if session.is_current %}current{% endif %}">
+          <div class="session-header">
+            <div class="session-device">
+              <div class="session-device-icon">
+                {% if session.device_type == 'mobile' %}
+                  📱
+                {% elif session.device_type == 'tablet' %}
+                  📲
+                {% else %}
+                  💻
+                {% endif %}
+              </div>
+              <div class="session-device-details">
+                <h3>{{ session.device_name }}</h3>
+                <p>{{ session.browser_name }} {{ session.browser_version }} on {{ session.operating_system }}</p>
+              </div>
+            </div>
+            <div class="session-actions">
+              {% if session.is_current %}
+              <span class="session-badge">Current Session</span>
+              {% else %}
+              <button class="btn-inline" onclick="revokeSession('{{ session.session_id }}')">
+                Revoke
+              </button>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="session-details">
+            <div class="session-detail">
+              <span class="session-detail-label">IP Address</span>
+              <span class="session-detail-value">{{ session.ip_address }}</span>
+            </div>
+            <div class="session-detail">
+              <span class="session-detail-label">Last Activity</span>
+              <span class="session-detail-value">
+                <span class="time-chip {{ chip_class }}">
+                  <i class="fas fa-clock" aria-hidden="true"></i>
+                  {{ time_label }}
+                </span>
+              </span>
+            </div>
+            <div class="session-detail">
+              <span class="session-detail-label">Created</span>
+              <span class="session-detail-value">{{ session.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+            </div>
+            <div class="session-detail">
+              <span class="session-detail-label">Device Type</span>
+              <span class="session-detail-value">{{ session.device_type.title() }}</span>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🛡️</div>
+        <h3>No Active Sessions</h3>
+        <p>You’re currently logged in on this device only.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrf() {
+  const el = document.querySelector('input[name="csrf_token"]');
+  return el ? el.value : '';
+}
+
+function revokeSession(sessionId) {
+  if (!sessionId) return;
+  if (!confirm('Revoke this session? The device will be logged out immediately.')) {
+    return;
+  }
+  fetch(`/sessions/revoke/${sessionId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrf()
+    }
+  })
+    .then(resp => {
+      if (!resp.ok) throw new Error('Request failed');
+      return resp.json().catch(() => ({}));
+    })
+    .then(data => {
+      if (data && data.success) {
+        if (data.logged_out) {
+          window.location = '/';
+          return;
+        }
+        window.location.reload();
+      } else {
+        alert('Failed to revoke session. Please try again.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Something went wrong. Please try again.');
+    });
+}
+
+function revokeAllSessions() {
+  if (!confirm('Revoke all other sessions? You will stay signed in on this device.')) {
+    return;
+  }
+  fetch('/sessions/revoke-all', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrf()
+    }
+  })
+    .then(resp => {
+      if (!resp.ok) throw new Error('Request failed');
+      return resp.json().catch(() => ({}));
+    })
+    .then(data => {
+      if (data && data.success) {
+        window.location.reload();
+      } else {
+        alert('Unable to revoke sessions right now.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Something went wrong. Please try again.');
+    });
+}
+
+setInterval(() => {
+  window.location.reload();
+}, 30000);
+</script>
+{% endblock %}
+

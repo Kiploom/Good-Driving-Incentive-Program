@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Analytics{% endblock %}
+
+{% block content %}
+<style>
+  .analytics-shell {
+    max-width: 1100px;
+    margin: 32px auto 48px;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .analytics-header {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: var(--text-inverse);
+    padding: 32px;
+    border-radius: 20px;
+    box-shadow: 0 16px 40px var(--shadow);
+  }
+
+  .analytics-header h1 {
+    margin: 0 0 8px;
+    font-size: 1.75rem;
+    color: inherit;
+  }
+
+  .analytics-header p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .analytics-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .analytics-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 6px 18px var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  [data-theme="dark"] .analytics-card {
+    border-color: var(--accent-border);
+    box-shadow: 0 14px 34px var(--shadow-md);
+    background: var(--bg-secondary);
+    backdrop-filter: blur(6px);
+  }
+
+  .analytics-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+  }
+
+  .analytics-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 10px var(--shadow-sm);
+  }
+
+  [data-theme="dark"] .filters {
+    border-color: var(--accent-border);
+  }
+
+  .filter-field {
+    flex: 1 1 200px;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filters label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .metric-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  [data-theme="dark"] .metric-card {
+    border-color: var(--accent-border);
+  }
+
+  .metric-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .metric-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .financial-value {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .financial-value.negative {
+    color: var(--error);
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table-scroll table {
+    min-width: 100%;
+  }
+
+  .points-positive {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .points-negative {
+    color: var(--error);
+    font-weight: 600;
+  }
+
+  .currency {
+    font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 16px;
+  }
+
+  @media (max-width: 640px) {
+    .analytics-shell {
+      padding: 0 18px 24px;
+    }
+
+    .analytics-header {
+      padding: 24px;
+    }
+
+    .filters {
+      padding: 16px;
+    }
+  }
+</style>
+
+<div class="analytics-shell">
+  <div class="analytics-header">
+    <h1>{{ sponsor.Company }} Financial Analytics</h1>
+    <p>Track your point spending, costs, and financial performance.</p>
+  </div>
+
+  <div class="analytics-toolbar">
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics') }}">← Back to Analytics</a>
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_financial_pdf', date_from=date_from, date_to=date_to) }}" style="background: var(--accent); color: white;">
+      <i class="fas fa-file-pdf"></i>
+      Export PDF
+    </a>
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_financial_csv', date_from=date_from, date_to=date_to) }}" style="background: var(--accent); color: white;">
+      <i class="fas fa-file-csv"></i>
+      Export CSV
+    </a>
+  </div>
+
+  <form class="filters" method="get">
+    <div class="filter-field">
+      <label for="date_from">From Date</label>
+      <input type="date" name="date_from" id="date_from" value="{{ date_from or '' }}" onchange="this.form.submit()">
+    </div>
+
+    <div class="filter-field">
+      <label for="date_to">To Date</label>
+      <input type="date" name="date_to" id="date_to" value="{{ date_to or '' }}" onchange="this.form.submit()">
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      <a href="{{ url_for('sponsor.sponsor_analytics_financial') }}" class="btn btn-secondary">Reset Filters</a>
+    </div>
+  </form>
+
+  <div class="analytics-card">
+    <h3>Your Financial Performance Metrics</h3>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value">{{ rows|length }}</div>
+        <div class="metric-label">Total Transactions</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">
+          {% set unique_drivers = rows|map(attribute='1')|unique|list|length %}
+          {{ unique_drivers }}
+        </div>
+        <div class="metric-label">Drivers Involved</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">
+          {% set total_points = rows|map(attribute='0.DeltaPoints')|sum %}
+          {{ total_points or 0 }}
+        </div>
+        <div class="metric-label">Total Points</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value financial-value">
+          {% set total_value = 0 %}
+          {% for point_change, driver, account in rows %}
+            {% if point_change and point_change.DeltaPoints %}
+              {% set total_value = total_value + (point_change.DeltaPoints * sponsor.PointToDollarRate) %}
+            {% endif %}
+          {% endfor %}
+          <span class="{{ 'negative' if total_value < 0 else '' }}">
+            ${{ "%.2f"|format(total_value) }}
+          </span>
+        </div>
+        <div class="metric-label">Total Dollar Value</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>Financial Transaction Data</h3>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver Name</th>
+            <th>Driver Email</th>
+            <th>Points Change</th>
+            <th>Dollar Value</th>
+            <th>Reason</th>
+            <th>Transaction Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for point_change, driver, account in rows %}
+          <tr>
+            <td>{{ account.FirstName }} {{ account.LastName }}</td>
+            <td>{{ account.Email }}</td>
+            <td>
+              <span class="points-{{ 'positive' if point_change.DeltaPoints > 0 else 'negative' }}">
+                {{ '+' if point_change.DeltaPoints > 0 else '' }}{{ point_change.DeltaPoints }}
+              </span>
+            </td>
+            <td class="currency">
+              {% if point_change and point_change.DeltaPoints %}
+                {% set dollar_value = point_change.DeltaPoints * sponsor.PointToDollarRate %}
+                <span class="financial-value {{ 'negative' if dollar_value < 0 else '' }}">
+                  ${{ "%.2f"|format(dollar_value) }}
+                </span>
+              {% else %}
+                N/A
+              {% endif %}
+            </td>
+            <td>{{ point_change.Reason if point_change else 'N/A' }}</td>
+            <td>{{ point_change.CreatedAt.strftime('%Y-%m-%d %H:%M') if point_change else 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>Return on Investment Analysis</h3>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value financial-value">
+          ${{ "%.2f"|format(sponsor.PointToDollarRate) }}
+        </div>
+        <div class="metric-label">Your Point Rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value financial-value">
+          {% set total_positive_points = 0 %}
+          {% set total_negative_points = 0 %}
+          {% for point_change, driver, account in rows %}
+            {% if point_change %}
+              {% if point_change.DeltaPoints > 0 %}
+                {% set total_positive_points = total_positive_points + point_change.DeltaPoints %}
+              {% else %}
+                {% set total_negative_points = total_negative_points + point_change.DeltaPoints %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ total_positive_points + total_negative_points }}
+        </div>
+        <div class="metric-label">Net Points</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value financial-value">
+          {% set total_positive_value = 0 %}
+          {% set total_negative_value = 0 %}
+          {% for point_change, driver, account in rows %}
+            {% if point_change and point_change.DeltaPoints %}
+              {% set dollar_value = point_change.DeltaPoints * sponsor.PointToDollarRate %}
+              {% if dollar_value > 0 %}
+                {% set total_positive_value = total_positive_value + dollar_value %}
+              {% else %}
+                {% set total_negative_value = total_negative_value + dollar_value %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {% set net_value = total_positive_value + total_negative_value %}
+          <span class="{{ 'negative' if net_value < 0 else '' }}">
+            ${{ "%.2f"|format(net_value) }}
+          </span>
+        </div>
+        <div class="metric-label">Net Dollar Value</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">
+          {% set transaction_count = rows|length %}
+          {% if transaction_count > 0 %}
+            {{ "%.1f"|format((total_positive_points + total_negative_points) / transaction_count) }}
+          {% else %}
+            0
+          {% endif %}
+        </div>
+        <div class="metric-label">Avg Points per Transaction</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>Spending Breakdown by Reason</h3>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Reason</th>
+            <th>Transaction Count</th>
+            <th>Total Points</th>
+            <th>Total Dollar Value</th>
+            <th>Average Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set reason_summary = {} %}
+          {% for point_change, driver, account in rows %}
+            {% if point_change and point_change.Reason %}
+              {% set reason = point_change.Reason %}
+              {% if reason not in reason_summary %}
+                {% set _ = reason_summary.update({reason: {'count': 0, 'total_points': 0, 'total_value': 0}}) %}
+              {% endif %}
+              {% set _ = reason_summary[reason].update({'count': reason_summary[reason]['count'] + 1, 'total_points': reason_summary[reason]['total_points'] + point_change.DeltaPoints, 'total_value': reason_summary[reason]['total_value'] + (point_change.DeltaPoints * sponsor.PointToDollarRate)}) %}
+            {% endif %}
+          {% endfor %}
+
+          {% for reason, summary in reason_summary.items() %}
+          <tr>
+            <td>{{ reason }}</td>
+            <td>{{ summary.count }}</td>
+            <td>
+              <span class="points-{{ 'positive' if summary.total_points > 0 else 'negative' }}">
+                {{ '+' if summary.total_points > 0 else '' }}{{ summary.total_points }}
+              </span>
+            </td>
+            <td class="currency">
+              <span class="financial-value {{ 'negative' if summary.total_value < 0 else '' }}">
+                ${{ "%.2f"|format(summary.total_value) }}
+              </span>
+            </td>
+            <td>{{ "%.1f"|format(summary.total_points / summary.count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if not rows %}
+  <div class="analytics-card">
+    <p class="empty-state">
+      No financial transaction data found for the selected date range.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

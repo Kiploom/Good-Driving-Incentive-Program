@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      {% if selected_sponsor %}
+        <h1>{{ selected_sponsor.Company }} Analytics</h1>
+        <p>Analytics and reporting tools tailored for {{ selected_sponsor.Company }}. Generate insights and track performance metrics.</p>
+      {% else %}
+        <h1>Analytics</h1>
+        <p>Analytics and reporting tools across all sponsors. Generate insights and track performance metrics for the entire platform.</p>
+      {% endif %}
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form class="admin-form" method="get">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Filter by Company</label>
+          <select id="company-filter" name="company_filter" onchange="this.form.submit()">
+            <option value="">All companies</option>
+            {% for sponsor in sponsors %}
+              <option value="{{ sponsor.Company }}" {% if selected_sponsor and selected_sponsor.Company == sponsor.Company %}selected{% endif %}>{{ sponsor.Company }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% if selected_sponsor %}
+      <div class="form-actions">
+        <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary">
+          <i class="fas fa-undo"></i>
+          <span>Clear Filter</span>
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="admin-tile-group">
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-tachometer-alt"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Driver Performance{% else %}Driver Performance Analytics{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Analyze point trends and productivity for {{ selected_sponsor.Company }} drivers.{% else %}Analyze driver performance metrics, point trends, and productivity across sponsors.{% endif %}</p>
+      <a class="btn btn-primary" id="driver-performance-link" href="{{ url_for('admin.analytics_driver_performance') }}">Open Driver Performance</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-chart-line"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Company Analytics{% else %}Sponsor Analytics{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Company-level metrics, driver counts, and performance comparisons for {{ selected_sponsor.Company }}.{% else %}Company-level metrics, driver counts, and comparisons across sponsors.{% endif %}</p>
+      <a class="btn btn-primary" id="sponsor-analytics-link" href="{{ url_for('admin.analytics_sponsor_analytics') }}">Open Sponsor Analytics</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-hand-holding-usd"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Financial Analytics{% else %}Financial Analytics{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Financial metrics, costs, and ROI for {{ selected_sponsor.Company }}.{% else %}Financial metrics, point values, costs, and ROI calculations across sponsors.{% endif %}</p>
+      <a class="btn btn-primary" id="financial-analytics-link" href="{{ url_for('admin.analytics_financial_analytics') }}">Open Financial Analytics</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-users"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Driver-Sponsor Relationships{% else %}Driver-Sponsor Relationships{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Manage driver assignments, point balances, and status for {{ selected_sponsor.Company }}.{% else %}Review all driver-sponsor relationships, point balances, and statuses across the platform.{% endif %}</p>
+      <a class="btn btn-primary" id="driver-sponsor-relationships-link" href="{{ url_for('admin.analytics_driver_sponsor_relationships') }}">Open Relationships</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-receipt"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Sales Report{% else %}Sales Analytics Report{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Track orders, sales data, and revenue metrics for {{ selected_sponsor.Company }}.{% else %}Track submitted orders, sales data, and revenue metrics across all sponsors and drivers.{% endif %}</p>
+      <div class="admin-floating-actions">
+        <a class="btn btn-primary" id="sales-report-link" href="{{ url_for('admin.analytics_sales_report') }}">Summary Report</a>
+        <a class="btn btn-secondary" id="sales-detailed-link" href="{{ url_for('admin.analytics_sales_detailed') }}">Detailed Report</a>
+      </div>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-file-invoice"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Invoice Center{% else %}Invoice Center{% endif %} <span class="pill pill-live">live</span></h3>
+      <p>{% if selected_sponsor %}Generate and review {{ selected_sponsor.Company }} monthly invoices for all orders placed this month.{% else %}Generate and review monthly invoices for any sponsor from the first day of the current month through today.{% endif %}</p>
+      <div class="admin-floating-actions">
+        <a class="btn btn-primary" id="invoice-link" href="{{ url_for('admin.analytics_invoices') }}">Open Invoice Center</a>
+        <a class="btn btn-secondary" id="invoice-log-link" href="{{ url_for('admin.analytics_invoice_log') }}">View Invoice Log</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function withCompany(url) {
+  const select = document.getElementById('company-filter');
+  if (!select || !select.value) return url;
+  const params = new URLSearchParams({ company_filter: select.value });
+  return `${url}?${params.toString()}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('company-filter');
+  const performanceLink = document.getElementById('driver-performance-link');
+  const sponsorLink = document.getElementById('sponsor-analytics-link');
+  const financialLink = document.getElementById('financial-analytics-link');
+  const relationshipsLink = document.getElementById('driver-sponsor-relationships-link');
+  const salesReportLink = document.getElementById('sales-report-link');
+  const salesDetailedLink = document.getElementById('sales-detailed-link');
+  const invoiceLink = document.getElementById('invoice-link');
+  const invoiceLogLink = document.getElementById('invoice-log-link');
+
+  function refreshLinks() {
+    if (performanceLink) performanceLink.href = withCompany("{{ url_for('admin.analytics_driver_performance') }}");
+    if (sponsorLink) sponsorLink.href = withCompany("{{ url_for('admin.analytics_sponsor_analytics') }}");
+    if (financialLink) financialLink.href = withCompany("{{ url_for('admin.analytics_financial_analytics') }}");
+    if (relationshipsLink) relationshipsLink.href = withCompany("{{ url_for('admin.analytics_driver_sponsor_relationships') }}");
+    if (salesReportLink) salesReportLink.href = withCompany("{{ url_for('admin.analytics_sales_report') }}");
+    if (salesDetailedLink) salesDetailedLink.href = withCompany("{{ url_for('admin.analytics_sales_detailed') }}");
+    if (invoiceLink) invoiceLink.href = withCompany("{{ url_for('admin.analytics_invoices') }}");
+    if (invoiceLogLink) invoiceLogLink.href = withCompany("{{ url_for('admin.analytics_invoice_log') }}");
+  }
+
+  refreshLinks();
+  select?.addEventListener('change', refreshLinks);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1809 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Filter Sets{% endblock %}
+
+{% block page_title %}Filter Sets{% endblock %}
+{% block page_subtitle %}
+Design reusable filters, control which configuration drivers see by default, and keep a full history of every change.
+{% endblock %}
+{% block hero_actions %}
+<a href="{{ url_for('sponsor_catalog.filter_sets_audit_history') }}" class="btn btn-muted">View Audit Log</a>
+<button type="button" class="btn" onclick="openNewFilterSet()">+ New Filter Set</button>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+  <div class="pm-actions-row">
+    <div class="pm-stack">
+      <h2>Saved filter sets</h2>
+      <p class="muted">
+        Drivers use the active set for all searches, but you can preview with any configuration at any time.
+      </p>
+    </div>
+    <div class="pm-actions">
+      <details class="sc-export">
+        <summary class="btn btn-muted">Export ▾</summary>
+        <div class="sc-menu">
+          <a href="{{ url_for('sponsor_catalog.export_filter_sets_csv') }}">Export as CSV</a>
+          <a href="{{ url_for('sponsor_catalog.export_filter_sets_pdf') }}">Export as PDF</a>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <style>
+        /* scoped, conflict-proof */
+        .sc-export {
+            position: relative;
+            display: inline-block;
+        }
+
+        .sc-export>summary {
+            list-style: none;
+            cursor: pointer;
+        }
+
+        .sc-export>summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sc-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            min-width: 200px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 18px 32px var(--shadow-sm);
+            padding: 8px 0;
+            z-index: 1000;
+            display: none;
+        }
+
+        .sc-export[open] .sc-menu {
+            display: block;
+        }
+
+        .sc-menu a {
+            display: block;
+            padding: 10px 16px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sc-menu a:hover {
+            background: var(--bg-hover);
+            color: var(--accent);
+        }
+
+        /* Filter Builder Styles */
+        .filter-section {
+            margin: 24px 0;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 30px var(--shadow-sm);
+        }
+
+        .filter-section h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .help-icon {
+            cursor: help;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .help-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin: 4px 0 8px 0;
+        }
+
+        .required {
+            color: var(--error);
+            font-size: 0.75rem;
+        }
+
+        .mode-options {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            flex: 1;
+            min-width: 260px;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-card);
+            box-shadow: 0 16px 28px var(--shadow-sm);
+        }
+
+        .radio-option:hover {
+            border-color: var(--accent-border);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .radio-option input[type="radio"]:checked + .option-content {
+            font-weight: 600;
+        }
+
+        .radio-option:has(input:checked) {
+            border-color: var(--accent-border);
+            background: rgba(245, 158, 11, 0.14);
+        }
+
+        .option-content {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .option-content strong {
+            display: block;
+            color: var(--text-primary);
+        }
+
+        .option-content p {
+            margin: 4px 0 0 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 8px;
+            align-items: center;
+        }
+
+        .checkbox-group label {
+            display: contents;
+            cursor: pointer;
+        }
+
+        .checkbox-group label input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .checkbox-group label:hover span {
+            color: var(--accent);
+        }
+
+        .advanced-section {
+            margin-top: 24px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+        }
+
+        .advanced-section summary {
+            cursor: pointer;
+            user-select: none;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .advanced-section summary:hover {
+            color: var(--accent-hover);
+        }
+
+        #fsModal {
+            border-radius: 20px;
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.3);
+            padding: 0;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            width: min(960px, 96vw);
+        }
+
+        #fsModal[open] {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #fsModal h3 {
+            margin: 0;
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        #fsModal form {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #fsModal .modal-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: var(--bg-card);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+            position: sticky;
+            bottom: 0;
+        }
+
+        /* Form input styles */
+        #fsModal .row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        #fsModal .row.name-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        #fsModal .row.name-row label {
+            display: flex;
+            align-items: center;
+            min-width: 80px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        [data-theme="dark"] #fsModal .row.name-row label {
+            color: var(--text-primary);
+        }
+
+        #fsModal .col {
+            flex: 1;
+        }
+
+        #fsModal label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        [data-theme="dark"] #fsModal label {
+            color: var(--text-primary);
+        }
+
+        #fsModal input[type="text"],
+        #fsModal input[type="number"] {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        #fsModal .row.name-row input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.875rem 1.125rem;
+            font-size: 1rem;
+        }
+
+        [data-theme="dark"] #fsModal input[type="text"],
+        [data-theme="dark"] #fsModal input[type="number"] {
+            background: var(--bg-input);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+
+        #fsModal input[type="text"]:focus,
+        #fsModal input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-border);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+        }
+
+        [data-theme="dark"] #fsModal input[type="text"]:focus,
+        [data-theme="dark"] #fsModal input[type="number"]:focus {
+            border-color: var(--accent-border);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        #fsModal input[type="text"]::placeholder,
+        #fsModal input[type="number"]::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Category checkbox highlighting */
+        .category-checkbox-label.category-checkbox-selected {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .category-checkbox-label.category-checkbox-selected:hover {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+        
+        .category-checkbox-label:hover {
+            background: var(--bg-hover);
+        }
+        
+        .category-section summary::-webkit-details-marker {
+            display: none;
+        }
+        
+        /* Parent checkbox styling */
+        .category-parent-checkbox {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+
+    <script>
+        // Close when clicking outside or pressing Escape
+        (function () {
+            const dd = document.querySelector('.sc-export');
+            if (!dd) return;
+            document.addEventListener('click', (e) => { if (dd.hasAttribute('open') && !dd.contains(e.target)) dd.removeAttribute('open'); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dd.hasAttribute('open')) dd.removeAttribute('open'); });
+            dd.querySelectorAll('.sc-menu a').forEach(a => a.addEventListener('click', () => dd.removeAttribute('open')));
+        })();
+        
+        // Define toggleAllCategories early so it's available for onclick handlers
+        window.toggleAllCategories = function() {
+            const modal = document.getElementById('fsModal');
+            if (!modal) return;
+            const btn = modal.querySelector('#toggleAllCategories');
+            if (!btn) return;
+            
+            const checkboxes = modal.querySelectorAll('.category-checkbox');
+            const checkedCount = modal.querySelectorAll('.category-checkbox:checked').length;
+            const allChecked = checkedCount === checkboxes.length;
+            
+            // Toggle all checkboxes
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+                if (window.updateCheckboxHighlight) {
+                    window.updateCheckboxHighlight(cb);
+                }
+            });
+            
+            // Toggle all parent checkboxes
+            const parentCheckboxes = modal.querySelectorAll('.category-parent-checkbox');
+            parentCheckboxes.forEach(pcb => {
+                pcb.checked = !allChecked;
+                pcb.indeterminate = false;
+            });
+            
+            // Update button text
+            if (window.updateToggleAllButton) {
+                window.updateToggleAllButton();
+            }
+        };
+    </script>
+
+  <div class="pm-actions-row" style="margin-top: 24px;">
+    <div class="pm-field" style="max-width: 360px;">
+      <label for="activeSet">Active for drivers</label>
+      <select id="activeSet" data-selected="{{ selected_filter_set_id or '' }}"></select>
+    </div>
+    <div>
+      <button class="btn" type="button" onclick="applyActive()">Apply Selection</button>
+    </div>
+  </div>
+
+  <div style="margin-top: 16px; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--accent);">
+    <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
+      <strong>Note:</strong> Only new buy it now items are shown to drivers. Shipping prices are automatically factored into product prices. Explicit results are automatically filtered out.
+    </p>
+  </div>
+
+  <table class="pm-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Updated</th>
+        <th style="width: 200px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td>{{ r.updated_at }}</td>
+        <td>
+          <div class="pm-status-group">
+            <button class="btn btn-muted" type="button" onclick="editFilterSet('{{ r.id }}')">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="deleteFilterSet('{{ r.id }}')">Delete</button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" class="muted">No filter sets yet — create one to control what drivers see.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<!-- Simple modal for create -->
+<dialog id="fsModal">
+    <form id="fsForm" onsubmit="return saveFilterSet(event)">
+        <h3 id="fsTitle">New Filter Set</h3>
+        <div class="modal-content">
+            <input type="hidden" id="fsId" value="">
+            <!-- Rules JSON for category browser to read exclude_explicit setting -->
+            <script type="application/json" id="rules-json">{}</script>
+            <div class="row name-row">
+                <label for="fsName">Name</label>
+                <input id="fsName" type="text" required>
+            </div>
+
+        <div id="normalFilterOptions">
+            <!-- Categories -->
+            <div class="filter-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h4 style="margin: 0;">Categories <span class="help-icon" title="Select which product categories to include">ℹ️</span></h4>
+                    <button type="button" id="toggleAllCategories" class="btn btn-muted" style="font-size: 0.875rem; padding: 6px 12px;">Select All</button>
+                </div>
+                <p class="help-text">Choose which types of products drivers can see</p>
+                {% include "sponsor_catalog/_category_browser.html" %}
+            </div>
+
+            <!-- Price Range -->
+            <div class="filter-section">
+                <h4>Price Range <span class="help-icon" title="Set minimum and maximum price limits">ℹ️</span></h4>
+                <p class="help-text">Limit products to a specific price range (in USD)</p>
+                <div class="row">
+                    <div class="col">
+                        <label>Minimum Price ($)</label>
+                        <input type="number" id="priceMin" min="0" step="0.01" placeholder="e.g., 5.00">
+                    </div>
+                    <div class="col">
+                        <label>Maximum Price ($)</label>
+                        <input type="number" id="priceMax" min="0" step="0.01" placeholder="e.g., 150.00">
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+        </div> <!-- end modal-content -->
+
+        <div class="modal-footer">
+            <button class="btn btn-muted" type="button" onclick="document.getElementById('fsModal').close()">Cancel</button>
+            <button class="btn" type="submit">Save</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<!-- Provide rows to JS as a fallback if JSON endpoints aren't available -->
+<script type="application/json" id="rows-json">
+  {{ rows | tojson }}
+</script>
+
+<script>
+    // ---------- Global Error Handlers for Debugging ----------
+    (function() {
+        // Track unhandled errors
+        window._errorCount = 0;
+        window._lastError = null;
+        
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            window._errorCount++;
+            window._lastError = event.reason;
+            console.error('[DEBUG] ❌❌❌ UNHANDLED PROMISE REJECTION:', event.reason);
+            console.error('[DEBUG] Promise rejection stack:', event.reason?.stack);
+            console.error('[DEBUG] Total unhandled errors so far:', window._errorCount);
+        });
+        
+        // Catch uncaught errors
+        window.addEventListener('error', function(event) {
+            window._errorCount++;
+            window._lastError = event.error || event.message;
+            console.error('[DEBUG] ❌❌❌ UNCAUGHT ERROR:', event.error || event.message);
+            console.error('[DEBUG] Error at:', event.filename, 'line', event.lineno, 'col', event.colno);
+            if (event.error && event.error.stack) {
+                console.error('[DEBUG] Error stack:', event.error.stack);
+            }
+            console.error('[DEBUG] Total uncaught errors so far:', window._errorCount);
+        });
+        
+        console.log('[DEBUG] ✅ Global error handlers installed');
+    })();
+    
+    // ---------- Active selection (dropdown + apply) ----------
+    async function loadActiveUI() {
+        const select = document.getElementById('activeSet');
+        const selectedHint = select.getAttribute('data-selected') || '';
+
+        // Preferred: fetch from JSON endpoints (if implemented)
+        try {
+            const [setsR, activeR] = await Promise.allSettled([
+                fetch("{{ url_for('sponsor_catalog.filter_sets_json') }}"),
+                fetch("{{ url_for('sponsor_catalog.active_set_json') }}")
+            ]);
+
+            let sets = null, activeId = selectedHint;
+
+            if (setsR.status === 'fulfilled' && setsR.value.ok) {
+                sets = await setsR.value.json();
+            }
+            if (activeR.status === 'fulfilled' && activeR.value.ok) {
+                const a = await activeR.value.json();
+                if (a && a.selected_filter_set_id) activeId = String(a.selected_filter_set_id);
+            }
+
+            if (Array.isArray(sets) && sets.length) {
+                select.innerHTML = '';
+                for (const s of sets) {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name || s.id;
+                    if ((s.selected === true) || (String(s.id) === String(activeId))) opt.selected = true;
+                    select.appendChild(opt);
+                }
+                return;
+            }
+        } catch (e) {
+            // fall back below
+        }
+
+        // Fallback: build from server-rendered rows if JSON endpoints aren't present yet
+        try {
+            const raw = document.getElementById('rows-json')?.textContent || '[]';
+            const rows = JSON.parse(raw || '[]');
+            select.innerHTML = '';
+            for (const r of rows) {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.name || r.id;
+                if (String(r.id) === String(selectedHint)) opt.selected = true;
+                select.appendChild(opt);
+            }
+        } catch {
+            // final fallback: leave empty
+        }
+    }
+
+    async function applyActive() {
+        const select = document.getElementById('activeSet');
+        const fsId = select.value;
+        if (!fsId) { 
+            alert('Choose a filter set first.'); 
+            return; 
+        }
+
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                         document.querySelector('meta[name="csrf-token"]')?.content ||
+                         null;
+
+        const fd = new FormData();
+        fd.append('filter_set_id', fsId);
+        
+        if (csrfToken) {
+            fd.append('csrf_token', csrfToken);
+        }
+
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
+        try {
+            const r = await fetch("{{ url_for('sponsor_catalog.set_active_filter_set') }}", {
+                method: 'POST',
+                headers: headers,
+                body: fd,
+                credentials: 'same-origin'
+            });
+            
+            const contentType = r.headers.get('content-type');
+            let data;
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await r.json();
+            } else {
+                const text = await r.text();
+                alert('Failed to apply: Server returned an error. Please try again.');
+                return;
+            }
+            
+            if (r.ok && data.ok) {
+                alert('Applied. Drivers now use this set.');
+                // Reload the page to show updated active filter set
+                location.reload();
+            } else {
+                const errorMsg = data.error || 'Unknown error';
+                alert('Failed to apply: ' + errorMsg);
+            }
+        } catch (error) {
+            alert('Failed to apply: ' + error.message);
+        }
+    }
+
+    // Categories are always loaded with exclude_explicit=true (no checkbox needed)
+
+    // ---------- Category Browser Functions (Checkbox-based for Filter Sets) ----------
+    
+    // Load categories with checkboxes for filter set selection
+    window.loadCategories = async function() {
+        const loadStartTime = performance.now();
+        console.group('🔍 [DEBUG] loadCategories() called');
+        console.log('[DEBUG] 📊 Performance: Starting category load at', new Date().toISOString());
+        
+        // Reset recursion tracking
+        window._maxRecursionDepth = 0;
+        
+        try {
+            console.log('[DEBUG] Step 1: Finding modal...');
+            const modal = document.getElementById('fsModal');
+            if (!modal) {
+                console.error('[DEBUG] ❌ Filter set modal not found');
+                console.groupEnd();
+                return;
+            }
+            console.log('[DEBUG] ✅ Modal found');
+            
+            console.log('[DEBUG] Step 2: Finding category browser...');
+            const browserEl = modal.querySelector('.sponsor-category-browser');
+            if (!browserEl) {
+                console.error('[DEBUG] ❌ Category browser not found in modal');
+                console.groupEnd();
+                return;
+            }
+            console.log('[DEBUG] ✅ Category browser found');
+            
+            console.log('[DEBUG] Step 3: Setting up grid container...');
+            let gridEl = browserEl.querySelector('#categories-grid');
+            if (!gridEl) {
+                console.log('[DEBUG] Creating new categories-grid element...');
+                gridEl = document.createElement('div');
+                gridEl.id = 'categories-grid';
+                gridEl.className = 'categories-grid';
+                browserEl.appendChild(gridEl);
+                console.log('[DEBUG] ✅ Created categories-grid');
+            } else {
+                console.log('[DEBUG] ✅ Found existing categories-grid');
+            }
+            
+            const loadingEl = browserEl.querySelector('#category-loading');
+            console.log('[DEBUG] Loading element:', loadingEl ? 'found' : 'not found');
+            
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (gridEl) gridEl.style.display = 'none';
+            
+            console.log('[DEBUG] Step 4: Fetching categories from server...');
+            // Load full category tree with exclude_explicit=true
+            const categoriesUrl = `{{ url_for('sponsor_catalog.get_categories') }}?exclude_explicit=true`;
+            console.log('[DEBUG] Fetching from URL:', categoriesUrl);
+            const response = await fetch(categoriesUrl);
+            console.log('[DEBUG] Response status:', response.status, response.ok);
+            
+            const data = await response.json();
+            console.log('[DEBUG] Received data:', {
+                hasCategories: !!data.categories,
+                categoryKeys: data.categories ? Object.keys(data.categories).slice(0, 5) : []
+            });
+            
+            if (!data.categories) {
+                console.error('[DEBUG] ❌ No categories in response');
+                if (loadingEl) loadingEl.innerHTML = '<p style="color: var(--text-muted);">No categories available.</p>';
+                console.groupEnd();
+                return;
+            }
+            console.log('[DEBUG] ✅ Categories data received');
+            
+            console.log('[DEBUG] Step 5: Determining which categories should be selected...');
+            // Determine which categories should be selected
+            let selectedIdsSet = null;
+            if (window._pendingCategoryReset !== undefined && window._pendingCategoryReset !== null) {
+                console.log('[DEBUG] Using pending reset:', window._pendingCategoryReset);
+                if (window._pendingCategoryReset === 'all') {
+                    selectedIdsSet = 'all';
+                } else if (Array.isArray(window._pendingCategoryReset) && window._pendingCategoryReset.length > 0) {
+                    selectedIdsSet = new Set(window._pendingCategoryReset.map(id => String(id)));
+                    console.log('[DEBUG] Created Set with', selectedIdsSet.size, 'IDs');
+                } else {
+                    selectedIdsSet = 'none';
+                }
+            } else {
+                // Check rules-json element for existing selections
+                const rulesJsonEl = modal.querySelector('#rules-json');
+                if (rulesJsonEl) {
+                    try {
+                        const rulesText = rulesJsonEl.textContent || '{}';
+                        console.log('[DEBUG] Parsing rules JSON:', rulesText.substring(0, 100));
+                        const rules = JSON.parse(rulesText);
+                        if (rules.categories && rules.categories.include && Array.isArray(rules.categories.include)) {
+                            selectedIdsSet = new Set(rules.categories.include.map(id => String(id)));
+                            console.log('[DEBUG] Found', selectedIdsSet.size, 'selected categories in rules');
+                        } else {
+                            console.log('[DEBUG] No categories in rules, defaulting to all');
+                            selectedIdsSet = 'all'; // Default to all selected for new filter sets
+                        }
+                    } catch (e) {
+                        console.error('[DEBUG] ❌ Error parsing rules JSON:', e);
+                        selectedIdsSet = 'all'; // Default to all selected for new filter sets
+                    }
+                } else {
+                    console.log('[DEBUG] No rules-json element, defaulting to all');
+                    selectedIdsSet = 'all'; // Default to all selected for new filter sets
+                }
+            }
+            
+            // Ensure selectedIdsSet is never null - default to 'all' if somehow it still is
+            if (selectedIdsSet === null) {
+                console.warn('[DEBUG] ⚠️ selectedIdsSet is null, defaulting to all');
+                selectedIdsSet = 'all';
+            }
+            
+            console.log('[DEBUG] Selected IDs set:', selectedIdsSet === 'all' ? 'all' : selectedIdsSet === 'none' ? 'none' : selectedIdsSet instanceof Set ? `${selectedIdsSet.size} items` : 'unknown type');
+            
+            console.log('[DEBUG] Step 6: Rendering category tree...');
+            // Render categories with checkboxes
+            try {
+                const renderStartTime = performance.now();
+                console.log('[DEBUG] 📊 Starting render at', new Date().toISOString());
+                
+                renderCategoryTreeWithCheckboxes(data.categories, gridEl, 0, selectedIdsSet);
+                
+                const renderTime = performance.now() - renderStartTime;
+                console.log('[DEBUG] ✅ Category tree rendered');
+                console.log(`[DEBUG] 📊 Render operation took ${renderTime.toFixed(2)}ms (${(renderTime/1000).toFixed(2)}s)`);
+                
+                // Check memory after rendering
+                if (performance.memory) {
+                    const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+                    console.log(`[DEBUG] 📊 Memory usage after render: ${memMB} MB`);
+                }
+                
+                // Count elements created
+                const checkboxes = gridEl.querySelectorAll('.category-checkbox');
+                const parentCheckboxes = gridEl.querySelectorAll('.category-parent-checkbox');
+                console.log(`[DEBUG] 📊 Elements created: ${checkboxes.length} checkboxes, ${parentCheckboxes.length} parent checkboxes`);
+            } catch (renderError) {
+                console.error('[DEBUG] ❌ Error rendering category tree:', renderError);
+                console.error('[DEBUG] Error name:', renderError.name);
+                console.error('[DEBUG] Error message:', renderError.message);
+                console.error('[DEBUG] Stack trace:', renderError.stack);
+                
+                // Check if it's a specific type of error
+                if (renderError.name === 'RangeError') {
+                    console.error('[DEBUG] ⚠️ RangeError detected - possible stack overflow or memory issue');
+                } else if (renderError.name === 'TypeError') {
+                    console.error('[DEBUG] ⚠️ TypeError detected - possible null/undefined reference');
+                } else if (renderError.message && renderError.message.includes('Maximum call stack')) {
+                    console.error('[DEBUG] ⚠️ STACK OVERFLOW detected!');
+                }
+                
+                throw renderError;
+            }
+            
+            // Apply pending category reset if any (for immediate updates)
+            if (window._pendingCategoryReset !== undefined) {
+                setTimeout(() => {
+                    const checkboxes = modal.querySelectorAll('.category-checkbox');
+                    if (checkboxes.length > 0) {
+                        if (window._pendingCategoryReset === 'all') {
+                            checkboxes.forEach(cb => {
+                                cb.checked = true;
+                                updateCheckboxHighlight(cb);
+                            });
+                        } else if (Array.isArray(window._pendingCategoryReset)) {
+                            const idsSet = new Set(window._pendingCategoryReset.map(id => String(id)));
+                            checkboxes.forEach(cb => {
+                                cb.checked = idsSet.has(String(cb.value));
+                                updateCheckboxHighlight(cb);
+                            });
+                        }
+                        window._pendingCategoryReset = null;
+                    }
+                }, 50);
+            }
+            
+            console.log('[DEBUG] Step 7: Updating highlights and parent checkboxes...');
+            // Update all highlights and parent checkboxes after rendering
+            setTimeout(() => {
+                try {
+                    const checkboxes = modal.querySelectorAll('.category-checkbox');
+                    console.log('[DEBUG] Found', checkboxes.length, 'category checkboxes');
+                    checkboxes.forEach(cb => {
+                        updateCheckboxHighlight(cb);
+                    });
+                    console.log('[DEBUG] Updated highlights');
+                    
+                    if (window.updateParentCheckboxes) {
+                        updateParentCheckboxes();
+                        console.log('[DEBUG] Updated parent checkboxes');
+                    } else {
+                        console.warn('[DEBUG] updateParentCheckboxes function not found');
+                    }
+                } catch (updateError) {
+                    console.error('[DEBUG] ❌ Error updating checkboxes:', updateError);
+                }
+            }, 150);
+            
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (gridEl) gridEl.style.display = 'block';
+            console.log('[DEBUG] ✅ Categories displayed');
+            
+            console.log('[DEBUG] Step 8: Updating toggle button...');
+            // Update toggle all button after categories are loaded
+            setTimeout(() => {
+                try {
+                    if (window.updateToggleAllButton) {
+                        updateToggleAllButton();
+                        console.log('[DEBUG] ✅ Toggle button updated');
+                    } else {
+                        console.warn('[DEBUG] updateToggleAllButton function not found');
+                    }
+                } catch (btnError) {
+                    console.error('[DEBUG] ❌ Error updating toggle button:', btnError);
+                }
+            }, 100);
+            
+            const totalLoadTime = performance.now() - loadStartTime;
+            console.log(`[DEBUG] ✅ loadCategories() completed successfully`);
+            console.log(`[DEBUG] 📊 Total load time: ${totalLoadTime.toFixed(2)}ms (${(totalLoadTime/1000).toFixed(2)}s)`);
+            
+            // Final memory check
+            if (performance.memory) {
+                const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+                console.log(`[DEBUG] 📊 Final memory usage: ${memMB} MB`);
+            }
+            
+            console.groupEnd();
+        } catch (error) {
+            const totalLoadTime = performance.now() - loadStartTime;
+            console.error('[DEBUG] ❌❌❌ FATAL ERROR in loadCategories():', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+            console.error(`[DEBUG] 📊 Load failed after ${totalLoadTime.toFixed(2)}ms`);
+            console.groupEnd();
+            
+            const modal = document.getElementById('fsModal');
+            if (modal) {
+                const loadingEl = modal.querySelector('.sponsor-category-browser #category-loading');
+                if (loadingEl) {
+                    loadingEl.innerHTML = '<p style="color: #ef4444;">Error loading categories: ' + error.message + '</p>';
+                }
+            }
+            
+            // Log error count
+            if (window._errorCount) {
+                console.error(`[DEBUG] ⚠️ Total unhandled errors during load: ${window._errorCount}`);
+            }
+            
+            throw error; // Re-throw to see in console
+        }
+    };
+    
+    // Helper function to count total leaf categories in a node
+    function countLeafCategories(node) {
+        if (typeof node !== 'object' || node === null) return 0;
+        const values = Object.values(node);
+        const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+        if (allValuesAreStrings) {
+            return Object.keys(node).length;
+        }
+        let total = 0;
+        for (const subcat of Object.values(node)) {
+            total += countLeafCategories(subcat);
+        }
+        return total;
+    }
+    
+    // Helper function to extract all category IDs from a node
+    function extractCategoryIds(node, ids = []) {
+        if (typeof node !== 'object' || node === null) return ids;
+        const values = Object.values(node);
+        const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+        if (allValuesAreStrings) {
+            ids.push(...Object.keys(node));
+        } else {
+            for (const subcat of Object.values(node)) {
+                extractCategoryIds(subcat, ids);
+            }
+        }
+        return ids;
+    }
+    
+    // Render category tree with checkboxes (for filter set selection)
+    function renderCategoryTreeWithCheckboxes(data, container, level = 0, selectedIdsSet = null) {
+        const startTime = performance.now();
+        const recursionDepth = level;
+        
+        // Track max recursion depth
+        if (!window._maxRecursionDepth) window._maxRecursionDepth = 0;
+        if (recursionDepth > window._maxRecursionDepth) {
+            window._maxRecursionDepth = recursionDepth;
+            console.warn(`[DEBUG] ⚠️ NEW MAX RECURSION DEPTH: ${recursionDepth}`);
+        }
+        
+        // Warn about deep recursion
+        if (recursionDepth > 10) {
+            console.warn(`[DEBUG] ⚠️ WARNING: Deep recursion detected (level ${recursionDepth})`);
+        }
+        
+        console.log(`[DEBUG] renderCategoryTreeWithCheckboxes called - level: ${level}, hasContainer: ${!!container}, dataKeys:`, data ? Object.keys(data).slice(0, 5) : 'null');
+        
+        // Memory check
+        if (performance.memory) {
+            const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+            if (recursionDepth === 0) {
+                console.log(`[DEBUG] 📊 Memory usage at start: ${memMB} MB`);
+            }
+        }
+        
+        try {
+            if (!data || typeof data !== 'object') {
+                console.error('[DEBUG] ❌ Invalid data passed to renderCategoryTreeWithCheckboxes:', data);
+                return '';
+            }
+            
+            let html = '';
+            const entries = Object.entries(data);
+            console.log(`[DEBUG] Processing ${entries.length} category entries at level ${level}`);
+            
+            // Check for excessive processing
+            if (entries.length > 100 && recursionDepth === 0) {
+                console.warn(`[DEBUG] ⚠️ WARNING: Processing ${entries.length} entries at top level - this may take a while`);
+            }
+            
+            for (const [categoryName, subcategories] of entries) {
+            if (typeof subcategories === 'object' && subcategories !== null) {
+                const values = Object.values(subcategories);
+                const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                
+                if (allValuesAreStrings) {
+                    // Leaf categories - check if only one subcategory
+                    const categoryEntries = Object.entries(subcategories);
+                    if (categoryEntries.length === 1) {
+                        // Single subcategory - render directly as checkbox, no dropdown
+                        const [catId, catName] = categoryEntries[0];
+                        const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                        const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                        html += `
+                            <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                <span>${catName}</span>
+                            </label>
+                        `;
+                    } else {
+                        // Multiple leaf categories - render as checkboxes
+                        for (const [catId, catName] of categoryEntries) {
+                            const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                            const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                            html += `
+                                <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                    <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                    <span>${catName}</span>
+                                </label>
+                            `;
+                        }
+                    }
+                } else {
+                    // Nested structure - check if only one subcategory exists at this level
+                    const leafCount = countLeafCategories(subcategories);
+                    if (leafCount === 1) {
+                        // Only one subcategory total - find and render it directly
+                        function findSingleLeaf(node) {
+                            const values = Object.values(node);
+                            const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                            if (allValuesAreStrings) {
+                                return Object.entries(node)[0];
+                            }
+                            for (const subcat of Object.values(node)) {
+                                const result = findSingleLeaf(subcat);
+                                if (result) return result;
+                            }
+                            return null;
+                        }
+                        const singleLeaf = findSingleLeaf(subcategories);
+                        if (singleLeaf) {
+                            const [catId, catName] = singleLeaf;
+                            const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                            const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                            html += `
+                                <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                    <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                    <span>${catName}</span>
+                                </label>
+                            `;
+                        }
+                    } else {
+                        // Multiple subcategories - render as collapsible section with checkbox in header
+                        const uniqueId = `fs-cat-${categoryName.replace(/\s+/g, '-').toLowerCase()}-${level}`;
+                        const sectionCategoryIds = extractCategoryIds(subcategories);
+                        // Check if all children should be selected
+                        let allChildrenSelected = false;
+                        if (selectedIdsSet === 'all') {
+                            allChildrenSelected = true;
+                        } else if (selectedIdsSet instanceof Set && selectedIdsSet.size > 0) {
+                            allChildrenSelected = sectionCategoryIds.length > 0 && sectionCategoryIds.every(id => selectedIdsSet.has(String(id)));
+                        } else if (selectedIdsSet === 'none') {
+                            allChildrenSelected = false;
+                        }
+                        html += `
+                            <details class="category-section" data-category-ids="${sectionCategoryIds.join(',')}" style="margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: var(--bg-secondary);">
+                                <summary style="padding: 8px; cursor: pointer; font-weight: 600; color: var(--text-primary); list-style: none; display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="category-parent-checkbox" data-category-ids="${sectionCategoryIds.join(',')}" ${allChildrenSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="toggleCategorySection(this); event.stopPropagation();" style="cursor: pointer; margin: 0;">
+                                    <span style="user-select: none; flex: 1;">${categoryName}</span>
+                                </summary>
+                                <div style="padding: 8px; padding-left: 20px;">
+                                    ${renderCategoryTreeWithCheckboxes(subcategories, null, level + 1, selectedIdsSet)}
+                                </div>
+                            </details>
+                        `;
+                    }
+                }
+            }
+        }
+        
+        const elapsed = performance.now() - startTime;
+        const htmlSizeKB = (html.length / 1024).toFixed(2);
+        
+        if (container) {
+            console.log(`[DEBUG] Setting innerHTML for container (length: ${html.length} chars, ${htmlSizeKB} KB, took ${elapsed.toFixed(2)}ms)`);
+            
+            // Warn about large HTML
+            if (html.length > 500000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: Large HTML string (${htmlSizeKB} KB) - may cause performance issues`);
+            }
+            
+            try {
+                const setHTMLStart = performance.now();
+                container.innerHTML = html;
+                const setHTMLTime = performance.now() - setHTMLStart;
+                console.log(`[DEBUG] ✅ HTML set successfully (innerHTML operation took ${setHTMLTime.toFixed(2)}ms)`);
+                
+                // Check memory after DOM update
+                if (performance.memory && level === 0) {
+                    const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+                    console.log(`[DEBUG] 📊 Memory usage after DOM update: ${memMB} MB`);
+                }
+            } catch (innerHTMLError) {
+                console.error('[DEBUG] ❌ Error setting innerHTML:', innerHTMLError);
+                console.error('[DEBUG] HTML length was:', html.length);
+                console.error('[DEBUG] Container:', container);
+                console.error('[DEBUG] Error name:', innerHTMLError.name);
+                console.error('[DEBUG] Error message:', innerHTMLError.message);
+                throw innerHTMLError;
+            }
+        }
+        
+        if (level === 0) {
+            console.log(`[DEBUG] ✅ renderCategoryTreeWithCheckboxes completed (root level) - Total time: ${elapsed.toFixed(2)}ms, HTML size: ${htmlSizeKB} KB`);
+            console.log(`[DEBUG] 📊 Max recursion depth reached: ${window._maxRecursionDepth || 0}`);
+        } else {
+            console.log(`[DEBUG] renderCategoryTreeWithCheckboxes completed - level: ${level} (took ${elapsed.toFixed(2)}ms, HTML: ${htmlSizeKB} KB)`);
+        }
+        return html;
+        } catch (renderError) {
+            console.error(`[DEBUG] ❌ Error in renderCategoryTreeWithCheckboxes at level ${level}:`, renderError);
+            console.error('[DEBUG] Error name:', renderError.name);
+            console.error('[DEBUG] Error message:', renderError.message);
+            console.error('[DEBUG] Error stack:', renderError.stack);
+            
+            // Check if it's a stack overflow
+            if (renderError.message && renderError.message.includes('Maximum call stack')) {
+                console.error('[DEBUG] ❌❌❌ STACK OVERFLOW DETECTED!');
+                console.error(`[DEBUG] Recursion depth was: ${level}`);
+                console.error('[DEBUG] This suggests the category tree is too deeply nested or there is infinite recursion');
+            }
+            
+            throw renderError;
+        }
+    }
+    
+    // Reset category browser checkboxes
+    function resetCategoryBrowser(selectedIds = null) {
+        console.log('[DEBUG] resetCategoryBrowser called with:', selectedIds === null ? 'null' : Array.isArray(selectedIds) ? `${selectedIds.length} IDs` : selectedIds);
+        try {
+            // If categories haven't loaded yet, store the IDs to apply later
+            if (selectedIds === null || selectedIds === undefined) {
+                // Default: check all checkboxes (will be applied when categories load)
+                window._pendingCategoryReset = 'all';
+                console.log('[DEBUG] Set pending reset to: all');
+            } else {
+                // Specific IDs: check only these (empty array = check none)
+                window._pendingCategoryReset = Array.isArray(selectedIds) ? selectedIds.map(id => String(id)) : [String(selectedIds)];
+                console.log('[DEBUG] Set pending reset to:', window._pendingCategoryReset.length, 'IDs');
+            }
+            
+            // Apply immediately if checkboxes already exist
+            setTimeout(() => {
+                try {
+                    const modal = document.getElementById('fsModal');
+                    if (modal) {
+                        const checkboxes = modal.querySelectorAll('.category-checkbox');
+                        if (checkboxes.length > 0) {
+                            console.log('[DEBUG] Found', checkboxes.length, 'existing checkboxes, applying reset...');
+                            if (selectedIds === null || selectedIds === undefined) {
+                                // Check all
+                                checkboxes.forEach(cb => cb.checked = true);
+                                console.log('[DEBUG] Checked all', checkboxes.length, 'checkboxes');
+                            } else {
+                                // Check only selected
+                                const idsArray = Array.isArray(selectedIds) ? selectedIds : [selectedIds];
+                                const idsSet = new Set(idsArray.map(id => String(id)));
+                                checkboxes.forEach(cb => {
+                                    cb.checked = idsSet.has(String(cb.value));
+                                });
+                                console.log('[DEBUG] Updated checkboxes based on', idsSet.size, 'selected IDs');
+                            }
+                            window._pendingCategoryReset = null;
+                            // Update toggle all button and parent checkboxes after applying reset
+                            setTimeout(() => {
+                                if (window.updateToggleAllButton) {
+                                    updateToggleAllButton();
+                                }
+                                if (window.updateParentCheckboxes) {
+                                    updateParentCheckboxes();
+                                }
+                            }, 50);
+                        } else {
+                            console.log('[DEBUG] No checkboxes found yet, reset will be applied when categories load');
+                        }
+                    } else {
+                        console.warn('[DEBUG] ⚠️ Modal not found during reset');
+                    }
+                } catch (resetError) {
+                    console.error('[DEBUG] ❌ Error in resetCategoryBrowser timeout:', resetError);
+                }
+            }, 100);
+        } catch (error) {
+            console.error('[DEBUG] ❌ Error in resetCategoryBrowser:', error);
+        }
+    }
+    
+    // Get selected category IDs from checkboxes
+    function getSelectedCategoryIds() {
+        const modal = document.getElementById('fsModal');
+        if (!modal) return [];
+        const checkboxes = modal.querySelectorAll('.category-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+    
+    // Update toggle all button text based on selection state
+    function updateToggleAllButton() {
+        const modal = document.getElementById('fsModal');
+        if (!modal) return;
+        const btn = modal.querySelector('#toggleAllCategories');
+        if (!btn) return;
+        
+        const checkboxes = modal.querySelectorAll('.category-checkbox');
+        const checkedCount = modal.querySelectorAll('.category-checkbox:checked').length;
+        
+        btn.textContent = checkedCount === 0 ? 'Select All' : 'Deselect All';
+    }
+    
+    
+    // Toggle all categories in a section when parent checkbox is clicked
+    function toggleCategorySection(parentCheckbox) {
+        console.log('[DEBUG] toggleCategorySection called');
+        try {
+            const categoryIds = parentCheckbox.getAttribute('data-category-ids');
+            if (!categoryIds) {
+                console.warn('[DEBUG] ⚠️ No category IDs found on parent checkbox');
+                return;
+            }
+            
+            const idsArray = categoryIds.split(',').map(id => id.trim());
+            console.log('[DEBUG] Toggling', idsArray.length, 'categories');
+            const modal = document.getElementById('fsModal');
+            if (!modal) {
+                console.error('[DEBUG] ❌ Modal not found');
+                return;
+            }
+            
+            // Find the parent <details> element containing this checkbox
+            const parentDetails = parentCheckbox.closest('.category-section');
+            
+            // Find all nested parent checkboxes (subcategory dropdowns) within this section
+            if (parentDetails) {
+                const nestedParentCheckboxes = parentDetails.querySelectorAll('.category-parent-checkbox');
+                nestedParentCheckboxes.forEach(nestedParent => {
+                    // Skip the checkbox we're currently toggling
+                    if (nestedParent !== parentCheckbox) {
+                        nestedParent.checked = parentCheckbox.checked;
+                        nestedParent.indeterminate = false;
+                        // Recursively toggle the nested section as well
+                        toggleCategorySection(nestedParent);
+                    }
+                });
+            }
+            
+            // Find all individual category checkboxes with these category IDs
+            idsArray.forEach(catId => {
+                const checkbox = modal.querySelector(`.category-checkbox[value="${catId}"]`);
+                if (checkbox) {
+                    checkbox.checked = parentCheckbox.checked;
+                    if (window.updateCheckboxHighlight) {
+                        updateCheckboxHighlight(checkbox);
+                    }
+                }
+            });
+            
+            // Update main toggle button
+            if (window.updateToggleAllButton) {
+                updateToggleAllButton();
+            }
+            console.log('[DEBUG] ✅ toggleCategorySection completed');
+        } catch (error) {
+            console.error('[DEBUG] ❌ Error in toggleCategorySection:', error);
+        }
+    }
+    
+    // Update parent checkboxes when child checkboxes change
+    function updateParentCheckboxes() {
+        const updateStartTime = performance.now();
+        console.log('[DEBUG] updateParentCheckboxes called');
+        try {
+            const modal = document.getElementById('fsModal');
+            if (!modal) {
+                console.warn('[DEBUG] ⚠️ Modal not found');
+                return;
+            }
+            
+            const parentCheckboxes = modal.querySelectorAll('.category-parent-checkbox');
+            console.log('[DEBUG] Found', parentCheckboxes.length, 'parent checkboxes');
+            
+            if (parentCheckboxes.length > 1000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: Processing ${parentCheckboxes.length} parent checkboxes - this may take a while`);
+            }
+            
+            // Build a Map of category IDs to checkboxes for O(1) lookups instead of repeated querySelector calls
+            const checkboxMap = new Map();
+            const allCheckboxes = modal.querySelectorAll('.category-checkbox');
+            allCheckboxes.forEach(cb => {
+                checkboxMap.set(String(cb.value), cb);
+            });
+            console.log('[DEBUG] Built checkbox map with', checkboxMap.size, 'entries');
+            
+            let processedCount = 0;
+            parentCheckboxes.forEach((parentCb, index) => {
+                processedCount++;
+                if (processedCount % 500 === 0) {
+                    console.log(`[DEBUG] Processing parent checkbox ${processedCount}/${parentCheckboxes.length}...`);
+                }
+                const categoryIds = parentCb.getAttribute('data-category-ids');
+                if (!categoryIds) return;
+                
+                const idsArray = categoryIds.split(',').map(id => id.trim());
+                let allChecked = true;
+                let anyChecked = false;
+                
+                idsArray.forEach(catId => {
+                    const childCb = checkboxMap.get(String(catId));
+                    if (childCb) {
+                        if (childCb.checked) {
+                            anyChecked = true;
+                        } else {
+                            allChecked = false;
+                        }
+                    }
+                });
+                
+                // Set indeterminate state if some but not all are checked
+                if (anyChecked && !allChecked) {
+                    parentCb.indeterminate = true;
+                    parentCb.checked = false;
+                } else {
+                    parentCb.indeterminate = false;
+                    parentCb.checked = allChecked;
+                }
+            });
+            
+            const updateTime = performance.now() - updateStartTime;
+            console.log(`[DEBUG] ✅ updateParentCheckboxes completed (processed ${processedCount} checkboxes in ${updateTime.toFixed(2)}ms)`);
+            
+            if (updateTime > 1000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: updateParentCheckboxes took ${(updateTime/1000).toFixed(2)}s - performance issue`);
+            }
+        } catch (error) {
+            console.error('[DEBUG] ❌ Error in updateParentCheckboxes:', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+        }
+    }
+    
+    // Update checkbox highlight based on checked state
+    function updateCheckboxHighlight(checkbox) {
+        const label = checkbox.closest('.category-checkbox-label');
+        if (!label) return;
+        
+        if (checkbox.checked) {
+            label.classList.add('category-checkbox-selected');
+        } else {
+            label.classList.remove('category-checkbox-selected');
+        }
+    }
+    
+    // Make functions globally accessible
+    window.resetCategoryBrowser = resetCategoryBrowser;
+    window.getSelectedCategoryIds = getSelectedCategoryIds;
+    window.updateToggleAllButton = updateToggleAllButton;
+    window.toggleCategorySection = toggleCategorySection;
+    window.updateParentCheckboxes = updateParentCheckboxes;
+    window.updateCheckboxHighlight = updateCheckboxHighlight;
+
+    // ---------- Build Rules from Visual Controls ----------
+    function buildRulesFromVisualControls() {
+        // Build rules from visual controls (always normal mode)
+        const rules = {};
+
+        // Price
+        const priceMin = document.getElementById('priceMin').value;
+        const priceMax = document.getElementById('priceMax').value;
+        if (priceMin || priceMax) {
+            rules.price = {
+                currency: "USD"
+            };
+            if (priceMin) rules.price.min = parseFloat(priceMin);
+            if (priceMax) rules.price.max = parseFloat(priceMax);
+        }
+
+        // Categories (from category browser)
+        let selectedCategoryIds = getSelectedCategoryIds();
+        const originalCount = selectedCategoryIds.length;
+        
+        // Always filter out adult categories (explicit content filtering is always enabled)
+        const adultCategoryIds = new Set(["281", "184065", "293", "14080", "11450", "11433", "550", "11731", "176992", "176994", "176995", "176997", "176998", "260748", "260749", "260750", "260751", "260752", "262990"]);
+        const adultCatsFound = selectedCategoryIds.filter(id => adultCategoryIds.has(String(id)));
+        selectedCategoryIds = selectedCategoryIds.filter(id => !adultCategoryIds.has(String(id)));
+        
+        // Adult categories are automatically filtered out
+        
+        rules.categories = {"include": selectedCategoryIds, "exclude": []};
+
+        // Safety - always enforce explicit content filtering
+        rules.safety = {"exclude_explicit": true};
+
+        return rules;
+    }
+
+    // ---------- Populate Visual Controls from Rules ----------
+    function populateVisualControlsFromRules(rules) {
+        console.group('🔍 [DEBUG] populateVisualControlsFromRules() called');
+        console.log('[DEBUG] Rules:', rules);
+        try {
+            // Skip filter sets with recommended_only mode (these can't be edited)
+            if (rules.special_mode === 'recommended_only' || rules.special_mode === 'pinned_only') {
+                console.warn('[DEBUG] ⚠️ Cannot edit filter sets with recommended_only mode');
+                console.groupEnd();
+                return;
+            }
+
+            console.log('[DEBUG] Step 1: Setting price fields...');
+            // Price
+            if (rules.price) {
+                const priceMin = document.getElementById('priceMin');
+                const priceMax = document.getElementById('priceMax');
+                if (priceMin && rules.price.min) {
+                    priceMin.value = rules.price.min;
+                    console.log('[DEBUG] ✅ Set price min:', rules.price.min);
+                }
+                if (priceMax && rules.price.max) {
+                    priceMax.value = rules.price.max;
+                    console.log('[DEBUG] ✅ Set price max:', rules.price.max);
+                }
+            }
+
+            console.log('[DEBUG] Step 3: Updating rules JSON...');
+            // Update rules-json element so category browser can read it (always with exclude_explicit=true)
+            const rulesJsonEl = document.getElementById('rules-json');
+            if (rulesJsonEl) {
+                // Ensure exclude_explicit is always true
+                const rulesWithSafety = {...rules, safety: {exclude_explicit: true}};
+                rulesJsonEl.textContent = JSON.stringify(rulesWithSafety);
+                console.log('[DEBUG] ✅ Rules JSON updated');
+            } else {
+                console.warn('[DEBUG] ⚠️ Rules JSON element not found');
+            }
+
+            console.log('[DEBUG] Step 4: Resetting category browser...');
+            // Categories
+            if (rules.categories && rules.categories.include) {
+                console.log('[DEBUG] Resetting with', rules.categories.include.length, 'category IDs');
+                resetCategoryBrowser(rules.categories.include);
+            } else {
+                console.log('[DEBUG] Resetting with default (all)');
+                resetCategoryBrowser(); // Default: all checked
+            }
+            
+            console.log('[DEBUG] Step 5: Scheduling category reload...');
+            // Reload categories after populating rules to ensure correct filtering
+            setTimeout(() => {
+                if (typeof window.loadCategories === 'function') {
+                    console.log('[DEBUG] Calling loadCategories...');
+                    window.loadCategories().catch((loadError) => {
+                        console.error('[DEBUG] ❌ Error in loadCategories callback:', loadError);
+                    });
+                } else {
+                    console.error('[DEBUG] ❌ loadCategories function not found');
+                }
+            }, 200);
+            
+            console.log('[DEBUG] ✅ populateVisualControlsFromRules completed');
+            console.groupEnd();
+        } catch (error) {
+            console.error('[DEBUG] ❌❌❌ FATAL ERROR in populateVisualControlsFromRules():', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+            console.groupEnd();
+            throw error;
+        }
+    }
+
+    // ---------- CRUD helpers ----------
+    function openNewFilterSet() {
+        console.group('🔍 [DEBUG] openNewFilterSet() called');
+        try {
+            console.log('[DEBUG] Step 1: Getting modal element...');
+            const m = document.getElementById('fsModal');
+            if (!m) {
+                console.error('[DEBUG] ❌ Modal not found');
+                console.groupEnd();
+                return;
+            }
+            console.log('[DEBUG] ✅ Modal found');
+            
+            console.log('[DEBUG] Step 2: Setting modal title and form values...');
+            document.getElementById('fsTitle').textContent = 'New Filter Set';
+            document.getElementById('fsId').value = '';
+            document.getElementById('fsName').value = '';
+            console.log('[DEBUG] ✅ Form fields reset');
+            
+            console.log('[DEBUG] Step 3: Resetting price fields...');
+            const priceMin = document.getElementById('priceMin');
+            const priceMax = document.getElementById('priceMax');
+            if (priceMin) priceMin.value = '';
+            if (priceMax) priceMax.value = '';
+            console.log('[DEBUG] ✅ Price fields reset');
+            
+            console.log('[DEBUG] Step 5: Updating rules JSON...');
+            // Update rules-json element with default rules (always exclude_explicit=true)
+            const rulesJsonEl = document.getElementById('rules-json');
+            if (rulesJsonEl) {
+                rulesJsonEl.textContent = JSON.stringify({safety: {exclude_explicit: true}});
+                console.log('[DEBUG] ✅ Rules JSON updated');
+            } else {
+                console.warn('[DEBUG] ⚠️ Rules JSON element not found');
+            }
+            
+            console.log('[DEBUG] Step 6: Resetting category browser...');
+            try {
+                resetCategoryBrowser();
+                console.log('[DEBUG] ✅ Category browser reset');
+            } catch (resetError) {
+                console.error('[DEBUG] ❌ Error resetting category browser:', resetError);
+            }
+            
+            console.log('[DEBUG] Step 7: Opening modal...');
+            m.showModal();
+            console.log('[DEBUG] ✅ Modal opened');
+            
+            // Attach event listener to toggle button
+            const toggleBtn = m.querySelector('#toggleAllCategories');
+            if (toggleBtn && typeof window.toggleAllCategories === 'function') {
+                toggleBtn.onclick = window.toggleAllCategories;
+                console.log('[DEBUG] ✅ Attached toggleAllCategories event listener');
+            } else {
+                console.warn('[DEBUG] ⚠️ Toggle button or function not found');
+            }
+            
+            console.log('[DEBUG] Step 8: Scheduling category load...');
+            // Reload categories after modal opens
+            setTimeout(() => {
+                console.log('[DEBUG] Loading categories...');
+                if (typeof window.loadCategories === 'function') {
+                    window.loadCategories().catch((loadError) => {
+                        console.error('[DEBUG] ❌ Error in loadCategories callback:', loadError);
+                    });
+                } else {
+                    console.error('[DEBUG] ❌ loadCategories function not found');
+                }
+            }, 300);
+            
+            console.log('[DEBUG] ✅ openNewFilterSet() completed');
+            console.groupEnd();
+        } catch (error) {
+            console.error('[DEBUG] ❌❌❌ FATAL ERROR in openNewFilterSet():', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+            console.groupEnd();
+            alert('Error opening filter set dialog: ' + error.message);
+            throw error;
+        }
+    }
+
+    async function editFilterSet(id) {
+        console.group('🔍 [DEBUG] editFilterSet() called with id:', id);
+        try {
+            console.log('[DEBUG] Step 1: Fetching filter set data...');
+            // Fetch filter set data
+            const url = "{{ url_for('sponsor_catalog.get_filter_set', fsid='__ID__') }}".replace('__ID__', id);
+            console.log('[DEBUG] Fetching from URL:', url);
+            const response = await fetch(url);
+            console.log('[DEBUG] Response status:', response.status, response.ok);
+            
+            if (!response.ok) {
+                console.error('[DEBUG] ❌ Failed to fetch filter set');
+                alert('Failed to load filter set');
+                console.groupEnd();
+                return;
+            }
+            
+            const filterSet = await response.json();
+            console.log('[DEBUG] ✅ Filter set data received:', {
+                id: filterSet.id,
+                name: filterSet.name,
+                hasRules: !!filterSet.rules_json
+            });
+            
+            console.log('[DEBUG] Step 2: Setting modal title and form values...');
+            // Set modal title
+            document.getElementById('fsTitle').textContent = 'Edit Filter Set';
+            document.getElementById('fsId').value = id;
+            document.getElementById('fsName').value = filterSet.name;
+            console.log('[DEBUG] ✅ Form fields populated');
+            
+            console.log('[DEBUG] Step 3: Updating rules JSON...');
+            // Update rules-json element so category browser can read it
+            const rulesJsonEl = document.getElementById('rules-json');
+            if (rulesJsonEl) {
+                const rulesJson = JSON.stringify(filterSet.rules_json || {});
+                rulesJsonEl.textContent = rulesJson;
+                console.log('[DEBUG] ✅ Rules JSON updated:', rulesJson.substring(0, 100));
+            } else {
+                console.warn('[DEBUG] ⚠️ Rules JSON element not found');
+            }
+            
+            console.log('[DEBUG] Step 4: Populating visual controls...');
+            // Populate visual controls from rules
+            try {
+                populateVisualControlsFromRules(filterSet.rules_json || {});
+                console.log('[DEBUG] ✅ Visual controls populated');
+            } catch (populateError) {
+                console.error('[DEBUG] ❌ Error populating visual controls:', populateError);
+            }
+            
+            console.log('[DEBUG] Step 5: Opening modal...');
+            // Open modal
+            const modal = document.getElementById('fsModal');
+            if (modal) {
+                modal.showModal();
+                console.log('[DEBUG] ✅ Modal opened');
+                
+                // Attach event listener to toggle button
+                const toggleBtn = modal.querySelector('#toggleAllCategories');
+                if (toggleBtn && typeof window.toggleAllCategories === 'function') {
+                    toggleBtn.onclick = window.toggleAllCategories;
+                    console.log('[DEBUG] ✅ Attached toggleAllCategories event listener');
+                } else {
+                    console.warn('[DEBUG] ⚠️ Toggle button or function not found');
+                }
+            } else {
+                console.error('[DEBUG] ❌ Modal not found');
+            }
+            
+            console.log('[DEBUG] Step 6: Scheduling category load...');
+            // Reload categories after modal opens and rules are populated
+            // Wait a bit for modal to fully render
+            setTimeout(() => {
+                console.log('[DEBUG] Loading categories...');
+                if (typeof window.loadCategories === 'function') {
+                    window.loadCategories().catch((loadError) => {
+                        console.error('[DEBUG] ❌ Error in loadCategories callback:', loadError);
+                    });
+                } else {
+                    console.error('[DEBUG] ❌ loadCategories function not found');
+                }
+            }, 300);
+            
+            console.log('[DEBUG] ✅ editFilterSet() completed');
+            console.groupEnd();
+        } catch (error) {
+            console.error('[DEBUG] ❌❌❌ FATAL ERROR in editFilterSet():', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+            console.groupEnd();
+            alert('Error loading filter set: ' + error.message);
+            throw error;
+        }
+    }
+
+    async function deleteFilterSet(id) {
+        if (!confirm('Delete this filter set?')) return;
+        
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                         document.querySelector('meta[name="csrf-token"]')?.content ||
+                         null;
+        
+        const fd = new FormData();
+        if (csrfToken) {
+            fd.append('csrf_token', csrfToken);
+        }
+        
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        try {
+            const r = await fetch("{{ url_for('sponsor_catalog.delete_filter_set', fsid='__ID__') }}".replace('__ID__', id), {
+                method: 'POST',
+                body: fd,
+                headers: headers,
+                credentials: 'same-origin'
+            });
+            
+            const contentType = r.headers.get('content-type');
+            let data;
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await r.json();
+            } else {
+                const text = await r.text();
+                alert('Delete failed: Server returned an error. Please try again.');
+                return;
+            }
+            
+            if (data.ok === true) {
+                // Success - reload the page to show updated list
+                location.reload();
+            } else {
+                const errorMsg = data.error || 'Unknown error';
+                alert('Delete failed: ' + errorMsg);
+            }
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        }
+    }
+
+    async function saveFilterSet(ev) {
+        ev.preventDefault();
+
+        // Build rules from visual controls
+        let rules = buildRulesFromVisualControls();
+
+        const id = document.getElementById('fsId').value;
+        const fd = new FormData();
+        fd.append('name', document.getElementById('fsName').value.trim());
+        fd.append('rules_json', JSON.stringify(rules));
+
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                         document.querySelector('meta[name="csrf-token"]')?.content ||
+                         null;
+        
+        if (csrfToken) {
+            fd.append('csrf_token', csrfToken);
+        }
+
+        // Use different endpoints for create vs update
+        const url = id
+            ? "{{ url_for('sponsor_catalog.update_filter_set', fsid='__ID__') }}".replace('__ID__', id)
+            : "{{ url_for('sponsor_catalog.create_filter_set') }}";
+
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
+        // Disable submit button during save
+        const submitBtn = ev.target.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+        }
+
+        try {
+            const r = await fetch(url, { 
+                method: 'POST', 
+                body: fd,
+                headers: headers,
+                credentials: 'same-origin'
+            });
+            
+            if (r.ok) { 
+                const data = await r.json().catch(() => ({}));
+                if (data.ok !== false) {
+                    // Close modal before reload
+                    const modal = document.getElementById('fsModal');
+                    if (modal) {
+                        modal.close();
+                    }
+                    location.reload(); 
+                } else {
+                    alert('Save failed: ' + (data.error || 'Unknown error'));
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
+                }
+            } else { 
+                const errText = await r.text().catch(() => 'Unknown error');
+                let errorMsg = 'Save failed: ' + errText;
+                try {
+                    const errData = JSON.parse(errText);
+                    errorMsg = errData.error || errorMsg;
+                } catch (e) {
+                    // Use text error as-is
+                }
+                alert(errorMsg);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                }
+            }
+        } catch (error) {
+            alert('Error saving filter set: ' + error.message);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        }
+        return false;
+    }
+
+    // init
+    loadActiveUI();
+</script>
+{% endblock %}

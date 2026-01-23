@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .wrap {
+    max-width: 960px;
+    margin: 32px auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+  }
+
+  h2 {
+    margin: 0 0 8px;
+  }
+
+  .filters {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin: 12px 0 16px;
+  }
+
+  .filters .group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filters label {
+    font-size: .92rem;
+    color: #374151;
+    margin-bottom: 4px;
+  }
+
+  .filters input[type="date"] {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .filters .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: .95rem;
+  }
+
+  .btn-primary {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+
+  .btn-ghost {
+    background: #f3f4f6;
+    color: #111;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 10px;
+  }
+
+  thead th {
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    color: #374151;
+  }
+
+  tbody tr {
+    border-top: 1px solid #f1f5f9;
+  }
+</style>
+
+<div class="wrap">
+  <h2>Point History — {{ driver.Account.FirstName }} {{ driver.Account.LastName }}</h2>
+  <p style="margin:0 0 8px; color:#6b7280;">Company: {{ sponsor.Company }}</p>
+
+  <!-- Date range filters -->
+  <form class="filters" method="get" action="{{ url_for('sponsor.driver_history_page', driver_id=driver.DriverID) }}">
+    <div class="group">
+      <label for="start">Start date</label>
+      <input type="date" id="start" name="start" value="{{ start|default('', true) }}">
+    </div>
+    <div class="group">
+      <label for="end">End date</label>
+      <input type="date" id="end" name="end" value="{{ end|default('', true) }}">
+    </div>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <button type="submit" class="btn btn-primary">Apply</button>
+    {% if start or end %}
+    <a class="btn btn-ghost" href="{{ url_for('sponsor.driver_history_page', driver_id=driver.DriverID) }}">Reset</a>
+    {% endif %}
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th style="text-align:right;">Δ Points</th>
+        <th>Reason</th>
+        <th style="text-align:right;">Balance After</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pc in rows %}
+      <tr>
+        <td>{{ pc.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="{{ 'delta-pos' if pc.DeltaPoints >= 0 else 'delta-neg' }}" style="text-align:right;">
+          {{ '+' if pc.DeltaPoints >= 0 else '' }}{{ pc.DeltaPoints }}
+        </td>
+        <td>{{ pc.Reason or '' }}</td>
+        <td style="text-align:right;">{{ pc.BalanceAfter }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" style="padding:12px;">No point changes found for the selected date range.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pages > 1 %}
+  <div style="margin-top:16px; display:flex; align-items:center; gap:12px;">
+    {% if page > 1 %}
+    <a href="{{ url_for('sponsor.driver_history_page',
+                          driver_id=driver.DriverID,
+                          page=page-1,
+                          per_page=per_page,
+                          start=start,
+                          end=end) }}">« Prev</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %} <a href="{{ url_for('sponsor.driver_history_page',
+                          driver_id=driver.DriverID,
+                          page=page+1,
+                          per_page=per_page,
+                          start=start,
+                          end=end) }}">Next »</a>
+      {% endif %}
+  </div>
+  {% endif %}
+
+  <div style="margin-top:16px;">
+    <a href="{{ url_for('sponsor.points_settings') }}">← Back to Points Settings</a>
+  </div>
+</div>
+{% endblock %}

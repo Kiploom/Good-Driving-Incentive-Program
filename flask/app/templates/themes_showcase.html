@@ -1,0 +1,1119 @@
+{% extends "base.html" %}
+{% block title %}Theme Showcase • Team10{% endblock %}
+{% block head %}
+<style>
+  body {
+    background: #f3f4f6;
+    padding: 20px;
+  }
+  
+  .showcase-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  h1 {
+    text-align: center;
+    color: #111827;
+    margin-bottom: 10px;
+    font-size: 2.5rem;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 40px;
+    font-size: 1.1rem;
+  }
+  
+  .themes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+  }
+  
+  .theme-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+  }
+  
+  .theme-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #111827;
+  }
+  
+  .theme-description {
+    color: #6b7280;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  .preview-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+  }
+  
+  .preview-box {
+    flex: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-height: 280px;
+    position: relative;
+  }
+  
+  .preview-label {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 10;
+  }
+  
+  .preview-content {
+    padding: 15px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .preview-navbar {
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    font-size: 0.75rem;
+  }
+  
+  .preview-nav-item {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+  }
+  
+  .preview-card {
+    flex: 1;
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .preview-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: fit-content;
+  }
+  
+  .preview-text {
+    font-size: 0.7rem;
+    margin: 0;
+  }
+  
+  .preview-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  
+  /* Theme 1: Modern Racing/Performance */
+  .theme1-light {
+    background: #FFFFFF;
+    color: #1F2937;
+  }
+  .theme1-light .preview-navbar {
+    background: #FFFFFF;
+    border-bottom: 2px solid #0066FF;
+  }
+  .theme1-light .preview-nav-item {
+    background: #F3F4F6;
+    color: #1F2937;
+  }
+  .theme1-light .preview-card {
+    background: #F3F4F6;
+    color: #1F2937;
+  }
+  .theme1-light .preview-button {
+    background: #0066FF;
+    color: white;
+  }
+  .theme1-light .preview-badge {
+    background: #0066FF;
+    color: white;
+  }
+  
+  .theme1-dark {
+    background: #0A0A0A;
+    color: #F9FAFB;
+  }
+  .theme1-dark .preview-navbar {
+    background: #0A0A0A;
+    border-bottom: 2px solid #00FFFF;
+  }
+  .theme1-dark .preview-nav-item {
+    background: #1F2937;
+    color: #F9FAFB;
+  }
+  .theme1-dark .preview-card {
+    background: #1F2937;
+    color: #F9FAFB;
+  }
+  .theme1-dark .preview-button {
+    background: #00FFFF;
+    color: #0A0A0A;
+  }
+  .theme1-dark .preview-badge {
+    background: #00FFFF;
+    color: #0A0A0A;
+  }
+  
+  /* Theme 2: Professional Corporate Blue */
+  .theme2-light {
+    background: #FFFFFF;
+    color: #1E3A8A;
+  }
+  .theme2-light .preview-navbar {
+    background: #FFFFFF;
+    border-bottom: 1px solid #3B82F6;
+  }
+  .theme2-light .preview-nav-item {
+    background: #F3F4F6;
+    color: #1E3A8A;
+  }
+  .theme2-light .preview-card {
+    background: #F3F4F6;
+    color: #1E3A8A;
+  }
+  .theme2-light .preview-button {
+    background: #3B82F6;
+    color: white;
+  }
+  .theme2-light .preview-badge {
+    background: #3B82F6;
+    color: white;
+  }
+  
+  .theme2-dark {
+    background: #0F172A;
+    color: #60A5FA;
+  }
+  .theme2-dark .preview-navbar {
+    background: #0F172A;
+    border-bottom: 1px solid #3B82F6;
+  }
+  .theme2-dark .preview-nav-item {
+    background: #1E293B;
+    color: #60A5FA;
+  }
+  .theme2-dark .preview-card {
+    background: #1E293B;
+    color: #60A5FA;
+  }
+  .theme2-dark .preview-button {
+    background: #3B82F6;
+    color: white;
+  }
+  .theme2-dark .preview-badge {
+    background: #3B82F6;
+    color: white;
+  }
+  
+  /* Theme 3: Vibrant E-commerce */
+  .theme3-light {
+    background: #FFFFFF;
+    color: #92400E;
+  }
+  .theme3-light .preview-navbar {
+    background: #FFFFFF;
+    border-bottom: 2px solid #FF6B35;
+  }
+  .theme3-light .preview-nav-item {
+    background: #F5F5F4;
+    color: #92400E;
+  }
+  .theme3-light .preview-card {
+    background: #F5F5F4;
+    color: #92400E;
+  }
+  .theme3-light .preview-button {
+    background: #FF6B35;
+    color: white;
+  }
+  .theme3-light .preview-badge {
+    background: #4ECDC4;
+    color: white;
+  }
+  
+  .theme3-dark {
+    background: #18181B;
+    color: #F9FAFB;
+  }
+  .theme3-dark .preview-navbar {
+    background: #18181B;
+    border-bottom: 2px solid #FF8C5A;
+  }
+  .theme3-dark .preview-nav-item {
+    background: #27272A;
+    color: #F9FAFB;
+  }
+  .theme3-dark .preview-card {
+    background: #27272A;
+    color: #F9FAFB;
+  }
+  .theme3-dark .preview-button {
+    background: #FF8C5A;
+    color: #18181B;
+  }
+  .theme3-dark .preview-badge {
+    background: #5EEAD4;
+    color: #18181B;
+  }
+  
+  /* Theme 4: Dark Mode Premium */
+  .theme4-light {
+    background: #FAFAF9;
+    color: #1F2937;
+  }
+  .theme4-light .preview-navbar {
+    background: #FAFAF9;
+    border-bottom: 2px solid #F59E0B;
+  }
+  .theme4-light .preview-nav-item {
+    background: #FFFFFF;
+    color: #1F2937;
+  }
+  .theme4-light .preview-card {
+    background: #FFFFFF;
+    color: #1F2937;
+    border: 1px solid #F59E0B;
+  }
+  .theme4-light .preview-button {
+    background: #F59E0B;
+    color: white;
+  }
+  .theme4-light .preview-badge {
+    background: #F59E0B;
+    color: white;
+  }
+  
+  .theme4-dark {
+    background: #1F2937;
+    color: #F9FAFB;
+  }
+  .theme4-dark .preview-navbar {
+    background: #1F2937;
+    border-bottom: 2px solid #F59E0B;
+  }
+  .theme4-dark .preview-nav-item {
+    background: #374151;
+    color: #F9FAFB;
+  }
+  .theme4-dark .preview-card {
+    background: #374151;
+    color: #F9FAFB;
+    border: 1px solid #F59E0B;
+  }
+  .theme4-dark .preview-button {
+    background: #F59E0B;
+    color: #1F2937;
+  }
+  .theme4-dark .preview-badge {
+    background: #F59E0B;
+    color: #1F2937;
+  }
+  
+  /* Theme 5: Minimalist Clean */
+  .theme5-light {
+    background: #FFFFFF;
+    color: #111827;
+  }
+  .theme5-light .preview-navbar {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .theme5-light .preview-nav-item {
+    background: transparent;
+    color: #111827;
+    border: 1px solid #E5E7EB;
+  }
+  .theme5-light .preview-card {
+    background: #FFFFFF;
+    color: #111827;
+    border: 1px solid #E5E7EB;
+  }
+  .theme5-light .preview-button {
+    background: #6366F1;
+    color: white;
+  }
+  .theme5-light .preview-badge {
+    background: #6366F1;
+    color: white;
+  }
+  
+  .theme5-dark {
+    background: #0F172A;
+    color: #FFFFFF;
+  }
+  .theme5-dark .preview-navbar {
+    background: #0F172A;
+    border-bottom: 1px solid #334155;
+  }
+  .theme5-dark .preview-nav-item {
+    background: transparent;
+    color: #FFFFFF;
+    border: 1px solid #334155;
+  }
+  .theme5-dark .preview-card {
+    background: #0F172A;
+    color: #FFFFFF;
+    border: 1px solid #334155;
+  }
+  .theme5-dark .preview-button {
+    background: #818CF8;
+    color: #0F172A;
+  }
+  .theme5-dark .preview-badge {
+    background: #818CF8;
+    color: #0F172A;
+  }
+  
+  /* Theme 6: Gaming/Points Focused */
+  .theme6-light {
+    background: #F8FAFC;
+    color: #1E1B4B;
+  }
+  .theme6-light .preview-navbar {
+    background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+    color: white;
+  }
+  .theme6-light .preview-nav-item {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+  .theme6-light .preview-card {
+    background: #FFFFFF;
+    color: #1E1B4B;
+  }
+  .theme6-light .preview-button {
+    background: #8B5CF6;
+    color: white;
+  }
+  .theme6-light .preview-badge {
+    background: #06B6D4;
+    color: white;
+    animation: pulse 2s infinite;
+  }
+  
+  .theme6-dark {
+    background: #1E1B4B;
+    color: #F9FAFB;
+  }
+  .theme6-dark .preview-navbar {
+    background: linear-gradient(135deg, #A78BFA 0%, #22D3EE 100%);
+    color: #1E1B4B;
+  }
+  .theme6-dark .preview-nav-item {
+    background: rgba(0, 0, 0, 0.2);
+    color: #1E1B4B;
+  }
+  .theme6-dark .preview-card {
+    background: #312E81;
+    color: #F9FAFB;
+  }
+  .theme6-dark .preview-button {
+    background: #A78BFA;
+    color: #1E1B4B;
+  }
+  .theme6-dark .preview-badge {
+    background: #22D3EE;
+    color: #1E1B4B;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  /* Theme 7: Warm & Friendly */
+  .theme7-light {
+    background: #FFF7ED;
+    color: #92400E;
+  }
+  .theme7-light .preview-navbar {
+    background: #FFF7ED;
+    border-bottom: 2px solid #FB923C;
+  }
+  .theme7-light .preview-nav-item {
+    background: #FFFFFF;
+    color: #92400E;
+  }
+  .theme7-light .preview-card {
+    background: #FFFFFF;
+    color: #92400E;
+    border-radius: 12px;
+  }
+  .theme7-light .preview-button {
+    background: #FB923C;
+    color: white;
+  }
+  .theme7-light .preview-badge {
+    background: #FB923C;
+    color: white;
+  }
+  
+  .theme7-dark {
+    background: #451A03;
+    color: #FFF7ED;
+  }
+  .theme7-dark .preview-navbar {
+    background: #451A03;
+    border-bottom: 2px solid #FDBA74;
+  }
+  .theme7-dark .preview-nav-item {
+    background: #78350F;
+    color: #FFF7ED;
+  }
+  .theme7-dark .preview-card {
+    background: #78350F;
+    color: #FFF7ED;
+    border-radius: 12px;
+  }
+  .theme7-dark .preview-button {
+    background: #FDBA74;
+    color: #451A03;
+  }
+  .theme7-dark .preview-badge {
+    background: #FDBA74;
+    color: #451A03;
+  }
+  
+  /* Theme 8: Tech/Startup Modern */
+  .theme8-light {
+    background: #FFFFFF;
+    color: #1E293B;
+  }
+  .theme8-light .preview-navbar {
+    background: linear-gradient(90deg, #4F46E5 0%, #64748B 100%);
+    color: white;
+  }
+  .theme8-light .preview-nav-item {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+  .theme8-light .preview-card {
+    background: #F1F5F9;
+    color: #1E293B;
+  }
+  .theme8-light .preview-button {
+    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+    color: white;
+  }
+  .theme8-light .preview-badge {
+    background: #4F46E5;
+    color: white;
+  }
+  
+  .theme8-dark {
+    background: #0F172A;
+    color: #94A3B8;
+  }
+  .theme8-dark .preview-navbar {
+    background: linear-gradient(90deg, #818CF8 0%, #94A3B8 100%);
+    color: #0F172A;
+  }
+  .theme8-dark .preview-nav-item {
+    background: rgba(0, 0, 0, 0.2);
+    color: #0F172A;
+  }
+  .theme8-dark .preview-card {
+    background: #1E293B;
+    color: #94A3B8;
+  }
+  .theme8-dark .preview-button {
+    background: linear-gradient(135deg, #818CF8 0%, #A78BFA 100%);
+    color: #0F172A;
+  }
+  .theme8-dark .preview-badge {
+    background: #818CF8;
+    color: #0F172A;
+  }
+  
+  /* Theme 9: High-Contrast Accessibility */
+  .theme9-light {
+    background: #FFFFFF;
+    color: #000000;
+  }
+  .theme9-light .preview-navbar {
+    background: #003366;
+    color: #FFD700;
+    border-bottom: 3px solid #FFD700;
+  }
+  .theme9-light .preview-nav-item {
+    background: #FFD700;
+    color: #003366;
+    border: 2px solid #003366;
+  }
+  .theme9-light .preview-card {
+    background: #FFFFFF;
+    color: #000000;
+    border: 3px solid #003366;
+  }
+  .theme9-light .preview-button {
+    background: #003366;
+    color: #FFD700;
+    border: 2px solid #FFD700;
+  }
+  .theme9-light .preview-badge {
+    background: #FFD700;
+    color: #003366;
+    border: 2px solid #003366;
+  }
+  
+  .theme9-dark {
+    background: #000000;
+    color: #FFFFFF;
+  }
+  .theme9-dark .preview-navbar {
+    background: #000000;
+    color: #FFD700;
+    border-bottom: 3px solid #0066CC;
+  }
+  .theme9-dark .preview-nav-item {
+    background: #0066CC;
+    color: #FFD700;
+    border: 2px solid #FFD700;
+  }
+  .theme9-dark .preview-card {
+    background: #000000;
+    color: #FFFFFF;
+    border: 3px solid #0066CC;
+  }
+  .theme9-dark .preview-button {
+    background: #0066CC;
+    color: #FFD700;
+    border: 2px solid #FFD700;
+  }
+  .theme9-dark .preview-badge {
+    background: #FFD700;
+    color: #000000;
+    border: 2px solid #0066CC;
+  }
+  
+  /* Theme 10: Luxury/Rewards Premium */
+  .theme10-light {
+    background: #FAF5F0;
+    color: #7F1D1D;
+  }
+  .theme10-light .preview-navbar {
+    background: #FAF5F0;
+    border-bottom: 2px solid #D4AF37;
+  }
+  .theme10-light .preview-nav-item {
+    background: #FFFFFF;
+    color: #7F1D1D;
+  }
+  .theme10-light .preview-card {
+    background: #FFFFFF;
+    color: #7F1D1D;
+    border: 1px solid #D4AF37;
+  }
+  .theme10-light .preview-button {
+    background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%);
+    color: #D4AF37;
+  }
+  .theme10-light .preview-badge {
+    background: #D4AF37;
+    color: #7F1D1D;
+  }
+  
+  .theme10-dark {
+    background: #450A0A;
+    color: #FCD34D;
+  }
+  .theme10-dark .preview-navbar {
+    background: #450A0A;
+    border-bottom: 2px solid #FCD34D;
+  }
+  .theme10-dark .preview-nav-item {
+    background: #7F1D1D;
+    color: #FCD34D;
+  }
+  .theme10-dark .preview-card {
+    background: #7F1D1D;
+    color: #FCD34D;
+    border: 1px solid #FCD34D;
+  }
+  .theme10-dark .preview-button {
+    background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%);
+    color: #FCD34D;
+  }
+  .theme10-dark .preview-badge {
+    background: #FCD34D;
+    color: #450A0A;
+  }
+  
+  @media (max-width: 768px) {
+    .themes-grid {
+      grid-template-columns: 1fr;
+    }
+    .preview-container {
+      flex-direction: column;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="showcase-container">
+  <h1>Theme Showcase</h1>
+  <p class="subtitle">Preview all 10 theme options with light and dark mode variants</p>
+  
+  <div class="themes-grid">
+    <!-- Theme 1: Modern Racing/Performance -->
+    <div class="theme-card">
+      <div class="theme-title">1. Modern Racing/Performance</div>
+      <div class="theme-description">
+        Sleek, angular design with electric blues and neon accents. Perfect for a high-performance, speed-focused aesthetic.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme1-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme1-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 2: Professional Corporate Blue -->
+    <div class="theme-card">
+      <div class="theme-title">2. Professional Corporate Blue</div>
+      <div class="theme-description">
+        Clean, trustworthy design with navy and sky blue tones. Ideal for a professional, business-focused platform.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme2-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme2-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 3: Vibrant E-commerce -->
+    <div class="theme-card">
+      <div class="theme-title">3. Vibrant E-commerce</div>
+      <div class="theme-description">
+        Energetic orange and teal color scheme with rounded corners. Great for an engaging shopping experience.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme3-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme3-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 4: Dark Mode Premium -->
+    <div class="theme-card">
+      <div class="theme-title">4. Dark Mode Premium</div>
+      <div class="theme-description">
+        Elegant charcoal and gold combination. Sophisticated design with glassmorphism effects and luxurious spacing.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme4-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme4-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 5: Minimalist Clean -->
+    <div class="theme-card">
+      <div class="theme-title">5. Minimalist Clean</div>
+      <div class="theme-description">
+        Maximum whitespace with minimal design elements. Single accent color (indigo) for a clean, modern look.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme5-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme5-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 6: Gaming/Points Focused -->
+    <div class="theme-card">
+      <div class="theme-title">6. Gaming/Points Focused</div>
+      <div class="theme-description">
+        Purple and cyan gradient scheme with pulsing point badges. Designed to make points and rewards feel exciting.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme6-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme6-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 7: Warm & Friendly -->
+    <div class="theme-card">
+      <div class="theme-title">7. Warm & Friendly</div>
+      <div class="theme-description">
+        Soft orange and cream palette with rounded corners. Creates a welcoming, approachable atmosphere.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme7-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme7-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 8: Tech/Startup Modern -->
+    <div class="theme-card">
+      <div class="theme-title">8. Tech/Startup Modern</div>
+      <div class="theme-description">
+        Modern indigo and slate gradients with blur effects. Perfect for a cutting-edge tech platform feel.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme8-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme8-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 9: High-Contrast Accessibility -->
+    <div class="theme-card">
+      <div class="theme-title">9. High-Contrast Accessibility</div>
+      <div class="theme-description">
+        Deep blue and bright yellow with strong borders. Designed for maximum readability and accessibility compliance.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme9-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme9-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme 10: Luxury/Rewards Premium -->
+    <div class="theme-card">
+      <div class="theme-title">10. Luxury/Rewards Premium</div>
+      <div class="theme-description">
+        Elegant burgundy and gold with sophisticated styling. Perfect for a premium rewards program aesthetic.
+      </div>
+      <div class="preview-container">
+        <div class="preview-box theme10-light">
+          <div class="preview-label">Light Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-box theme10-dark">
+          <div class="preview-label">Dark Mode</div>
+          <div class="preview-content">
+            <div class="preview-navbar">
+              <span class="preview-nav-item">Home</span>
+              <span class="preview-nav-item">Catalog</span>
+              <span class="preview-nav-item">Points</span>
+            </div>
+            <div class="preview-card">
+              <p class="preview-text"><strong>Product Card</strong></p>
+              <p class="preview-text">Sample product description</p>
+              <span class="preview-badge">1,250 pts</span>
+              <button class="preview-button">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

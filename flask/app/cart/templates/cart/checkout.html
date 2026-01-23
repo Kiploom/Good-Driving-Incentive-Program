@@ -1,0 +1,1356 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block head %}
+<style>
+    .checkout-container {
+        background: var(--bg-primary);
+        min-height: 100vh;
+        padding: 2.5rem 0;
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .checkout-container {
+        background: radial-gradient(120% 120% at 50% 0%, #1e40af 0%, #0f172a 45%, #020617 100%);
+        color: #e2e8f0;
+    }
+
+    .checkout-shell {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    .checkout-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 1.75rem;
+        align-items: stretch;
+    }
+
+    .checkout-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(14px);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 35px 120px var(--shadow-md);
+        overflow: hidden;
+    }
+
+    [data-theme="dark"] .checkout-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: 0 35px 120px rgba(15, 23, 42, 0.45);
+    }
+
+    .checkout-main {
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .checkout-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .checkout-title {
+        font-size: 1.9rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .checkout-subtitle {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+    }
+
+    .stepper {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .step {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        transition: 0.2s ease;
+        min-height: 72px;
+    }
+
+    [data-theme="dark"] .step {
+        background: rgba(30, 41, 59, 0.9);
+        border: 1px solid transparent;
+        color: #94a3b8;
+    }
+
+    .step .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-hover);
+        color: inherit;
+        font-size: 1.1rem;
+    }
+
+    [data-theme="dark"] .step .step-icon {
+        background: rgba(148, 163, 184, 0.18);
+    }
+
+    .step .step-text {
+        line-height: 1.2;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .step.active {
+        border-color: var(--accent);
+        background: var(--warning-soft);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .step.active {
+        color: #f8fafc;
+    }
+
+    .step.active .step-icon {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #111827;
+    }
+
+    .step.completed {
+        border-color: var(--success);
+        background: var(--success-soft);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .step.completed {
+        color: #f8fafc;
+    }
+
+    .step.completed .step-icon {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #0f172a;
+    }
+
+    .checkout-body {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    [data-theme="dark"] .checkout-body {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .step-panel {
+        display: none;
+        animation: fadeIn 0.25s ease;
+    }
+
+    .step-panel.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-section {
+        background: var(--bg-card);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    [data-theme="dark"] .panel-section {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: var(--text-primary);
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+
+    .field-grid {
+        display: grid;
+        gap: 0.85rem;
+    }
+
+    .field-grid.two-col {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.85rem;
+    }
+
+    .form-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .form-label {
+        color: #cbd5f5;
+    }
+
+    .form-control,
+    .form-select {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        border-radius: 12px;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        color: #f8fafc;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--warning-soft);
+        background: var(--bg-input);
+    }
+
+    [data-theme="dark"] .form-control:focus,
+    [data-theme="dark"] .form-select:focus {
+        background: rgba(15, 23, 42, 0.85);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+    }
+
+    .form-select option {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .form-select option {
+        background: #0f172a;
+        color: #e2e8f0;
+    }
+
+    .shipping-card {
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .shipping-card.active {
+        display: block;
+    }
+
+    .shipping-card .panel-section {
+        gap: 1.25rem;
+    }
+
+    .shipping-options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .shipping-option-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1rem;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+        position: relative;
+    }
+
+    [data-theme="dark"] .shipping-option-card {
+        background: rgba(15, 23, 42, 0.62);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .shipping-option-card.express {
+        border-color: var(--success);
+    }
+
+    [data-theme="dark"] .shipping-option-card.express {
+        border-color: rgba(34, 197, 94, 0.35);
+    }
+
+    .shipping-option-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+    }
+
+    [data-theme="dark"] .shipping-option-card:hover {
+        border-color: rgba(245, 158, 11, 0.65);
+    }
+
+    .shipping-option-card .form-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.9rem;
+    }
+
+    .shipping-option-card .form-check-input {
+        margin-top: 0.35rem;
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 50%;
+        border: 2px solid rgba(148, 163, 184, 0.5);
+        background: transparent;
+    }
+
+    .shipping-option-card .form-check-input:checked {
+        background-color: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .shipping-option-card h6 {
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .shipping-option-card small {
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .shipping-option-card small {
+        color: #cbd5f5;
+    }
+
+    .delivery-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 12px;
+        padding: 0.35rem 0.75rem;
+        background: var(--info-soft);
+        color: var(--info-strong);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    [data-theme="dark"] .delivery-date {
+        background: rgba(59, 130, 246, 0.16);
+        color: #bfdbfe;
+    }
+
+    .delivery-date.express {
+        background: var(--success-soft);
+        color: var(--success-strong);
+    }
+
+    [data-theme="dark"] .delivery-date.express {
+        background: rgba(129, 199, 132, 0.16);
+        color: #bbf7d0;
+    }
+
+    .muted-note {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+    }
+
+    [data-theme="dark"] .muted-note {
+        color: #cbd5f5;
+    }
+
+    .points-highlight {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    [data-theme="dark"] .points-highlight {
+        color: #fbbf24;
+    }
+
+    .checkout-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .checkout-actions .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 0.75rem 1.6rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-secondary-line {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .btn-secondary-line {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #cbd5f5;
+    }
+
+    .btn-secondary-line:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+    }
+
+    [data-theme="dark"] .btn-secondary-line:hover {
+        color: #f8fafc;
+    }
+
+    .btn-primary-fill {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: #0b1120;
+        border: none;
+        box-shadow: 0 18px 30px rgba(249, 115, 22, 0.35);
+    }
+
+    .btn-primary-fill:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 35px rgba(249, 115, 22, 0.45);
+    }
+
+    .btn-success-fill {
+        background: linear-gradient(135deg, #34d399, #10b981);
+        color: #022c22;
+        border: none;
+        box-shadow: 0 18px 30px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-success-fill:disabled {
+        background: rgba(71, 85, 105, 0.6);
+        box-shadow: none;
+        color: rgba(148, 163, 184, 0.7);
+    }
+
+    .btn-success-fill:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 35px rgba(34, 197, 94, 0.45);
+    }
+
+    .terms-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .terms-checkbox {
+        background: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        color: #cbd5f5;
+    }
+
+    .terms-checkbox .form-check-input {
+        width: 1.1rem;
+        height: 1.1rem;
+        border-radius: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        margin-top: 0.25rem;
+    }
+
+    .terms-checkbox .form-check-input:checked {
+        background-color: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .terms-checkbox .form-check-label a {
+        color: var(--accent);
+    }
+
+    [data-theme="dark"] .terms-checkbox .form-check-label a {
+        color: #fbbf24;
+    }
+
+    .order-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1.5rem;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .summary-header h5 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+    .text-sm-muted {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .summary-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    [data-theme="dark"] .summary-card {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    [data-theme="dark"] .summary-row {
+        color: #cbd5f5;
+    }
+
+    .summary-row strong {
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+    .items-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .item-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.65rem;
+        background: var(--bg-card);
+        border-radius: 14px;
+        padding: 0.9rem;
+        border: 1px solid var(--border);
+        text-align: center;
+        min-height: 170px;
+    }
+
+    [data-theme="dark"] .item-card {
+        background: rgba(30, 41, 59, 0.74);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .item-card img,
+    .item-placeholder {
+        width: 78px;
+        height: 78px;
+        border-radius: 14px;
+        object-fit: cover;
+        background: var(--bg-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    [data-theme="dark"] .item-card img,
+    [data-theme="dark"] .item-placeholder {
+        background: rgba(51, 65, 85, 0.6);
+        color: #94a3b8;
+    }
+
+    .item-title {
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 600;
+        line-height: 1.3;
+        word-break: break-word;
+        width: 100%;
+        max-width: 200px;
+        margin: 0;
+    }
+
+    .item-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+    }
+
+    .summary-footer .btn {
+        width: 100%;
+        padding: 0.7rem 1rem;
+        border-radius: 12px;
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+        background: var(--bg-secondary);
+    }
+
+    [data-theme="dark"] .summary-footer .btn {
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.5);
+        background: rgba(30, 41, 59, 0.5);
+    }
+
+    .summary-footer .btn:hover {
+        background: var(--warning-soft);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+    }
+
+    [data-theme="dark"] .summary-footer .btn:hover {
+        background: rgba(251, 191, 36, 0.08);
+        color: #f8fafc;
+    }
+
+    .section-label {
+        text-transform: uppercase;
+        font-size: 0.73rem;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+
+    @media (max-width: 992px) {
+        .checkout-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .checkout-main {
+            padding: 1.5rem;
+        }
+
+        .checkout-body {
+            padding: 1.25rem;
+        }
+
+        .items-stack {
+            max-height: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container">
+    <div class="checkout-shell">
+        <div class="checkout-grid">
+            <div class="checkout-card checkout-main">
+                <div class="checkout-header">
+                    <div>
+                        <h1 class="checkout-title"><i class="fas fa-credit-card me-2 text-warning"></i>Checkout</h1>
+                        <p class="checkout-subtitle">Confirm your details, choose shipping, and place your order.</p>
+                    </div>
+                </div>
+
+                <div class="stepper">
+                    <div class="step active" id="step-1">
+                        <span class="step-icon"><i class="fas fa-user"></i></span>
+                        <span class="step-text">Contact Info</span>
+                    </div>
+                    <div class="step" id="step-2">
+                        <span class="step-icon"><i class="fas fa-map-marker-alt"></i></span>
+                        <span class="step-text">Shipping</span>
+                    </div>
+                    <div class="step" id="step-3">
+                        <span class="step-icon"><i class="fas fa-check"></i></span>
+                        <span class="step-text">Review & Pay</span>
+                    </div>
+                </div>
+
+                <form id="checkoutForm" class="checkout-body">
+                    <div class="step-panel checkout-step" id="checkout-step-1">
+                        <div class="panel-section">
+                            <div class="panel-header">
+                                <span><i class="fas fa-id-card-clip me-2 text-warning"></i>Contact information</span>
+                            </div>
+                            <div class="field-grid two-col">
+                                <div>
+                                    <label for="first_name" class="form-label">First name *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ driver.Account.FirstName or '' }}" required>
+                                </div>
+                                <div>
+                                    <label for="last_name" class="form-label">Last name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ driver.Account.LastName or '' }}" required>
+                                </div>
+                            </div>
+                            <div class="field-grid two-col">
+                                <div>
+                                    <label for="email" class="form-label">Email address *</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ driver.Account.Email or '' }}" required>
+                                </div>
+                                <div>
+                                    <label for="phone" class="form-label">Phone number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ driver.Account.phone_plain or '' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-panel checkout-step" id="checkout-step-2" style="display: none;">
+                        <div class="panel-section">
+                            <div class="panel-header">
+                                <span><i class="fas fa-location-dot me-2 text-warning"></i>Shipping address</span>
+                            </div>
+                            <div class="field-grid">
+                                <div>
+                                    <label for="shipping_street" class="form-label">Street address *</label>
+                                    <input type="text" class="form-control" id="shipping_street" name="shipping_street" value="{{ driver.ShippingStreet or '' }}" required>
+                                </div>
+                            </div>
+                            <div class="field-grid two-col">
+                                <div>
+                                    <label for="shipping_city" class="form-label">City *</label>
+                                    <input type="text" class="form-control" id="shipping_city" name="shipping_city" value="{{ driver.ShippingCity or '' }}" required>
+                                </div>
+                                <div>
+                                    <label for="shipping_state" class="form-label">State / Province *</label>
+                                    <input type="text" class="form-control" id="shipping_state" name="shipping_state" value="{{ driver.ShippingState or '' }}" required>
+                                </div>
+                                <div>
+                                    <label for="shipping_postal" class="form-label">Postal / ZIP *</label>
+                                    <input type="text" class="form-control" id="shipping_postal" name="shipping_postal" value="{{ driver.ShippingPostal or '' }}" required>
+                                </div>
+                                <div>
+                                    <label for="shipping_country" class="form-label">Country *</label>
+                                    <select class="form-select" id="shipping_country" name="shipping_country" required onchange="calculateShippingCost()">
+                                        <option value="">Select Country</option>
+                                        <option value="US" {% if driver.ShippingCountry == 'US' %}selected{% endif %}>United States</option>
+                                        <option value="CA" {% if driver.ShippingCountry == 'CA' %}selected{% endif %}>Canada</option>
+                                        <option value="MX" {% if driver.ShippingCountry == 'MX' %}selected{% endif %}>Mexico</option>
+                                        <option value="GB" {% if driver.ShippingCountry == 'GB' %}selected{% endif %}>United Kingdom</option>
+                                        <option value="DE" {% if driver.ShippingCountry == 'DE' %}selected{% endif %}>Germany</option>
+                                        <option value="FR" {% if driver.ShippingCountry == 'FR' %}selected{% endif %}>France</option>
+                                        <option value="JP" {% if driver.ShippingCountry == 'JP' %}selected{% endif %}>Japan</option>
+                                        <option value="AU" {% if driver.ShippingCountry == 'AU' %}selected{% endif %}>Australia</option>
+                                        <option value="OTHER" {% if driver.ShippingCountry == 'OTHER' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="shipping-card" id="shipping_cost_card" style="display: none;">
+                            <div class="panel-section">
+                                <div class="panel-header">
+                                    <span><i class="fas fa-truck-fast me-2 text-warning"></i>Shipping options</span>
+                                </div>
+                                <div id="shipping_options" class="shipping-options-grid">
+                                    <div class="text-center text-muted w-100">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Calculating shipping costs...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-panel checkout-step" id="checkout-step-3" style="display: none;">
+                        <div class="panel-section">
+                            <div class="panel-header">
+                                <span><i class="fas fa-receipt me-2 text-warning"></i>Review before placing order</span>
+                            </div>
+                            <div class="field-grid two-col">
+                                <div>
+                                    <span class="section-label mb-2">Contact</span>
+                                    <div id="review_contact"></div>
+                                </div>
+                                <div>
+                                    <span class="section-label mb-2">Shipping</span>
+                                    <div id="review_address"></div>
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-row">
+                                    <span>Items</span>
+                                    <strong>{{ cart.total_points }} pts</strong>
+                                </div>
+                                <div class="summary-row" id="shipping_cost_display" style="display: none;">
+                                    <span>Shipping</span>
+                                    <strong id="shipping_cost_value">0 pts</strong>
+                                </div>
+                                <div class="summary-row border-top pt-2 mt-1">
+                                    <span>Total</span>
+                                    <strong><span id="total_cost_value">{{ cart.total_points }}</span> pts</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Your balance</span>
+                                    <strong>{{ driver_points }} pts</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Balance after purchase</span>
+                                    <strong id="remaining_balance">{{ driver_points - cart.total_points }} pts</strong>
+                                </div>
+                            </div>
+                            <div id="review_summary"></div>
+                            <label class="terms-checkbox">
+                                <input class="form-check-input" type="checkbox" id="terms_agreement" required>
+                                <span class="form-check-label">
+                                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> and understand this is a simulation for educational purposes.
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="checkout-actions">
+                        <button type="button" class="btn btn-secondary-line" id="prev_btn" onclick="previousStep()" style="display: none;">
+                            <i class="fas fa-arrow-left me-2"></i>Previous
+                        </button>
+                        <div class="ms-auto d-flex gap-2">
+                            <button type="button" class="btn btn-primary-fill" id="next_btn" onclick="nextStep()">
+                                Next step <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="button" class="btn btn-success-fill" id="place_order_btn" onclick="processCheckout(event)" style="display: none;">
+                                <i class="fas fa-credit-card me-2"></i>Place order
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <aside class="checkout-card">
+                <div class="order-summary">
+                    <div class="summary-header">
+                        <h5><i class="fas fa-shopping-bag me-2 text-warning"></i>Order summary</h5>
+                        <span class="text-sm-muted">{{ cart.item_count }} item{% if cart.item_count != 1 %}s{% endif %}</span>
+                    </div>
+                    <div class="items-stack">
+                        {% for item in cart_items %}
+                        <div class="item-card">
+                            {% if item.ItemImageURL %}
+                                <img src="{{ item.ItemImageURL }}" alt="{{ item.ItemTitle }}">
+                            {% else %}
+                                <div class="item-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <div class="item-title">{{ item.ItemTitle }}</div>
+                                <div class="item-meta">
+                                    <span>#{{ item.ExternalItemID }}</span>
+                                    <span><strong>{{ item.PointsPerUnit }} pts</strong> × {{ item.Quantity }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-row">
+                            <span>Your points</span>
+                            <strong id="sidebar_points">{{ driver_points }} pts</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Items</span>
+                            <strong id="sidebar_items_cost">{{ cart.total_points }} pts</strong>
+                        </div>
+                        <div class="summary-row" id="sidebar_shipping_row" style="display: none;">
+                            <span>Shipping</span>
+                            <strong id="sidebar_shipping_cost">0 pts</strong>
+                        </div>
+                        <div class="summary-row border-top pt-2 mt-1">
+                            <span>Total spend</span>
+                            <strong id="sidebar_total_cost">{{ cart.total_points }} pts</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Balance after</span>
+                            <strong id="sidebar_remaining_points">{{ driver_points - cart.total_points }} pts</strong>
+                        </div>
+                    </div>
+                    <div class="summary-footer">
+                        <a href="{{ url_for('cart.view_cart') }}" class="btn">
+                            <i class="fas fa-arrow-left me-2"></i>Back to cart
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Terms and Conditions</h6>
+                <p>By placing an order, you agree to the following terms:</p>
+                
+                <ul>
+                    <li>Orders will be processed using your driver points balance</li>
+                    <li>Points will be deducted from your account upon order confirmation</li>
+                    <li>All orders are subject to approval and processing</li>
+                    <li>You are responsible for providing accurate shipping information</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <strong>Note:</strong> This is an educational simulation. No real products will be shipped.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const totalSteps = 3;
+let currentStep = 1;
+const BASE_ITEMS_COST = {{ cart.total_points }};
+let currentItemsCost = BASE_ITEMS_COST;
+let currentPointsBalance = {{ driver_points }};
+let selectedShippingCost = 0;
+let selectedDeliveryDate = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateStepDisplay();
+    const country = document.getElementById('shipping_country').value;
+    if (country) {
+        calculateShippingCost();
+    }
+});
+
+function nextStep() {
+    if (!validateCurrentStep()) {
+        return;
+    }
+    if (currentStep < totalSteps) {
+        currentStep += 1;
+        updateStepDisplay();
+        if (currentStep === totalSteps) {
+            updateReviewSection();
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep <= 1) {
+        return;
+    }
+    currentStep -= 1;
+    updateStepDisplay();
+}
+
+function updateStepDisplay() {
+    for (let i = 1; i <= totalSteps; i += 1) {
+        document.getElementById(`checkout-step-${i}`).style.display = 'none';
+        document.getElementById(`step-${i}`).classList.remove('active', 'completed');
+    }
+
+    document.getElementById(`checkout-step-${currentStep}`).style.display = 'block';
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+
+    for (let i = 1; i < currentStep; i += 1) {
+        document.getElementById(`step-${i}`).classList.add('completed');
+    }
+
+    document.getElementById('prev_btn').style.display = currentStep > 1 ? 'block' : 'none';
+    document.getElementById('next_btn').style.display = currentStep < totalSteps ? 'block' : 'none';
+    document.getElementById('place_order_btn').style.display = currentStep === totalSteps ? 'block' : 'none';
+}
+
+function validateCurrentStep() {
+    const currentStepElement = document.getElementById(`checkout-step-${currentStep}`);
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+
+    for (const field of requiredFields) {
+        if (!field.value.trim()) {
+            field.focus();
+            alert(`Please fill in the ${field.previousElementSibling.textContent.replace('*', '').trim()}`);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function updateReviewSection() {
+    const contactInfo = `
+        <p><strong>Name:</strong> ${document.getElementById('first_name').value} ${document.getElementById('last_name').value}</p>
+        <p><strong>Email:</strong> ${document.getElementById('email').value}</p>
+        <p><strong>Phone:</strong> ${document.getElementById('phone').value || 'Not provided'}</p>
+    `;
+    document.getElementById('review_contact').innerHTML = contactInfo;
+
+    const addressInfo = `
+        <p>${document.getElementById('shipping_street').value}</p>
+        <p>${document.getElementById('shipping_city').value}, ${document.getElementById('shipping_state').value} ${document.getElementById('shipping_postal').value}</p>
+        <p>${document.getElementById('shipping_country').value}</p>
+        ${selectedDeliveryDate ? `<p class="mt-2"><strong><i class="fas fa-calendar-alt"></i> Estimated Delivery:</strong> ${selectedDeliveryDate}</p>` : ''}
+    `;
+    document.getElementById('review_address').innerHTML = addressInfo;
+
+    const summaryInfo = `
+        <p><strong>Items:</strong> {{ cart.item_count }}</p>
+        <p><strong>Total Points:</strong> {{ cart.total_points }}</p>
+        <p><strong>Remaining Points (w/o shipping):</strong> {{ driver_points - cart.total_points }}</p>
+    `;
+    document.getElementById('review_summary').innerHTML = summaryInfo;
+}
+
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ||
+        document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1];
+}
+
+function formatPoints(points) {
+    const value = Number(points || 0);
+    return value.toLocaleString();
+}
+
+function formatUsd(amount) {
+    if (amount === null || amount === undefined) {
+        return '';
+    }
+    const value = Number(amount);
+    if (Number.isNaN(value)) {
+        return '';
+    }
+    return value.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+}
+
+function processCheckout(event) {
+    if (!validateCurrentStep()) {
+        return;
+    }
+    if (!document.getElementById('terms_agreement').checked) {
+        alert('Please agree to the terms and conditions to proceed.');
+        return;
+    }
+
+    const formData = new FormData(document.getElementById('checkoutForm'));
+    const data = Object.fromEntries(formData.entries());
+    data.shipping_cost_points = selectedShippingCost;
+
+    const button = event?.target || document.getElementById('place_order_btn');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    button.disabled = true;
+
+    const headers = { 'Content-Type': 'application/json' };
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    fetch('{{ url_for("checkout.process_checkout") }}', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data)
+    })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error(`Server returned non-JSON response. Status: ${response.status}. Body: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(payload => {
+            if (payload.success) {
+                window.location.href = payload.redirect_url;
+                return;
+            }
+            throw new Error(payload.error || 'Unknown error occurred during checkout.');
+        })
+        .catch(error => {
+            console.error('Checkout error:', error);
+            alert(`An error occurred while processing your order: ${error.message}`);
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+}
+
+function calculateDeliveryDate(businessDays) {
+    const today = new Date();
+    const deliveryDate = new Date(today);
+    let daysAdded = 0;
+
+    while (daysAdded < (businessDays || 0)) {
+        deliveryDate.setDate(deliveryDate.getDate() + 1);
+        if (deliveryDate.getDay() !== 0 && deliveryDate.getDay() !== 6) {
+            daysAdded += 1;
+        }
+    }
+
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    };
+    return deliveryDate.toLocaleDateString('en-US', options);
+}
+
+function calculateShippingCost() {
+    const country = document.getElementById('shipping_country').value;
+    const state = document.getElementById('shipping_state').value;
+    const postal = document.getElementById('shipping_postal').value;
+
+    if (!country) {
+        document.getElementById('shipping_cost_card').style.display = 'none';
+        selectedShippingCost = 0;
+        selectedDeliveryDate = '';
+        document.getElementById('shipping_cost_display').style.display = 'none';
+        const sidebarShippingRow = document.getElementById('sidebar_shipping_row');
+        if (sidebarShippingRow) {
+            sidebarShippingRow.style.display = 'none';
+        }
+        const sidebarTotalCost = document.getElementById('sidebar_total_cost');
+        if (sidebarTotalCost) {
+            sidebarTotalCost.textContent = `${formatPoints(currentItemsCost)} pts`;
+        }
+        const sidebarRemaining = document.getElementById('sidebar_remaining_points');
+        if (sidebarRemaining) {
+            sidebarRemaining.textContent = `${formatPoints(currentPointsBalance - currentItemsCost)} pts`;
+        }
+        return;
+    }
+
+    document.getElementById('shipping_cost_card').style.display = 'block';
+    const container = document.getElementById('shipping_options');
+    container.innerHTML = `
+        <div class="text-center text-muted">
+            <i class="fas fa-spinner fa-spin"></i> Calculating shipping costs...
+        </div>
+    `;
+
+    const headers = { 'Content-Type': 'application/json' };
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    fetch('{{ url_for("checkout.estimate_shipping_cost") }}', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+            shipping_country: country,
+            shipping_state: state,
+            shipping_postal: postal,
+            estimated_weight: 'medium'
+        })
+    })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error(`Unexpected response while calculating shipping: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(payload => {
+            if (!payload.success) {
+                throw new Error(payload.error || 'Unable to calculate shipping cost.');
+            }
+            if (typeof payload.cart_points === 'number') {
+                currentItemsCost = payload.cart_points;
+            }
+            if (typeof payload.points_balance === 'number') {
+                currentPointsBalance = payload.points_balance;
+            }
+            if (Array.isArray(payload.options) && payload.options.length > 0) {
+                displayShippingOptions(payload.options, payload.default_option_id);
+                return;
+            }
+            container.innerHTML = `
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-info-circle"></i> No shipping options are available for the selected destination.
+                </div>
+            `;
+            selectedShippingCost = 0;
+            selectedDeliveryDate = '';
+            document.getElementById('shipping_cost_display').style.display = 'none';
+            const sidebarShippingRow = document.getElementById('sidebar_shipping_row');
+            if (sidebarShippingRow) {
+                sidebarShippingRow.style.display = 'none';
+            }
+            const sidebarTotalCost = document.getElementById('sidebar_total_cost');
+            if (sidebarTotalCost) {
+                sidebarTotalCost.textContent = `${formatPoints(currentItemsCost)} pts`;
+            }
+            const sidebarRemaining = document.getElementById('sidebar_remaining_points');
+            if (sidebarRemaining) {
+                sidebarRemaining.textContent = `${formatPoints(currentPointsBalance - currentItemsCost)} pts`;
+            }
+        })
+        .catch(error => {
+            console.error('Shipping calculation error:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> ${error.message || 'Failed to calculate shipping cost.'}
+                </div>
+            `;
+            selectedShippingCost = 0;
+            selectedDeliveryDate = '';
+            document.getElementById('shipping_cost_display').style.display = 'none';
+            const sidebarShippingRow = document.getElementById('sidebar_shipping_row');
+            if (sidebarShippingRow) {
+                sidebarShippingRow.style.display = 'none';
+            }
+            const sidebarTotalCost = document.getElementById('sidebar_total_cost');
+            if (sidebarTotalCost) {
+                sidebarTotalCost.textContent = `${formatPoints(currentItemsCost)} pts`;
+            }
+            const sidebarRemaining = document.getElementById('sidebar_remaining_points');
+            if (sidebarRemaining) {
+                sidebarRemaining.textContent = `${formatPoints(currentPointsBalance - currentItemsCost)} pts`;
+            }
+        });
+}
+
+function displayShippingOptions(options, defaultOptionId) {
+    const container = document.getElementById('shipping_options');
+    let html = '';
+
+    options.forEach((option, index) => {
+        const optionId = option.id || `option_${index}`;
+        const inputId = `shipping_${optionId}`;
+        const isExpress = (optionId || '').includes('express');
+        const estimatedDays = option.estimated_days ?? option.days ?? 0;
+        const deliveryDate = calculateDeliveryDate(estimatedDays);
+        const costPoints = Number(option.cost_points || 0);
+        const costUsd = option.cost_usd;
+        const description = option.description || '';
+        const method = option.method || '';
+        const isDefault = defaultOptionId ? optionId === defaultOptionId : index === 0;
+
+        html += `
+            <div class="shipping-option-card ${isExpress ? 'express' : ''}">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="shipping_option" id="${inputId}" value="${costPoints}" ${isDefault ? 'checked' : ''}>
+                    <label class="form-check-label w-100" for="${inputId}">
+                        <h6 class="mb-1">${option.name || 'Shipping Option'}</h6>
+                        <small>${method || 'Carrier service'} • ${estimatedDays} business days</small>
+                        <div class="mt-2">
+                            <div class="delivery-date ${isExpress ? 'express' : ''}">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${deliveryDate}</span>
+                            </div>
+                            <div class="points-highlight mt-2">
+                                ${formatPoints(costPoints)} pts
+                            </div>
+                            ${costUsd !== undefined && costUsd !== null ? `<div class="muted-note mt-1">(~${formatUsd(costUsd)})</div>` : ''}
+                            ${description ? `<div class="muted-note mt-2">${description}</div>` : ''}
+                        </div>
+                    </label>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    options.forEach((option, index) => {
+        const optionId = option.id || `option_${index}`;
+        const input = document.getElementById(`shipping_${optionId}`);
+        if (input) {
+            input.addEventListener('change', () => {
+                const deliveryDate = calculateDeliveryDate(option.estimated_days ?? option.days ?? 0);
+                updateShippingCost(option.cost_points, deliveryDate);
+            });
+        }
+    });
+
+    const defaultOption = options.find(opt => (defaultOptionId && opt.id === defaultOptionId)) || options[0];
+    if (defaultOption) {
+        const deliveryDate = calculateDeliveryDate(defaultOption.estimated_days ?? defaultOption.days ?? 0);
+        updateShippingCost(defaultOption.cost_points, deliveryDate);
+    }
+}
+
+function updateShippingCost(cost, deliveryDate = '') {
+    selectedShippingCost = Number(cost) || 0;
+    selectedDeliveryDate = deliveryDate || '';
+
+    document.getElementById('shipping_cost_value').textContent = `${formatPoints(selectedShippingCost)} pts`;
+    document.getElementById('shipping_cost_display').style.display = 'block';
+
+    const totalCost = currentItemsCost + selectedShippingCost;
+    const remainingBalance = currentPointsBalance - totalCost;
+
+    document.getElementById('total_cost_value').textContent = formatPoints(totalCost);
+    document.getElementById('remaining_balance').textContent = `${formatPoints(remainingBalance)} pts`;
+
+    const placeOrderBtn = document.getElementById('place_order_btn');
+    if (remainingBalance < 0) {
+        document.getElementById('remaining_balance').className = 'text-danger';
+        placeOrderBtn.disabled = true;
+        placeOrderBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Insufficient points';
+    } else {
+        document.getElementById('remaining_balance').className = '';
+        placeOrderBtn.disabled = false;
+        placeOrderBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Place order';
+    }
+
+    const sidebarShippingRow = document.getElementById('sidebar_shipping_row');
+    const sidebarShippingCost = document.getElementById('sidebar_shipping_cost');
+    const sidebarTotalCost = document.getElementById('sidebar_total_cost');
+    const sidebarRemaining = document.getElementById('sidebar_remaining_points');
+
+    if (sidebarShippingRow && sidebarShippingCost) {
+        if (selectedShippingCost > 0) {
+            sidebarShippingRow.style.display = 'flex';
+            sidebarShippingCost.textContent = `${formatPoints(selectedShippingCost)} pts`;
+        } else {
+            sidebarShippingRow.style.display = 'none';
+        }
+    }
+    if (sidebarTotalCost) {
+        sidebarTotalCost.textContent = `${formatPoints(totalCost)} pts`;
+    }
+    if (sidebarRemaining) {
+        sidebarRemaining.textContent = `${formatPoints(remainingBalance)} pts`;
+    }
+}
+</script>
+{% endblock %}
+
+
+

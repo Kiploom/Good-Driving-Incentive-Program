@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Application #{{ app_obj.ApplicationID }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sponsor-apps.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="apps-header-icon">
+        <i class="fas fa-id-card" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Application #{{ app_obj.ApplicationID }}</h1>
+        <p>
+          {{ app_obj.account.FirstName }} {{ app_obj.account.LastName if app_obj.account else '' }} •
+          Submitted {{ app_obj.SubmittedAt.strftime('%b %d, %Y at %I:%M %p') if app_obj.SubmittedAt else '—' }}
+        </p>
+      </div>
+      <div class="settings-header-actions">
+        <a href="{{ url_for('sponsor_apps.index') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to Applications
+        </a>
+      </div>
+    </header>
+
+    <section class="settings-card apps-card">
+      <div class="apps-meta-grid">
+        <article class="apps-meta-card">
+          <span class="apps-meta-label">Driver</span>
+          <span class="apps-meta-value">
+            {{ app_obj.account.FirstName }} {{ app_obj.account.LastName if app_obj.account else '' }}
+          </span>
+          <span class="apps-meta-caption">
+            {{ app_obj.account.Email if app_obj.account else 'Email unavailable' }}
+          </span>
+        </article>
+
+        <article class="apps-meta-card">
+          <span class="apps-meta-label">Submitted</span>
+          <span class="apps-meta-value">
+            {{ app_obj.SubmittedAt.strftime('%b %d, %Y') if app_obj.SubmittedAt else '—' }}
+          </span>
+          <span class="apps-meta-caption">
+            {{ app_obj.SubmittedAt.strftime('%I:%M %p') if app_obj.SubmittedAt else 'No timestamp recorded' }}
+          </span>
+        </article>
+
+        <article class="apps-meta-card">
+          <span class="apps-meta-label">Status</span>
+          <span class="apps-meta-value">
+            <span class="apps-badge {{ ('pending' if not app_obj.ReviewedAt else app_obj.Decision or '')|lower }}">
+              {% if not app_obj.ReviewedAt %}
+              <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+              Pending Review
+              {% elif (app_obj.Decision or '').lower() == 'accepted' %}
+              <i class="fas fa-check-circle" aria-hidden="true"></i>
+              Accepted
+              {% elif (app_obj.Decision or '').lower() == 'rejected' %}
+              <i class="fas fa-times-circle" aria-hidden="true"></i>
+              Rejected
+              {% else %}
+              <i class="fas fa-info-circle" aria-hidden="true"></i>
+              {{ app_obj.Decision|default('Unknown', true)|title }}
+              {% endif %}
+            </span>
+          </span>
+          <span class="apps-meta-caption">
+            {% if app_obj.ReviewedAt %}
+              Reviewed {{ app_obj.ReviewedAt.strftime('%b %d, %Y at %I:%M %p') }}
+            {% else %}
+              Awaiting sponsorship review
+            {% endif %}
+          </span>
+        </article>
+      </div>
+
+      {% if incidents %}
+      <details class="apps-incidents">
+        <summary>Reported Incidents</summary>
+        <pre>{{ incidents|tojson(indent=2) }}</pre>
+      </details>
+      {% endif %}
+
+      {% if not app_obj.ReviewedAt %}
+      <form method="post" action="{{ url_for('sponsor_apps.decide', app_id=app_obj.ApplicationID) }}" class="apps-decision-card" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <h3>Make a Decision</h3>
+        <p>Leave a short note to help admins understand the context behind your choice.</p>
+
+        <label for="note" class="form-label">Reviewer note</label>
+        <textarea id="note" name="note" placeholder="Captured notes are visible to administrators."></textarea>
+
+        <div class="apps-decision-actions">
+          <button type="submit" name="action" value="approve" class="btn btn-success">
+            <i class="fas fa-check" aria-hidden="true"></i>
+            Approve Application
+          </button>
+          <button type="submit" name="action" value="reject" class="btn btn-danger">
+            <i class="fas fa-times" aria-hidden="true"></i>
+            Reject Application
+          </button>
+          <a href="{{ url_for('sponsor_apps.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back to list
+          </a>
+        </div>
+      </form>
+      {% else %}
+      <div class="apps-decision-card">
+        <h3>Decision Summary</h3>
+        <p>
+          Reviewed {{ app_obj.ReviewedAt.strftime('%b %d, %Y at %I:%M %p') if app_obj.ReviewedAt else '—' }}
+          {% if app_obj.DecisionByAccountID %}
+            · Reviewer ID {{ app_obj.DecisionByAccountID }}
+          {% endif %}
+        </p>
+        <p><strong>Decision:</strong> {{ app_obj.Decision|default('—', true)|title }}</p>
+        <p><strong>Reason:</strong> {{ app_obj.DecisionReason|default('—', true) }}</p>
+        <div class="apps-decision-actions">
+          <a href="{{ url_for('sponsor_apps.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back to list
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+# Virtual environment
+venv/
+
+# PyCharm project files
+.idea/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Ignore env files
+.env
+
+# Ignore backup files that end with ~
+*~
+
+# Ignore files surrounded by #
+# (like #filename.ext#)
+\#*\#
+
+# Ignore Vim swap files (.swp)
+*.swp
+
+# Ignore project dump files
+project_dump.txt
+database_schema.txt
+project_files.txt
+*.txt
+databaseexportmysql.txt
+
+# Ignore virtual environment
+/venv
+venv/pyvenv.cfg
+
+# Ignore config files
+*.cfg
+
+# Ignore cursorignore file
+.cursorignore
+
+*.sql
+
+*.md
+
+.vscode/

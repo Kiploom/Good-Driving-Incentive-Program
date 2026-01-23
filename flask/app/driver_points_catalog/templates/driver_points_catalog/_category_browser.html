@@ -1,0 +1,829 @@
+<!-- Driver category selector - hierarchical dropdown showing only sponsor-selected categories -->
+<div class="driver-category-browser">
+    <div class="category-browser-header">
+        <p class="help-text">Select a category to browse products. Only categories selected by your sponsor are shown.</p>
+        <div class="category-search-container">
+            <input type="text" id="category-search" placeholder="Search categories..." oninput="filterDriverCategories(this.value)">
+            <button type="button" onclick="expandAllDriverCategories()" class="btn-small">Expand All</button>
+            <button type="button" onclick="collapseAllDriverCategories()" class="btn-small">Collapse All</button>
+        </div>
+    </div>
+    
+    <div id="category-loading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <i class="fas fa-spinner fa-spin"></i> Loading categories...
+    </div>
+    
+    <div id="categories-grid" class="categories-grid" style="display: none;"></div>
+</div>
+
+<style>
+.driver-category-browser {
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+}
+
+[data-theme="dark"] .driver-category-browser {
+    background: transparent;
+}
+
+.category-browser-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+[data-theme="dark"] .category-browser-header {
+    border-bottom-color: var(--border);
+}
+
+.help-text {
+    margin: 0 0 16px 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .help-text {
+    color: var(--text-secondary);
+}
+
+.category-search-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.category-search-container input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .category-search-container input {
+    background: var(--bg-input, var(--bg-secondary));
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.category-search-container input:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.btn-small {
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .btn-small {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.btn-small:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.category-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    overflow: visible; /* Allow overflow for horizontal scrolling */
+    transition: all 0.2s ease;
+    cursor: pointer; /* Make entire section clickable */
+}
+
+[data-theme="dark"] .category-section {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+.category-section:hover {
+    border-color: var(--accent-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .category-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-header {
+    padding: 14px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+[data-theme="dark"] .category-header {
+    background: transparent;
+}
+
+.category-header:hover {
+    background: var(--bg-hover);
+}
+
+.category-header::-webkit-details-marker {
+    display: none;
+}
+
+.category-header::after {
+    content: "▼";
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .category-header::after {
+    color: var(--text-muted);
+}
+
+.category-section[open] > .category-header::after {
+    transform: rotate(180deg);
+}
+
+.category-header label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+[data-theme="dark"] .category-header label {
+    color: var(--text-primary);
+}
+
+.category-header label:hover {
+    color: var(--accent);
+}
+
+.select-category-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    min-width: 44px;
+    height: 40px;
+}
+
+[data-theme="dark"] .select-category-btn {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+.select-category-btn:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--accent);
+}
+
+[data-theme="dark"] .select-category-btn:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: var(--accent);
+}
+
+.select-category-btn:active {
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.select-category-btn input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.category-header .category-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 0;
+    font-size: 0.95rem;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0; /* Allow shrinking */
+}
+
+[data-theme="dark"] .category-header .category-name {
+    color: var(--text-primary);
+}
+
+.category-header .category-name:hover {
+    color: var(--accent);
+}
+
+.subcategory-list {
+    padding: 8px 8px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-card);
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0; /* Allow shrinking */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] .subcategory-list {
+    background: var(--bg-card);
+}
+
+.subcategory-list label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: nowrap; /* Prevent text wrapping */
+    min-width: max-content; /* Ensure full width for text */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+[data-theme="dark"] .subcategory-list label {
+    color: var(--text-primary);
+}
+
+.subcategory-list label:hover {
+    background: var(--bg-hover);
+    transform: translateX(2px);
+}
+
+[data-theme="dark"] .subcategory-list label:hover {
+    background: var(--bg-hover);
+}
+
+.subcategory-list input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+}
+
+.subcategory-list input[type="radio"]:checked + span {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.subcategory-list span {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: visible;
+    min-width: max-content; /* Ensure full width for text */
+}
+
+[data-theme="dark"] .subcategory-list span {
+    color: var(--text-primary);
+}
+
+.category-hidden {
+    display: none !important;
+}
+</style>
+
+<script>
+let driverCategoryData = {};
+let driverAllowedCategoryIds = new Set();
+let driverCategoryIdToNameMap = {};
+let driverParentCategoryMap = {}; // Map parent category names to their IDs
+
+// Helper function to extract all category IDs (including parents) from raw eBay tree
+function extractAllCategoryIds(node, parentIdMap = {}, idToNameMap = {}, path = []) {
+    const cat = node.category || {};
+    const catId = cat.categoryId;
+    const catName = cat.categoryName || "";
+    
+    if (catId && catId !== "0") {
+        idToNameMap[catId] = catName;
+        // Store parent category ID if this is a parent with children
+        if (node.childCategoryTreeNodes && node.childCategoryTreeNodes.length > 0) {
+            parentIdMap[catName] = catId;
+        }
+    }
+    
+    const children = node.childCategoryTreeNodes || [];
+    for (const child of children) {
+        extractAllCategoryIds(child, parentIdMap, idToNameMap, [...path, catName]);
+    }
+    
+    return { parentIdMap, idToNameMap };
+}
+
+// Helper function to filter category tree to only show paths to allowed categories
+// Also includes parent categories that have allowed children
+function filterCategoryTreeForDriver(data, allowedIds, map = {}, parentMap = {}) {
+    function processNode(nodeData, parentName = null) {
+        const result = {};
+        
+        for (const [categoryName, subcategories] of Object.entries(nodeData)) {
+            if (typeof subcategories === 'object' && subcategories !== null) {
+                const values = Object.values(subcategories);
+                const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                
+                if (allValuesAreStrings) {
+                    // Leaf categories: keys are IDs, values are names
+                    const filtered = {};
+                    for (const [catId, catName] of Object.entries(subcategories)) {
+                        if (allowedIds.has(catId)) {
+                            filtered[catId] = catName;
+                            map[catId] = catName;
+                        }
+                    }
+                    if (Object.keys(filtered).length > 0) {
+                        result[categoryName] = filtered;
+                    }
+                } else {
+                    // Nested structure, recurse
+                    const nestedResult = processNode(subcategories, categoryName);
+                    if (Object.keys(nestedResult).length > 0) {
+                        result[categoryName] = nestedResult;
+                    }
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    const filtered = processNode(data);
+    return { filtered, map, parentMap };
+}
+
+// Render category tree with radio buttons (single selection)
+function renderDriverCategoryTree(data, container, level = 0) {
+    let html = '';
+    for (const [categoryName, subcategories] of Object.entries(data)) {
+        if (typeof subcategories === 'object' && subcategories !== null) {
+            const keys = Object.keys(subcategories);
+            const values = Object.values(subcategories);
+            
+            const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+            const hasNestedObjects = values.some(v => typeof v === 'object' && v !== null);
+            
+            const onlyContainsSelf = allValuesAreStrings && keys.length === 1 && 
+                                     Object.values(subcategories)[0] === categoryName;
+            
+            let onlyContainsSelfNested = false;
+            if (hasNestedObjects && keys.length === 1 && keys[0] === categoryName) {
+                const nestedValue = subcategories[keys[0]];
+                if (typeof nestedValue === 'object' && nestedValue !== null) {
+                    const nestedValues = Object.values(nestedValue);
+                    const allNestedAreStrings = nestedValues.length > 0 && nestedValues.every(v => typeof v === 'string');
+                    if (allNestedAreStrings && nestedValues.every(v => v === categoryName)) {
+                        onlyContainsSelfNested = true;
+                    }
+                }
+            }
+            
+            const shouldSkipDropdown = onlyContainsSelf || onlyContainsSelfNested;
+            
+            if (hasNestedObjects && !shouldSkipDropdown) {
+                const uniqueId = `driver-cat-${categoryName.replace(/\s+/g, '-').toLowerCase()}-${level}`;
+                // Check if this parent category has an ID (is selectable)
+                const parentCategoryId = driverParentCategoryMap[categoryName];
+                const parentSelectable = parentCategoryId && driverAllowedCategoryIds.has(parentCategoryId);
+                
+                html += `
+                    <details class="category-section" id="${uniqueId}">
+                        <summary class="category-header" ${parentSelectable ? `onclick="if(event.target.closest('.select-category-btn') || event.target.closest('.category-name')) { event.preventDefault(); event.stopPropagation(); return false; }"` : ''}>
+                            ${parentSelectable ? `
+                                <button type="button" class="select-category-btn" onclick="event.stopPropagation(); event.preventDefault(); selectDriverCategory('${parentCategoryId}', '${categoryName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}'); return false;" title="Select ${categoryName.replace(/'/g, "\\'")}" aria-label="Select ${categoryName.replace(/'/g, "\\'")}">
+                                    <input type="radio" name="driver-category" value="${parentCategoryId}" data-category="${categoryName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}" style="pointer-events: none;">
+                                </button>
+                                <span class="category-name" onclick="event.stopPropagation(); event.preventDefault(); selectDriverCategory('${parentCategoryId}', '${categoryName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}'); return false;">${categoryName}</span>
+                            ` : `
+                                <span class="category-name">${categoryName}</span>
+                            `}
+                        </summary>
+                        <div class="subcategory-list" onclick="event.stopPropagation();">
+                            ${renderDriverCategoryTree(subcategories, null, level + 1)}
+                        </div>
+                    </details>
+                `;
+            } else if (allValuesAreStrings && keys.length > 0) {
+                // Leaf categories - render as radio buttons
+                for (const [catId, catName] of Object.entries(subcategories)) {
+                    const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    html += `
+                        <label onclick="selectDriverCategory('${catId}', '${escapedName}')">
+                            <input type="radio" name="driver-category" value="${catId}" data-category="${escapedName}" data-parent="${categoryName}">
+                            <span>${catName}</span>
+                        </label>
+                    `;
+                }
+            } else if (shouldSkipDropdown && hasNestedObjects) {
+                const extractLeaves = (obj) => {
+                    let leaves = [];
+                    for (const [key, value] of Object.entries(obj)) {
+                        if (typeof value === 'string') {
+                            leaves.push({id: key, name: value});
+                        } else if (typeof value === 'object' && value !== null) {
+                            leaves = leaves.concat(extractLeaves(value));
+                        }
+                    }
+                    return leaves;
+                };
+                
+                const leaves = extractLeaves(subcategories);
+                for (const leaf of leaves) {
+                    const escapedName = leaf.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    html += `
+                        <label onclick="selectDriverCategory('${leaf.id}', '${escapedName}')">
+                            <input type="radio" name="driver-category" value="${leaf.id}" data-category="${escapedName}" data-parent="${categoryName}">
+                            <span>${leaf.name}</span>
+                        </label>
+                    `;
+                }
+            }
+        }
+    }
+    if (container) {
+        container.innerHTML = html;
+    }
+    return html;
+}
+
+// Load categories for driver
+(async function loadDriverCategories() {
+    try {
+        // Load full category tree
+        const fullTreeResponse = await fetch("{{ url_for('sponsor_catalog.get_categories') }}");
+        const fullTreeData = await fullTreeResponse.json();
+        
+        // Load allowed category IDs
+        const allowedResponse = await fetch('/driver-catalog/categories');
+        const allowedData = await allowedResponse.json();
+        
+        if (allowedData.error) {
+            throw new Error(allowedData.error);
+        }
+        
+        const allowedCategories = allowedData.categories || [];
+        const parentCategories = allowedData.parent_categories || {};
+        driverAllowedCategoryIds = new Set(allowedCategories.map(c => c.id));
+        
+        // Store parent category mapping (name -> ID) from backend
+        driverParentCategoryMap = parentCategories;
+        
+        // Add parent category IDs to allowed set so they can be selected
+        for (const parentId of Object.values(parentCategories)) {
+            driverAllowedCategoryIds.add(parentId);
+        }
+        
+        if (driverAllowedCategoryIds.size === 0) {
+            document.getElementById('category-loading').innerHTML = 
+                '<p style="color: #ef4444;">No categories available. Your sponsor hasn\'t configured any categories yet.</p>';
+            return;
+        }
+        
+        // Filter category tree to only show paths to allowed categories
+        if (fullTreeData.categories) {
+            const { filtered, map } = filterCategoryTreeForDriver(fullTreeData.categories, driverAllowedCategoryIds);
+            driverCategoryData = filtered;
+            driverCategoryIdToNameMap = map;
+            
+            // Add parent category names to the map
+            for (const [parentName, parentId] of Object.entries(parentCategories)) {
+                driverCategoryIdToNameMap[parentId] = parentName;
+            }
+            
+            // Categories loaded successfully
+            
+            renderDriverCategoryTree(driverCategoryData, document.getElementById('categories-grid'));
+            document.getElementById('category-loading').style.display = 'none';
+            document.getElementById('categories-grid').style.display = 'block';
+            
+            // Attach event listeners to prevent details toggle when clicking selectable parent categories
+            attachDriverCategoryListeners();
+        } else {
+            document.getElementById('category-loading').innerHTML = 
+                '<p style="color: #ef4444;">Error loading categories. Please refresh the page.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        document.getElementById('category-loading').innerHTML = 
+            '<p style="color: #ef4444;">Error loading categories: ' + error.message + '</p>';
+    }
+})();
+
+// Attach event listeners to prevent details toggle when clicking selectable parent categories
+function attachDriverCategoryListeners() {
+    // Find all selectable parent category buttons and category names
+    const selectButtons = document.querySelectorAll('.category-section summary .select-category-btn');
+    const categoryNames = document.querySelectorAll('.category-section summary .category-name[onclick]');
+    
+    selectButtons.forEach(btn => {
+        // Add click handler that prevents details toggle
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from reaching summary
+            e.preventDefault(); // Prevent default summary behavior
+            // The onclick attribute will handle the category selection
+        }, true); // Use capture phase to catch the event early
+    });
+    
+    categoryNames.forEach(span => {
+        // Add click handler that prevents details toggle
+        span.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from reaching summary
+            e.preventDefault(); // Prevent default summary behavior
+            // The onclick attribute will handle the category selection
+        }, true); // Use capture phase to catch the event early
+    });
+    
+    // Make entire category sections clickable for expand/collapse
+    const categorySections = document.querySelectorAll('.category-section');
+    categorySections.forEach(section => {
+        const summary = section.querySelector('summary');
+        if (summary) {
+            // Add click handler to the entire section
+            section.addEventListener('click', function(e) {
+                // Don't toggle if clicking on:
+                // 1. Select category button
+                // 2. Selectable category name
+                // 3. Subcategory items (labels) or subcategory list
+                if (e.target.closest('.select-category-btn') || 
+                    e.target.closest('.category-name[onclick]') ||
+                    e.target.closest('.subcategory-list')) {
+                    return; // Let those handlers take over
+                }
+                
+                // If clicking anywhere on the section (including empty areas), toggle it
+                // The summary click will naturally toggle, but we also handle clicks outside summary
+                if (!summary.contains(e.target)) {
+                    // Clicking outside summary area - toggle the section
+                    e.preventDefault();
+                    e.stopPropagation();
+                    section.open = !section.open;
+                }
+                // If clicking on summary, let it handle naturally (default behavior)
+            });
+        }
+    });
+    
+    // Ensure subcategory clicks don't toggle parent
+    const subcategoryLists = document.querySelectorAll('.subcategory-list');
+    subcategoryLists.forEach(list => {
+        list.addEventListener('click', function(e) {
+            // Stop propagation so clicking subcategories doesn't toggle parent
+            e.stopPropagation();
+        });
+    });
+}
+
+// Select category function
+async function selectDriverCategory(categoryId, categoryName) {
+    // Update sidebar state if in sidebar context
+    const recommendedBtn = document.getElementById('sidebar-recommended-btn');
+    if (recommendedBtn) {
+        recommendedBtn.classList.remove('active');
+    }
+    
+    // Store mode
+    if (window.catalogSidebarState) {
+        window.catalogSidebarState.currentMode = 'category';
+        window.catalogSidebarState.currentCategoryId = categoryId;
+    }
+    console.group('🔍 Category Selection Debug');
+    console.log('Category ID:', categoryId);
+    console.log('Category Name:', categoryName);
+    
+    try {
+        const formData = new FormData();
+        formData.append('category_id', categoryId);
+        
+        // Get CSRF token from meta tag if available
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                         document.querySelector('meta[name="csrf-token"]')?.content ||
+                         null;
+        
+        if (csrfToken) {
+            formData.append('csrf_token', csrfToken);
+            console.log('CSRF token found and added');
+        } else {
+            console.warn('No CSRF token found in page');
+        }
+        
+        console.log('Sending request to /driver-catalog/select-category');
+        console.log('FormData category_id:', categoryId);
+
+        const response = await fetch('/driver-catalog/select-category', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',  // Helps identify AJAX requests
+                'Accept': 'application/json'  // Request JSON response
+            },
+            credentials: 'same-origin'  // Include cookies for CSRF
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        console.log('Content-Type:', response.headers.get('content-type'));
+        
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ Response is not JSON! Content-Type:', contentType);
+            console.error('Response text (first 500 chars):', text.substring(0, 500));
+            throw new Error(`Server returned ${contentType} instead of JSON. Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (data.ok) {
+            console.log('✅ Category selected successfully');
+            console.groupEnd();
+            
+            // Update sidebar state if in sidebar context
+            const recommendedBtn = document.getElementById('sidebar-recommended-btn');
+            if (recommendedBtn) {
+                recommendedBtn.classList.remove('active');
+            }
+            
+            // If we're on the browse page with sidebar, reload products instead of redirecting
+            if (window.location.pathname.includes('/driver-catalog') && 
+                (window.location.pathname.includes('/browse') || window.location.pathname === '/driver-catalog/' || window.location.pathname === '/driver-catalog')) {
+                // Reload page to update category selection
+                window.location.reload();
+            } else {
+                // Redirect to browse page
+                window.location.href = '/driver-catalog/';
+            }
+        } else {
+            console.error('❌ Category selection failed:', data.message || 'Unknown error');
+            console.groupEnd();
+            alert('Failed to select category: ' + (data.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('❌ Exception selecting category:', error);
+        console.error('Error stack:', error.stack);
+        console.groupEnd();
+        alert('Failed to select category. Please try again. Error: ' + error.message);
+    }
+}
+
+// Filter categories based on search
+function filterDriverCategories(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const categorySections = document.querySelectorAll('.driver-category-browser .category-section');
+    const categoryLabels = document.querySelectorAll('.driver-category-browser .subcategory-list label');
+    const categoryHeaders = document.querySelectorAll('.driver-category-browser .category-header');
+
+    if (!term) {
+        categorySections.forEach(section => {
+            section.classList.remove('category-hidden');
+            section.open = false;
+        });
+        categoryLabels.forEach(label => {
+            label.classList.remove('category-hidden');
+        });
+        categoryHeaders.forEach(header => {
+            header.classList.remove('category-hidden');
+        });
+        return;
+    }
+
+    categorySections.forEach(section => {
+        section.classList.add('category-hidden');
+    });
+    categoryLabels.forEach(label => {
+        label.classList.add('category-hidden');
+    });
+    categoryHeaders.forEach(header => {
+        header.classList.add('category-hidden');
+    });
+
+    const matchingLabels = [];
+    categoryLabels.forEach(label => {
+        const labelText = label.textContent.toLowerCase();
+        if (labelText.includes(term)) {
+            matchingLabels.push(label);
+        }
+    });
+
+    matchingLabels.forEach(label => {
+        label.classList.remove('category-hidden');
+        let parent = label.closest('.category-section');
+        while (parent) {
+            parent.classList.remove('category-hidden');
+            parent.open = true;
+            const header = parent.querySelector('.category-header');
+            if (header) {
+                header.classList.remove('category-hidden');
+            }
+            parent = parent.parentElement?.closest('.category-section');
+        }
+    });
+
+    categorySections.forEach(section => {
+        const header = section.querySelector('.category-header');
+        if (header) {
+            const headerText = header.textContent.toLowerCase();
+            if (headerText.includes(term)) {
+                section.classList.remove('category-hidden');
+                section.open = true;
+                header.classList.remove('category-hidden');
+                section.querySelectorAll('.subcategory-list label').forEach(label => {
+                    label.classList.remove('category-hidden');
+                });
+            }
+        }
+        const visibleChildren = section.querySelectorAll('.subcategory-list label:not(.category-hidden)');
+        if (visibleChildren.length > 0) {
+            section.classList.remove('category-hidden');
+            section.open = true;
+            const header = section.querySelector('.category-header');
+            if (header) {
+                header.classList.remove('category-hidden');
+            }
+        }
+    });
+}
+
+function expandAllDriverCategories() {
+    document.querySelectorAll('.driver-category-browser .category-section').forEach(section => {
+        section.open = true;
+    });
+}
+
+function collapseAllDriverCategories() {
+    document.querySelectorAll('.driver-category-browser .category-section').forEach(section => {
+        section.open = false;
+    });
+}
+
+// Make functions globally accessible
+// Check if there's already an override (from sidebar) - if so, don't overwrite it
+const existingOverride = window.selectDriverCategory;
+if (existingOverride && typeof existingOverride === 'function' && existingOverride !== selectDriverCategory) {
+    // Store original for reference but don't overwrite
+    window._originalSelectDriverCategory = selectDriverCategory;
+} else {
+    window.selectDriverCategory = selectDriverCategory;
+}
+window.filterDriverCategories = filterDriverCategories;
+window.expandAllDriverCategories = expandAllDriverCategories;
+window.collapseAllDriverCategories = collapseAllDriverCategories;
+</script>
+

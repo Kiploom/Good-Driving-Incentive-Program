@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Registration Received{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card" role="status" aria-live="polite">
+    <header class="auth-header">
+      <h1>Application Submitted</h1>
+      <p class="auth-sub">Thanks for registering with Driver Rewards.</p>
+    </header>
+
+    <p>We sent a verification email to <strong>{{ email or "your inbox" }}</strong>. Please verify your email address to keep your application moving.</p>
+    <p>Your selected sponsor has received your application. You will be notified by email once they review and approve it.</p>
+    <p>Once approved, you will be able to log in and access your driver dashboard.</p>
+
+    <div class="auth-links">
+      <a class="auth-link" href="{{ url_for('auth.login_page') }}">Return to login</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

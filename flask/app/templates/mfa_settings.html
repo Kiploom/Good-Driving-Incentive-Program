@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}MFA Settings{% endblock %}
+
+{% block head %}
+<style>
+  .mfa-shell {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .mfa-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 12px 32px var(--shadow-lg);
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  [data-theme="dark"] .mfa-card {
+    background: var(--glass-bg);
+    border-color: var(--accent-border);
+    backdrop-filter: blur(12px);
+  }
+
+  .mfa-card h2 {
+    margin: 0;
+    text-align: center;
+    color: var(--text-primary);
+  }
+
+  .mfa-card p {
+    margin: 0;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .mfa-card label {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .mfa-card input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mfa-card input[type="password"]:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+  }
+
+  .mfa-card button {
+    width: 100%;
+    padding: 0.9rem;
+  }
+
+  .mfa-alerts {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .mfa-shell {
+      padding: 2rem 1rem;
+    }
+
+    .mfa-card {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mfa-shell">
+  <div class="mfa-card card">
+    <h2>MFA Settings</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mfa-alerts">
+          {% for category,msg in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="status">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if account.MFAEnabled %}
+      <p>Multi-factor authentication is <strong>enabled</strong> on your account.</p>
+      <form method="POST" action="{{ url_for('auth.disable_mfa') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <label for="current_password">Confirm your current password to disable MFA</label>
+        <input type="password" name="current_password" id="current_password" required autocomplete="current-password">
+        <button type="submit" class="btn btn-danger">Disable MFA</button>
+      </form>
+    {% else %}
+      <p>MFA is currently <strong>disabled</strong>.</p>
+      <form method="POST" action="{{ url_for('auth.enable_mfa') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <label for="current_password">Confirm your current password to enable MFA</label>
+        <input type="password" name="current_password" id="current_password" required autocomplete="current-password">
+        <button type="submit" class="btn btn-info">Enable MFA</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

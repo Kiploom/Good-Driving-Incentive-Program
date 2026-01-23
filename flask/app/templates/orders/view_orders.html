@@ -1,0 +1,999 @@
+{% extends "base.html" %}
+
+{% block title %}Order History{% endblock %}
+
+{% block content %}
+<div class="orders-page">
+    <div class="orders-shell">
+        <div class="orders-header">
+            <div class="orders-header-top">
+                <div>
+                    <h2><i class="fas fa-receipt"></i> Order History</h2>
+                    <p class="orders-subtitle">View your recent orders and purchase history</p>
+                </div>
+                <a href="{{ url_for('orders.export_orders_pdf', start_date=start_date, end_date=end_date, status=status_filter) }}" 
+                   class="btn btn-export-pdf" 
+                   id="export-pdf-btn">
+                    <i class="fas fa-file-pdf"></i> Export to PDF
+                </a>
+            </div>
+            
+            <div class="orders-filters">
+                <form method="GET" action="{{ url_for('orders.view_orders') }}" class="filters-form">
+                    <div class="filter-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" 
+                               id="start_date" 
+                               name="start_date" 
+                               value="{{ start_date }}" 
+                               class="filter-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" 
+                               id="end_date" 
+                               name="end_date" 
+                               value="{{ end_date }}" 
+                               class="filter-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="status">Status:</label>
+                        <select id="status" name="status" class="filter-input">
+                            <option value="">All Statuses</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                            <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-filter">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('orders.view_orders') }}" class="btn btn-clear">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if orders %}
+        <div class="orders-list">
+            {% for order in orders %}
+            <article class="order-card">
+                <header class="order-card__header">
+                    <div class="order-date">
+                        {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                    </div>
+                    <div class="order-status-badge">
+                        {% if order.is_pending %}
+                        <span class="badge bg-warning" id="status-badge-{{ order.order_id }}">
+                            <i class="fas fa-clock"></i> Pending
+                        </span>
+                        <small class="text-warning d-block mt-1" id="pending-time-{{ order.order_id }}">
+                            Will be fulfilled in {{ order.pending_time_remaining }} minutes
+                        </small>
+                        {% elif order.status == 'completed' %}
+                        <span class="badge bg-success" id="status-badge-{{ order.order_id }}">
+                            <i class="fas fa-check-circle"></i> Completed
+                        </span>
+                        {% elif order.status == 'refunded' %}
+                        <span class="badge bg-secondary" id="status-badge-{{ order.order_id }}">
+                            <i class="fas fa-check"></i> Refunded
+                        </span>
+                        {% elif order.status == 'cancelled' %}
+                        <span class="badge bg-secondary" id="status-badge-{{ order.order_id }}">
+                            <i class="fas fa-times"></i> Cancelled
+                        </span>
+                        {% else %}
+                        <span class="badge bg-info" id="status-badge-{{ order.order_id }}">
+                            {{ order.status|title }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="order-actions">
+                        {% if order.is_pending %}
+                        <button class="btn btn-warning btn-sm refund-btn" 
+                                onclick="refundOrder('{{ order.order_id }}')"
+                                data-order-id="{{ order.order_id }}"
+                                data-total-points="{{ order.total_points }}"
+                                title="Cancel order (available for {{ order.pending_time_remaining }} more minutes)">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <small class="text-warning d-block mt-1" id="cancel-time-{{ order.order_id }}">
+                            Cancel available for {{ order.pending_time_remaining }} more minutes
+                        </small>
+                        {% elif order.status == 'completed' and order.can_refund %}
+                        <button class="btn btn-success btn-sm refund-btn" 
+                                onclick="refundOrder('{{ order.order_id }}')"
+                                data-order-id="{{ order.order_id }}"
+                                data-total-points="{{ order.total_points }}"
+                                title="Refund available for {{ order.refund_time_remaining }} more minutes">
+                            <i class="fas fa-undo"></i> Refund
+                        </button>
+                        <small class="text-success d-block mt-1" id="refund-time-{{ order.order_id }}">
+                            Refund available for {{ order.refund_time_remaining }} more minutes
+                        </small>
+                        {% elif order.status == 'completed' and not order.can_refund %}
+                        {# Refund window expired - no action available #}
+                        {% elif order.status == 'refunded' or order.status == 'cancelled' %}
+                        {# No action available for refunded/cancelled orders - status badge is shown in order-status-badge #}
+                        {% else %}
+                        {# No action available #}
+                        {% endif %}
+                    </div>
+                </header>
+
+                <div class="order-items">
+                    <div class="items-label">Items Ordered</div>
+                    {% for item in order.order_items %}
+                    {% set external_id = item.external_item_id or '' %}
+                    {% set base_item_id = external_id.split('::')[0] if external_id and '::' in external_id else external_id %}
+                    {% set item_url = url_for('driver_points_catalog.product_detail', item_id=base_item_id|urlencode) if base_item_id and base_item_id != 'SHIPPING' else '#' %}
+                    <div class="item-row {% if base_item_id and base_item_id != 'SHIPPING' %}item-row-clickable{% endif %}" {% if base_item_id and base_item_id != 'SHIPPING' %}onclick="window.location.href='{{ item_url }}'"{% endif %}>
+                        <div class="item-image-container">
+                            {% if base_item_id and base_item_id != 'SHIPPING' %}
+                            <img src="" 
+                                 alt="{{ item.title }}"
+                                 class="item-image"
+                                 data-item-id="{{ base_item_id }}"
+                                 style="display: none;"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="item-image-placeholder">📦</div>
+                            {% else %}
+                            <div class="item-image-placeholder">📦</div>
+                            {% endif %}
+                        </div>
+                        <div class="item-info-container">
+                            <div class="item-title">{{ item.title }}</div>
+                            {% if external_id and '::' in external_id %}
+                            {% set variant_part = external_id.split('::', 1)[1] %}
+                            {% set variant_map = {} %}
+                            {% for pair in variant_part.split('|') %}
+                                {% set key_value = pair.split(':', 1) %}
+                                {% if key_value|length == 2 %}
+                                    {% set _ = variant_map.update({key_value[0]: key_value[1]}) %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if variant_map %}
+                            <div class="item-variants">
+                                {% for key, value in variant_map.items() %}
+                                <span class="variant-badge">{{ key }}: {{ value }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                            <div class="item-details">
+                                <span class="quantity">Quantity: {{ item.quantity }}</span>
+                                <span class="points">{{ item.line_total_points }} pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <h4>No Orders Yet</h4>
+            <p class="text-muted">You haven't placed any orders yet. Start shopping to see your order history here!</p>
+            <a href="{{ url_for('driver_points_catalog.browse') }}" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Browse Catalog
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.orders-page {
+    display: flex;
+    justify-content: center;
+    padding: clamp(24px, 6vw, 56px);
+    background: var(--bg-primary);
+}
+
+.orders-shell {
+    width: min(100%, 60vw);
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    color: var(--text-primary);
+}
+
+.orders-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.orders-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.btn-export-pdf {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-export-pdf:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(220, 38, 38, 0.3);
+    filter: brightness(1.05);
+    color: white;
+    text-decoration: none;
+}
+
+.orders-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 8px;
+}
+
+.filters-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.filter-input {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-filter {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--text-inverse);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-filter:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px var(--shadow);
+}
+
+.btn-clear {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-clear:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.orders-header h2 {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.orders-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.order-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 18px 40px var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    color: var(--text-primary);
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-dark);
+    box-shadow: 0 24px 60px var(--shadow-md);
+}
+
+.order-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.order-date {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.order-status-badge {
+    text-align: center;
+    min-width: 140px;
+}
+
+.order-actions {
+    text-align: right;
+    min-width: 140px;
+    color: var(--text-secondary);
+}
+
+.order-actions:empty {
+    display: none;
+}
+
+.refund-btn,
+.refund-btn-disabled {
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.refund-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(16, 185, 129, 0.35);
+}
+
+.refund-btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.refund-btn-disabled i.fa-times {
+    margin-left: 4px;
+    font-size: 10px;
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.order-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.items-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.item-row-clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    padding: 8px;
+    margin: -8px;
+    border-radius: 8px;
+}
+
+.item-row-clickable:hover {
+    background-color: var(--bg-hover);
+    transform: translateX(2px);
+}
+
+.item-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.item-image-container {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.item-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+}
+
+.item-info-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.item-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.item-variants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.variant-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.item-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.quantity {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.points {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--success);
+}
+
+.empty-state {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: clamp(48px, 8vw, 72px);
+    text-align: center;
+    box-shadow: 0 18px 40px var(--shadow);
+    color: var(--text-primary);
+}
+
+.empty-state h4 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state .text-muted,
+.orders-shell .text-muted {
+    color: var(--text-muted) !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border: none;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-inverse);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px var(--shadow);
+    filter: brightness(1.05);
+    color: var(--text-inverse);
+    text-decoration: none;
+}
+
+:root[data-theme="dark"] .orders-page {
+    background: radial-gradient(circle at top, rgba(30, 58, 138, 0.35), transparent 55%), var(--bg-primary);
+}
+
+:root[data-theme="dark"] .order-card {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45);
+}
+
+:root[data-theme="dark"] .order-card:hover {
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
+}
+
+:root[data-theme="dark"] .order-card__header {
+    border-bottom-color: rgba(148, 163, 184, 0.15);
+}
+
+:root[data-theme="dark"] .order-date,
+:root[data-theme="dark"] .order-actions {
+    color: #cbd5f5;
+}
+
+:root[data-theme="dark"] .item-row {
+    border-bottom-color: rgba(148, 163, 184, 0.12);
+}
+
+:root[data-theme="dark"] .empty-state {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45);
+    color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .empty-state h4 {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .orders-filters {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+:root[data-theme="dark"] .filter-input {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .filter-input:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+:root[data-theme="dark"] .btn-clear {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: #e2e8f0;
+}
+
+@media (max-width: 1400px) {
+    .orders-shell {
+        width: min(100%, 70vw);
+    }
+}
+
+@media (max-width: 992px) {
+    .orders-shell {
+        width: min(100%, 85vw);
+    }
+
+    .order-card {
+        padding: 20px;
+    }
+
+    .order-actions {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .orders-page {
+        padding: clamp(20px, 5vw, 32px);
+    }
+
+    .orders-shell {
+        width: 100%;
+    }
+
+    .orders-header-top {
+        flex-direction: column;
+    }
+
+    .btn-export-pdf {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .filters-form {
+        flex-direction: column;
+    }
+
+    .filter-group {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .filter-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .btn-filter,
+    .btn-clear {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .order-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .item-row {
+        flex-direction: row;
+        align-items: flex-start;
+        padding-bottom: 16px;
+    }
+
+    .item-image-container {
+        width: 50px;
+        height: 50px;
+    }
+
+    .item-details {
+        align-items: flex-start;
+        min-width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orders-page,
+    .order-card,
+    .btn-primary,
+    .refund-btn {
+        transition: none !important;
+    }
+}
+</style>
+
+<script>
+// Update export PDF button URL when filters change
+function updateExportButton() {
+    const exportBtn = document.getElementById('export-pdf-btn');
+    if (!exportBtn) return;
+    
+    const startDate = document.getElementById('start_date')?.value || '';
+    const endDate = document.getElementById('end_date')?.value || '';
+    const status = document.getElementById('status')?.value || '';
+    
+    const baseUrl = exportBtn.getAttribute('data-base-url') || 
+                    '{{ url_for("orders.export_orders_pdf") }}';
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (status) params.append('status', status);
+    
+    const queryString = params.toString();
+    exportBtn.href = baseUrl + (queryString ? '?' + queryString : '');
+}
+
+// Store base URL for export button
+document.addEventListener('DOMContentLoaded', function() {
+    const exportBtn = document.getElementById('export-pdf-btn');
+    if (exportBtn) {
+        exportBtn.setAttribute('data-base-url', '{{ url_for("orders.export_orders_pdf") }}');
+        
+        // Update on filter input changes
+        const filterInputs = ['start_date', 'end_date', 'status'];
+        filterInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('change', updateExportButton);
+            }
+        });
+    }
+});
+
+// Track refunds in progress to prevent multiple simultaneous refunds
+const refundsInProgress = new Set();
+
+// Refund functionality
+function refundOrder(orderId) {
+    // Prevent multiple simultaneous refunds
+    if (refundsInProgress.has(orderId)) {
+        alert('A refund for this order is already being processed. Please wait...');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to refund this order? This action cannot be undone.')) {
+        return;
+    }
+    
+    const button = document.querySelector(`[data-order-id="${orderId}"]`) || 
+                   document.querySelector(`.refund-btn[onclick*="${orderId}"]`);
+    if (!button) {
+        alert('Refund button not found');
+        return;
+    }
+    
+    // Disable all refund buttons to prevent concurrent refunds
+    const allRefundButtons = document.querySelectorAll('.refund-btn:not(.refund-btn-disabled)');
+    allRefundButtons.forEach(btn => {
+        btn.disabled = true;
+        if (btn === button) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        } else {
+            btn.style.opacity = '0.5';
+        }
+    });
+    
+    // Mark this refund as in progress
+    refundsInProgress.add(orderId);
+    const originalText = button.innerHTML;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                     document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1];
+    
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    fetch(`/orders/refund/${orderId}`, {
+        method: 'POST',
+        headers: headers
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            const message = data.message || 'Order processed successfully! Points have been added back to your account.';
+            alert(message);
+            // Reload the page to show updated status
+            location.reload();
+        } else {
+            throw new Error(data.error || 'Failed to refund order');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Re-enable all refund buttons
+        allRefundButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            if (btn === button) {
+                btn.innerHTML = originalText;
+            }
+        });
+        refundsInProgress.delete(orderId);
+        alert('An error occurred while processing the refund: ' + error.message);
+    });
+}
+
+// Auto-refresh timers every minute
+setInterval(function() {
+    // Update pending status badges and cancel buttons
+    const pendingBadges = document.querySelectorAll('[id^="status-badge-"]');
+    pendingBadges.forEach(badge => {
+        const orderId = badge.id.replace('status-badge-', '');
+        const pendingTimeEl = document.getElementById(`pending-time-${orderId}`);
+        const cancelTimeEl = document.getElementById(`cancel-time-${orderId}`);
+        
+        if (pendingTimeEl || cancelTimeEl) {
+            const timeText = (pendingTimeEl || cancelTimeEl).textContent;
+            const timeMatch = timeText.match(/(\d+)/);
+            if (timeMatch) {
+                const timeRemaining = parseInt(timeMatch[1]);
+                if (timeRemaining <= 1) {
+                    // Pending period expired, reload page to show completed status
+                    location.reload();
+                } else {
+                    if (pendingTimeEl) {
+                        pendingTimeEl.textContent = `Will be fulfilled in ${timeRemaining - 1} minutes`;
+                    }
+                    if (cancelTimeEl) {
+                        cancelTimeEl.textContent = `Cancel available for ${timeRemaining - 1} more minutes`;
+                    }
+                }
+            }
+        }
+    });
+    
+    // Update refund buttons
+    const refundButtons = document.querySelectorAll('.refund-btn:not(.refund-btn-disabled)');
+    refundButtons.forEach(button => {
+        const orderId = button.getAttribute('data-order-id');
+        const refundTimeEl = document.getElementById(`refund-time-${orderId}`);
+        
+        if (refundTimeEl) {
+            const timeText = refundTimeEl.textContent;
+            const timeMatch = timeText.match(/(\d+)/);
+            if (timeMatch) {
+                const timeRemaining = parseInt(timeMatch[1]);
+                if (timeRemaining <= 1) {
+                    // Convert to disabled state
+                    button.className = 'btn btn-outline-secondary btn-sm refund-btn-disabled';
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-undo"></i> <i class="fas fa-times"></i> Refund';
+                    button.title = 'Refund window has expired';
+                    refundTimeEl.textContent = 'Refund window expired';
+                    refundTimeEl.className = 'text-muted d-block mt-1';
+                } else {
+                    refundTimeEl.textContent = `Refund available for ${timeRemaining - 1} more minutes`;
+                }
+            }
+        }
+    });
+}, 60000); // Check every minute
+
+// Load product images
+document.addEventListener('DOMContentLoaded', function() {
+    const itemImages = document.querySelectorAll('.item-image[data-item-id]');
+    
+    itemImages.forEach(function(img) {
+        const itemId = img.getAttribute('data-item-id');
+        if (!itemId || itemId === 'SHIPPING') {
+            // Show placeholder if no item ID or shipping
+            img.style.display = 'none';
+            const placeholder = img.nextElementSibling;
+            if (placeholder && placeholder.classList.contains('item-image-placeholder')) {
+                placeholder.style.display = 'flex';
+            }
+            return;
+        }
+        
+        // Encode the item ID for the URL (handle special characters like | and :)
+        const encodedItemId = encodeURIComponent(itemId);
+        
+        // Fetch image from API with credentials
+        fetch(`/catalog/item/ebay/${encodedItemId}/images`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    // If 401/403, might need to reload page for auth
+                    if (response.status === 401 || response.status === 403) {
+                        console.warn('Authentication required for image fetch');
+                    }
+                    throw new Error(`HTTP ${response.status}: Image not found`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.images && Array.isArray(data.images) && data.images.length > 0 && data.images[0]) {
+                    // Set the image source
+                    img.onload = function() {
+                        // Image loaded successfully, hide placeholder
+                        img.style.display = 'block';
+                        const placeholder = img.nextElementSibling;
+                        if (placeholder && placeholder.classList.contains('item-image-placeholder')) {
+                            placeholder.style.display = 'none';
+                        }
+                    };
+                    img.src = data.images[0];
+                } else {
+                    throw new Error('No images available in response');
+                }
+            })
+            .catch(error => {
+                console.warn('Failed to load image for item', itemId, ':', error);
+                // Show placeholder on error
+                img.style.display = 'none';
+                const placeholder = img.nextElementSibling;
+                if (placeholder && placeholder.classList.contains('item-image-placeholder')) {
+                    placeholder.style.display = 'flex';
+                }
+            });
+    });
+});
+</script>
+{% endblock %}

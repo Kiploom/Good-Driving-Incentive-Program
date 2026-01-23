@@ -1,0 +1,1010 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Preview Catalog{% endblock %}
+{% block page_title %}Catalog Preview{% endblock %}
+{% block page_subtitle %}
+Mirror the driver catalog experience, switch between saved filter sets, and ensure every product aligns with your program rules.
+{% endblock %}
+{% block hero_actions %}
+<a class="btn btn-muted" href="{{ url_for('sponsor_catalog.filter_sets') }}">Manage Filter Sets</a>
+{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-bar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-cards.css') }}">
+<style>
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  #app-content {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .page-wrap {
+    min-height: calc(100vh - 60px - 60px);
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    padding: 0;
+    padding-top: max(clamp(24px, 6vw, 60px), 70px);
+    padding-bottom: max(clamp(24px, 6vw, 60px), 70px);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+  }
+  
+  /* Ensure pm-content contains the sidebar */
+  .pm-content {
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .catalog-sidebar {
+    width: 360px;
+    min-width: 360px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: transform 0.3s ease-out;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  }
+
+  [data-theme="dark"] .catalog-sidebar {
+    background: var(--bg-secondary);
+    border-right-color: var(--border);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .catalog-sidebar.hidden {
+    transform: translateX(-100%) !important;
+  }
+
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  [data-theme="dark"] .sidebar-header {
+    background: var(--bg-secondary);
+  }
+
+  .sidebar-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sidebar-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+  }
+
+  .sidebar-toggle-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+  }
+
+  .sidebar-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  /* Force hide categories section when recommended_only mode is active */
+  #categories-sidebar-section.hidden {
+    display: none !important;
+  }
+  
+  /* Ensure categories section is visible when not hidden */
+  #categories-sidebar-section:not(.hidden) {
+    display: block !important;
+  }
+
+  .sidebar-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sidebar-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .sidebar-section input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+  }
+
+  .sidebar-section input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .sidebar-sort-select,
+  .sidebar-filter-set-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  [data-theme="dark"] .sidebar-sort-select,
+  [data-theme="dark"] .sidebar-filter-set-select {
+    background: var(--bg-input, var(--bg-secondary));
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+
+  .sidebar-sort-select:focus,
+  .sidebar-filter-set-select:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .sidebar-sort-select:hover,
+  .sidebar-filter-set-select:hover {
+    border-color: var(--accent-border);
+  }
+
+  .recommended-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  [data-theme="dark"] .recommended-btn {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent-border);
+  }
+
+  .recommended-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  [data-theme="dark"] .recommended-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+
+  .recommended-btn.active {
+    background: var(--success-strong);
+    border-color: var(--success-strong);
+  }
+
+  [data-theme="dark"] .recommended-btn.active {
+    background: var(--success-strong);
+    border-color: var(--success-strong);
+  }
+
+  .sidebar-section .btn-primary {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border: 1px solid var(--accent-border);
+    font-weight: 600;
+  }
+
+  [data-theme="dark"] .sidebar-section .btn-primary {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent-border);
+  }
+
+  .sidebar-section .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  [data-theme="dark"] .sidebar-section .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+
+  .catalog-main {
+    flex: 1;
+    min-width: 0;
+    margin-left: 360px;
+    transition: margin-left 0.3s ease-out;
+    display: flex;
+    justify-content: center;
+    padding-left: clamp(24px, 6vw, 60px);
+    padding-right: clamp(24px, 6vw, 60px);
+    box-sizing: border-box;
+  }
+
+  .catalog-sidebar.hidden ~ .catalog-main {
+    margin-left: 0;
+  }
+  
+  .catalog-sidebar.hidden ~ .sidebar-expand-btn {
+    display: block;
+  }
+
+  .sidebar-expand-btn {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 8px;
+    cursor: pointer;
+    z-index: 501;
+    display: none;
+    color: var(--text-primary);
+    z-index: 499;
+    transition: all 0.2s ease;
+    display: none;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="dark"] .sidebar-expand-btn {
+    background: var(--bg-secondary);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-expand-btn:hover {
+    background: var(--bg-hover);
+    padding-left: 12px;
+  }
+
+  .catalog-sidebar.hidden ~ .catalog-main .sidebar-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .page-wrap {
+      min-height: calc(100vh - 56px - 64px);
+      padding-top: max(16px, 64px);
+      padding-bottom: max(16px, 72px);
+    }
+
+    .catalog-sidebar {
+      width: 100%;
+      min-width: 100%;
+      position: fixed;
+      top: 82.625px;
+      left: 0;
+      right: 0;
+      bottom: 0px;
+      z-index: 1000;
+      border-right: none;
+      border-radius: 0;
+      transform: translateX(-100%);
+    }
+
+    .catalog-sidebar:not(.hidden) {
+      transform: translateX(0);
+    }
+
+    .catalog-main {
+      margin-left: 0 !important;
+      width: 100%;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .sidebar-expand-btn {
+      display: none !important;
+    }
+
+    .catalog-shell {
+      width: 100%;
+      max-width: 100%;
+      padding: 16px;
+      border-radius: 0;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar-expand-btn {
+      display: none !important;
+    }
+  }
+
+  .catalog-shell {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 28px);
+    margin: 0 auto;
+    background: linear-gradient(145deg, rgba(41, 51, 73, 0.12), rgba(17, 24, 39, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 22px;
+    padding: clamp(22px, 3vw, 34px);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  [data-theme="dark"] .catalog-shell {
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
+  }
+
+  .catalog-shell .catalog-header,
+  .catalog-shell .pager-wrapper,
+  .catalog-shell #grid,
+  .catalog-shell #status {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 0;
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Hide pager, search, and view toggle by default - show when browsing option is selected */
+  .catalog-shell .pager-wrapper,
+  .catalog-shell .catalog-search-row,
+  .catalog-shell .catalog-view-toggle {
+    display: none;
+  }
+
+  .catalog-shell .pager-wrapper.show,
+  .catalog-shell .catalog-search-row.show,
+  .catalog-shell .catalog-view-toggle.show {
+    display: block;
+  }
+
+  .catalog-shell .catalog-view-toggle.show {
+    display: flex;
+  }
+
+  .sidebar-section .categories-grid,
+  .sidebar-section #categories-grid {
+    overflow-x: auto;
+    overflow-y: visible;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar,
+  .sidebar-section #categories-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-track,
+  .sidebar-section #categories-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-thumb,
+  .sidebar-section #categories-grid::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-thumb:hover,
+  .sidebar-section #categories-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  .sidebar-section label span,
+  .sidebar-section .category-header,
+  .sidebar-section .cat-check + span {
+    white-space: nowrap;
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="catalog-root"
+     class="page-wrap"
+     data-mode="catalog"
+     data-data-endpoint="{{ url_for('sponsor_catalog.preview_data') }}">
+  
+  <!-- Sidebar -->
+  <aside id="catalog-sidebar" class="catalog-sidebar">
+    <div class="sidebar-header">
+      <h2>Browse & Filter</h2>
+      <button type="button" class="sidebar-toggle-btn" id="sidebar-collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+    </div>
+    <div class="sidebar-content">
+      <!-- Filter Set section removed - preview always uses active filter set -->
+
+      <div class="sidebar-section">
+        <h3>Sort By</h3>
+        <select id="sidebar-sort" class="sidebar-sort-select">
+          <option value="best_match">Best Match</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Price Range</h3>
+        <label for="sidebar-min-price">Min price ($)</label>
+        <input id="sidebar-min-price" type="number" min="0" step="0.01" placeholder="Min $">
+        <label for="sidebar-max-price">Max price ($)</label>
+        <input id="sidebar-max-price" type="number" min="0" step="0.01" placeholder="Max $">
+        <button type="button" class="btn btn-primary" id="apply-price-filter" style="width: 100%; margin-top: 8px;">Apply Filter</button>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Browse Options</h3>
+        <button type="button" class="recommended-btn" id="sidebar-recommended-btn" data-mode="recommended">
+          ⭐ Recommended Products
+        </button>
+      </div>
+
+      <div class="sidebar-section" id="categories-sidebar-section">
+        <h3>Categories</h3>
+        {% include "sponsor_catalog/_category_browser.html" %}
+      </div>
+    </div>
+  </aside>
+
+  <!-- Expand button -->
+  <button type="button" class="sidebar-expand-btn" id="sidebar-expand-btn" aria-label="Expand sidebar" title="Expand sidebar">
+    <i class="fas fa-arrow-right"></i>
+  </button>
+
+  <!-- Main Content -->
+  <div class="catalog-main">
+    <div class="catalog-shell">
+      <div class="catalog-header">
+        <div class="catalog-title-area">
+          <div>
+            <div class="catalog-title">Catalog Preview</div>
+            <div id="browsing-indicator" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+              <span id="browsing-text" style="display: none;">Browsing: <strong style="color: var(--text-primary);" id="browsing-category-name"></strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="catalog-title-actions">
+          <button type="button"
+                  class="catalog-action-btn catalog-filter-toggle"
+                  id="catalog-filter-toggle"
+                  aria-controls="catalog-sidebar"
+                  aria-expanded="false"
+                  title="Browse categories and filter products">
+            <span class="catalog-action-icon" aria-hidden="true">
+              <i class="fas fa-folder-open"></i>
+            </span>
+            <span class="catalog-action-label">Browse & Filter</span>
+          </button>
+        </div>
+        <div class="catalog-view-toggle">
+          <button id="view-toggle-btn"
+                  type="button"
+                  class="catalog-view-btn active"
+                  aria-pressed="true"
+                  title="Switch to list view"
+                  aria-label="Switch to list view">
+            ⊞
+          </button>
+        </div>
+      </div>
+
+      <div class="catalog-search-row">
+        <form id="search-form" onsubmit="return false;" class="catalog-search-group">
+          <input id="q" type="search" placeholder="Search items…" value="{{ request.args.get('q','') }}">
+          <button id="search-btn" class="catalog-search-btn" type="button">Search</button>
+        </form>
+      </div>
+
+      <!-- Top Pagination Controls -->
+      <div class="pager-wrapper">
+        <div class="pager pager-top">
+          <button id="prev-top" class="btn" disabled>Prev</button>
+          <div class="page-info" id="page-info-top">Page 1</div>
+          <button id="next-top" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+
+      <ul id="grid" class="grid" aria-live="polite" aria-busy="false"></ul>
+      <div id="status" class="status" style="display:none;">No items found.</div>
+
+      <!-- Bottom Pagination Controls -->
+      <div class="pager-wrapper">
+        <div class="pager pager-bottom">
+          <button id="prev" class="btn" disabled>Prev</button>
+          <div class="page-info" id="page-info">Page 1</div>
+          <button id="next" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="card">
+  <li class="card" tabindex="0" role="link" aria-label="">
+    <div class="card-image-wrapper">
+      <img src="" alt="" class="card-image">
+      <span class="badge low" data-low-stock="1" style="display:none;">Low stock</span>
+      <span class="badge out-of-stock" data-no-stock="1" style="display:none;">Out of stock</span>
+      <button type="button"
+              class="recommend-btn-icon icon-only filled"
+              data-recommend="1"
+              style="display:none;"
+              title="Remove from recommended"
+              aria-label="Remove from recommended">
+        <svg class="icon star-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill="currentColor"
+                stroke="currentColor"
+                stroke-width="0.5"/>
+        </svg>
+      </button>
+      <button type="button"
+              class="recommend-btn-icon icon-only unfilled"
+              data-unrecommend="1"
+              style="display:none;"
+              title="Add to recommended"
+              aria-label="Add to recommended">
+        <svg class="icon star-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="title"></div>
+      <div class="meta">
+        <span class="points"><span class="number"></span><span class="label"></span></span>
+        <div class="action-buttons">
+          <button type="button"
+                  class="report-btn-icon icon-only"
+                  style="display:none;"
+                  aria-label="Report product">
+            <svg class="icon exclamation-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"/>
+              <path d="M12 8v4M12 16h.01"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </li>
+</template>
+
+<!-- Item Modal -->
+<div id="item-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <img id="modal-img" alt="" />
+    <h3 id="modal-title"></h3>
+    <div id="modal-cost" class="muted" style="color:var(--text-muted);"></div>
+    <p id="modal-desc" class="desc"></p>
+    <div class="modal-actions">
+      <button id="modal-recommend-btn-filled" class="btn btn-primary icon-only" style="display:none;" title="Remove from recommended" aria-label="Remove from recommended">
+        <svg class="icon star-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill="currentColor"
+                stroke="currentColor"
+                stroke-width="0.5"/>
+        </svg>
+      </button>
+      <button id="modal-recommend-btn-unfilled" class="btn btn-primary icon-only" style="display:none;" title="Add to recommended" aria-label="Add to recommended">
+        <svg class="icon star-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <a id="modal-link" class="btn" target="_blank" rel="noopener" style="display:none;">Open on eBay</a>
+      <button id="modal-report-btn" class="btn secondary icon-only" style="display:none;" title="Report Item" aria-label="Report Item">
+        <svg class="icon exclamation-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"/>
+          <path d="M12 8v4M12 16h.01"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <h3 id="report-modal-title">Report Item</h3>
+    <form id="report-form">
+      <div class="form-group">
+        <label for="report-reason">Reason for reporting:</label>
+        <select id="report-reason" required>
+          <option value="">Select a reason</option>
+          <option value="inappropriate">Inappropriate content</option>
+          <option value="broken_link">Broken or invalid link</option>
+          <option value="wrong_category">Wrong category</option>
+          <option value="spam">Spam or misleading</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="report-description">Additional details (optional):</label>
+        <textarea id="report-description" rows="3" placeholder="Please provide any additional information..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close="1">Cancel</button>
+        <button type="submit" class="btn secondary">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .modal-dialog {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    width: calc(100% - 32px);
+    margin: 6vh auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 14px;
+  }
+
+  [data-theme="dark"] .modal-dialog {
+    border-color: var(--accent-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .modal-dialog img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--bg-hover);
+  }
+
+  .modal-dialog h3 {
+    margin: .25rem 0 .25rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .modal-dialog .desc {
+    margin: .5rem 0 1rem;
+    white-space: pre-wrap;
+    color: var(--text-secondary);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .btn.secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .btn.secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-input);
+    color: var(--text-primary);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .modal-close:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width:640px) {
+    .modal-dialog {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Icon-only buttons styling */
+  .icon-only {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .icon-only .icon {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+  }
+
+  /* Recommend button (star) in card image wrapper */
+  .recommend-btn-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="dark"] .recommend-btn-icon {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .recommend-btn-icon.filled {
+    color: #fbbf24; /* Gold/yellow for filled star */
+  }
+
+  .recommend-btn-icon.unfilled {
+    color: var(--text-secondary);
+  }
+
+  .recommend-btn-icon:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--accent-border);
+  }
+
+  [data-theme="dark"] .recommend-btn-icon:hover {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .recommend-btn-icon.filled:hover {
+    color: #f59e0b; /* Darker gold on hover */
+  }
+
+  .recommend-btn-icon.unfilled:hover {
+    color: var(--accent);
+  }
+
+  /* Report button (exclamation) in action buttons */
+  .report-btn-icon {
+    color: var(--text-secondary);
+    border-color: var(--border);
+  }
+
+  .report-btn-icon:hover {
+    color: #ef4444; /* Red on hover */
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  /* Icon buttons in modal */
+  .modal-actions .icon-only {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .modal-actions .recommend-btn-icon.filled {
+    color: #fbbf24;
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+
+  .modal-actions .recommend-btn-icon.unfilled {
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+
+  .modal-actions .recommend-btn-icon:hover {
+    transform: scale(1.05);
+  }
+
+  .modal-actions .report-btn-icon {
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+
+  .modal-actions .report-btn-icon:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+</style>
+
+<script src="{{ url_for('sponsor_catalog.static', filename='sponsor_catalog.js') }}" defer></script>
+{% endblock %}

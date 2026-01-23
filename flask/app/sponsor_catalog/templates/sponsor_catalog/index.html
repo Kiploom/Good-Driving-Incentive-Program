@@ -1,0 +1,80 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Product Management{% endblock %}
+{% block page_title %}Product Management{% endblock %}
+{% block page_subtitle %}
+Shape the catalog experience your drivers will see by curating filters, spotlighting products, and monitoring live feedback.
+{% endblock %}
+{% block hero_actions %}
+<a class="btn" href="{{ url_for('sponsor_catalog.preview_page') }}">Preview Catalog</a>
+<a class="btn btn-muted" href="{{ url_for('sponsor_catalog.filter_sets') }}">Manage Filters</a>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+  <div class="pm-card-grid">
+    <article class="pm-card">
+      <span class="pm-pill">🔧 Filter Sets</span>
+      <h3 class="pm-card-title">Curate smart search rules</h3>
+      <p class="pm-card-body">
+        Build reusable filter sets that control categories, price ranges, seller quality, and safety options for your drivers.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.filter_sets') }}" class="btn">Manage Filter Sets</a>
+    </article>
+
+    <article class="pm-card">
+      <span class="pm-pill">⭐ Recommended Products</span>
+      <h3 class="pm-card-title">Spotlight must-see rewards</h3>
+      <p class="pm-card-body">
+        Recommend curated items so drivers can easily find the products you want them to see.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.recommended_products_page') }}" class="btn">Review Recommendations</a>
+    </article>
+
+    <article class="pm-card">
+      <span class="pm-pill">🔍 Preview</span>
+      <h3 class="pm-card-title">See it like a driver</h3>
+      <p class="pm-card-body">
+        Preview your catalog with any filter set applied to confirm the experience before it goes live.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.preview_page') }}" class="btn">Open Preview</a>
+    </article>
+
+    <article class="pm-card">
+      <span class="pm-pill">⚠️ Reports</span>
+      <h3 class="pm-card-title">Respond to driver feedback</h3>
+      <p class="pm-card-body">
+        Investigate items that have been flagged, take action quickly, and keep the marketplace healthy.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.product_reports_page') }}" class="btn btn-muted">Review Reports</a>
+    </article>
+
+    <article class="pm-card">
+      <span class="pm-pill">🚫 Blacklist</span>
+      <h3 class="pm-card-title">Remove unwanted listings</h3>
+      <p class="pm-card-body">
+        Permanently exclude products that don’t align with brand standards or program policy.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.blacklisted_products_page') }}" class="btn btn-muted">View Blacklist</a>
+    </article>
+
+    <article class="pm-card">
+      <span class="pm-pill">📋 Audit Log</span>
+      <h3 class="pm-card-title">Track every change</h3>
+      <p class="pm-card-body">
+        Keep a transparent record of catalog edits with a detailed, exportable audit trail.
+      </p>
+      <a href="{{ url_for('sponsor_catalog.filter_sets_audit_history') }}" class="btn btn-muted">View Audit Log</a>
+    </article>
+  </div>
+</section>
+
+<section class="pm-section">
+  <h3>Quick start checklist</h3>
+  <ol class="pm-stack" style="list-style: decimal inside; gap: 10px; margin: 0;">
+    <li><strong>Create a filter set:</strong> Define categories, pricing, seller quality, and safety rules.</li>
+    <li><strong>Recommend featured products:</strong> Use the preview to recommend the items drivers should see first.</li>
+    <li><strong>Preview the catalog:</strong> Confirm each filter set behaves as expected in real time.</li>
+    <li><strong>Monitor feedback:</strong> Review reports and blacklist or restore items as needed.</li>
+  </ol>
+</section>
+{% endblock %}

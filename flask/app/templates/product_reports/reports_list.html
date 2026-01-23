@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Product Reports{% endblock %}
+
+{% block body %}
+<div class="container">
+  <div class="header">
+    <h1>Product Reports</h1>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-number">{{ total_reports }}</span>
+        <span class="stat-label">Total Reports</span>
+      </div>
+      <div class="stat pending">
+        <span class="stat-number">{{ pending_reports|length }}</span>
+        <span class="stat-label">Pending</span>
+      </div>
+      <div class="stat resolved">
+        <span class="stat-number">{{ reviewed_reports|length }}</span>
+        <span class="stat-label">Reviewed</span>
+      </div>
+    </div>
+  </div>
+
+  {% if pending_reports %}
+  <section class="reports-section">
+    <h2>Pending Reports</h2>
+    <div class="reports-grid">
+      {% for report in pending_reports %}
+      <div class="report-card pending">
+        <div class="report-header">
+          <h3>{{ report.ItemTitle or 'Unknown Item' }}</h3>
+          <span class="report-status pending">Pending</span>
+        </div>
+        <div class="report-details">
+          <p><strong>Reason:</strong> {{ report.ReportReason.replace('_', ' ').title() }}</p>
+          {% if report.ReportDescription %}
+          <p><strong>Description:</strong> {{ report.ReportDescription }}</p>
+          {% endif %}
+          <p><strong>Reported:</strong> {{ report.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</p>
+          <p><strong>Item ID:</strong> {{ report.ExternalItemID }}</p>
+        </div>
+        <div class="report-actions">
+          <a href="{{ url_for('product_reports.report_detail', report_id=report.ID) }}" class="btn">Review</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if reviewed_reports %}
+  <section class="reports-section">
+    <h2>Reviewed Reports</h2>
+    <div class="reports-grid">
+      {% for report in reviewed_reports %}
+      <div class="report-card {{ report.Status }}">
+        <div class="report-header">
+          <h3>{{ report.ItemTitle or 'Unknown Item' }}</h3>
+          <span class="report-status {{ report.Status }}">{{ report.Status.title() }}</span>
+        </div>
+        <div class="report-details">
+          <p><strong>Reason:</strong> {{ report.ReportReason.replace('_', ' ').title() }}</p>
+          {% if report.ReportDescription %}
+          <p><strong>Description:</strong> {{ report.ReportDescription }}</p>
+          {% endif %}
+          <p><strong>Reported:</strong> {{ report.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</p>
+          {% if report.ReviewedAt %}
+          <p><strong>Reviewed:</strong> {{ report.ReviewedAt.strftime('%Y-%m-%d %H:%M') }}</p>
+          {% endif %}
+          {% if report.ReviewNotes %}
+          <p><strong>Review Notes:</strong> {{ report.ReviewNotes }}</p>
+          {% endif %}
+          <p><strong>Item ID:</strong> {{ report.ExternalItemID }}</p>
+        </div>
+        <div class="report-actions">
+          <a href="{{ url_for('product_reports.report_detail', report_id=report.ID) }}" class="btn secondary">View Details</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not pending_reports and not reviewed_reports %}
+  <div class="empty-state">
+    <h2>No Reports Found</h2>
+    <p>There are no product reports for your drivers at this time.</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+  }
+
+  .stat {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+
+  .stat.pending {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .stat.resolved {
+    background: #d1fae5;
+    border-color: #10b981;
+  }
+
+  .stat-number {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: #374151;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+
+  .reports-section {
+    margin-bottom: 40px;
+  }
+
+  .reports-section h2 {
+    margin-bottom: 20px;
+    color: #374151;
+  }
+
+  .reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+  }
+
+  .report-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .report-card.pending {
+    border-left: 4px solid #f59e0b;
+  }
+
+  .report-card.resolved {
+    border-left: 4px solid #10b981;
+  }
+
+  .report-card.dismissed {
+    border-left: 4px solid #6b7280;
+  }
+
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .report-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #374151;
+  }
+
+  .report-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .report-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .report-status.resolved {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .report-status.dismissed {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .report-details {
+    margin-bottom: 16px;
+  }
+
+  .report-details p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  .report-details strong {
+    color: #374151;
+  }
+
+  .report-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn {
+    background: #3b82f6;
+    color: #fff;
+  }
+
+  .btn:hover {
+    background: #2563eb;
+  }
+
+  .btn.secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .btn.secondary:hover {
+    background: #4b5563;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+  }
+
+  .empty-state h2 {
+    margin-bottom: 16px;
+    color: #374151;
+  }
+</style>
+{% endblock %}

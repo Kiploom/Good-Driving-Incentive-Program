@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Point Settings Changes Audit Log{% endblock %}
+{% block content %}
+{% set page_title = (selected_sponsor.Company ~ ' Point Settings Changes Audit Log') if selected_sponsor else 'Point Settings Changes Audit Log' %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">{{ page_title }}</h1>
+      <p class="page-description">
+        Review sponsor point setting updates, compare old and new configuration values, and filter by field or company.
+      </p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search sponsor, email, field…">
+    {% if not selected_sponsor %}
+      <select name="company_filter" onchange="this.form.submit()">
+        <option value="">All sponsors</option>
+        {% for sponsor in sponsors %}
+          <option value="{{ sponsor.Company }}" {% if company_filter == sponsor.Company %}selected{% endif %}>{{ sponsor.Company }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <input type="hidden" name="company_filter" value="{{ company_filter }}">
+    {% endif %}
+    <select name="field_filter" onchange="this.form.submit()">
+      <option value="">All fields</option>
+      <option value="PointToDollarRate" {% if field_filter=='PointToDollarRate' %}selected{% endif %}>Point Conversion Rate</option>
+      <option value="MinPointsPerTxn" {% if field_filter=='MinPointsPerTxn' %}selected{% endif %}>Min Points Per Transaction</option>
+      <option value="MaxPointsPerTxn" {% if field_filter=='MaxPointsPerTxn' %}selected{% endif %}>Max Points Per Transaction</option>
+    </select>
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      {% if selected_sponsor %}
+        <a href="{{ url_for('admin.audit_point_settings_changes', company_filter=company_filter) }}" class="btn btn-ghost">Reset</a>
+      {% else %}
+        <a href="{{ url_for('admin.audit_point_settings_changes') }}" class="btn btn-ghost">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Changed At</th>
+          <th>Sponsor</th>
+          <th>Field</th>
+          <th>Old Value</th>
+          <th>New Value</th>
+          <th>Changed By</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for audit, sponsor, sponsor_account, changed_by_account in rows %}
+            {% set sponsor_name = sponsor and sponsor.Company %}
+            {% set actor_name = changed_by_account and (
+                  changed_by_account.WholeName
+                  or ((changed_by_account.FirstName or '') ~ (' ' if (changed_by_account.FirstName or changed_by_account.LastName) else '') ~ (changed_by_account.LastName or ''))
+                ) %}
+            <tr>
+              <td class="text-muted">
+                {{ audit.ChangedAt.strftime('%Y-%m-%d %H:%M') if audit.ChangedAt else '—' }}
+              </td>
+              <td>
+                <div class="table-strong">{{ sponsor_name or '—' }}</div>
+                {% if sponsor_account %}
+                  {% set sponsor_contact = (sponsor_account.WholeName
+                      or ((sponsor_account.FirstName or '') ~ (' ' if (sponsor_account.FirstName or sponsor_account.LastName) else '') ~ (sponsor_account.LastName or ''))).strip() %}
+                  {% if sponsor_contact %}
+                    <div class="table-meta">{{ sponsor_contact }}</div>
+                  {% endif %}
+                  <div class="table-meta">{{ sponsor_account.Email or '—' }}</div>
+                {% else %}
+                  <div class="table-meta text-muted">No sponsor contact</div>
+                {% endif %}
+                {% if sponsor and sponsor.SponsorID %}
+                  <div class="table-meta">SponsorID: {{ sponsor.SponsorID[:8] }}…</div>
+                {% endif %}
+              </td>
+              <td class="table-strong">
+                {{ audit.FieldName }}
+              </td>
+              <td>
+                {% if audit.OldValue %}
+                  <span class="mono-chip mono-chip--old">{{ audit.OldValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if audit.NewValue %}
+                  <span class="mono-chip mono-chip--new">{{ audit.NewValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if changed_by_account %}
+                  <div class="table-strong">
+                    {{ actor_name and actor_name.strip() or (changed_by_account.Username or changed_by_account.Email or changed_by_account.AccountID) }}
+                  </div>
+                  <div class="table-meta">{{ changed_by_account.Email or '—' }}</div>
+                {% else %}
+                  <span class="text-muted">Self-update</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">
+                {{ audit.ChangeReason or '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="table-empty">No point settings changes found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

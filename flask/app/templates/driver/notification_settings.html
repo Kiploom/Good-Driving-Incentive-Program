@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Settings{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Notification Settings</h1>
+        <p>
+          Choose the updates you want to hear about and how often we should reach out.
+          Critical security alerts will always break through to keep your account protected.
+        </p>
+      </div>
+    </header>
+
+    <form method="POST" id="notification-form" class="settings-card">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-sliders-h" aria-hidden="true"></i>
+          <h2>Notification Types</h2>
+        </div>
+        <p class="settings-section-description">
+          Enable the messages that matter most during your driver journey.
+        </p>
+
+        <div class="settings-grid">
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Point Changes</span>
+              <span class="settings-option-description">
+                Alerts whenever points are added or deducted from your balance.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="point_changes" class="notification-toggle" {{ 'checked' if prefs.PointChanges else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Support Ticket Updates</span>
+              <span class="settings-option-description">
+                Emails whenever an administrator replies to one of your support tickets.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="ticket_updates" class="notification-toggle" {{ 'checked' if prefs.TicketUpdates else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Refund Window Alerts</span>
+              <span class="settings-option-description">
+                Reminders when an order is nearing the end of its refund or cancellation window.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="refund_window_alerts" class="notification-toggle" {{ 'checked' if prefs.RefundWindowAlerts else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Account Status Changes</span>
+              <span class="settings-option-description">
+                Instant alerts when your driver account switches between active, inactive, or archived.
+                <strong>This notification is always enabled for your security.</strong>
+              </span>
+            </div>
+            <label class="toggle" style="opacity: 0.6; cursor: not-allowed;" title="This notification cannot be disabled">
+              <input type="checkbox" name="account_status_changes" class="notification-toggle" checked disabled>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Sensitive Information Resets</span>
+              <span class="settings-option-description">
+                Confirmation when your password, email address, or other sensitive information changes.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="sensitive_info_resets" class="notification-toggle" {{ 'checked' if prefs.SensitiveInfoResets else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Order Confirmations</span>
+              <span class="settings-option-description">
+                Detailed receipts and shipping updates after every order you place.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="order_confirmations" class="notification-toggle" {{ 'checked' if prefs.OrderConfirmations else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-option">
+            <div class="settings-option-content">
+              <span class="settings-option-title">Application Updates</span>
+              <span class="settings-option-description">
+                Status changes and reminders for sponsor applications you have submitted.
+              </span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" name="application_updates" class="notification-toggle" {{ 'checked' if prefs.ApplicationUpdates else '' }}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-moon" aria-hidden="true"></i>
+          <h2>Quiet Hours</h2>
+        </div>
+        <p class="settings-section-description">
+          Pause non-critical notifications during the hours that work best for you. Security alerts
+          will still reach you in real time.
+        </p>
+
+        <div class="settings-option">
+          <div class="settings-option-content">
+            <span class="settings-option-title">Enable Quiet Hours</span>
+            <span class="settings-option-description">
+              Suppress points, order, and communication notifications during a scheduled window.
+            </span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" name="quiet_hours_enabled" id="quiet_hours_enabled" class="notification-toggle" {{ 'checked' if prefs.QuietHoursEnabled else '' }}>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <div id="quiet_hours_settings" class="settings-card settings-card--nested {% if not prefs.QuietHoursEnabled %}is-hidden{% endif %}">
+          <div class="inline-form two-column">
+            <div class="form-control">
+              <label for="quiet_hours_start">Quiet Hours Start</label>
+              <input
+                type="time"
+                id="quiet_hours_start"
+                name="quiet_hours_start"
+                value="{{ prefs.QuietHoursStart.strftime('%H:%M') if prefs.QuietHoursStart else '22:00' }}"
+                {{ 'required' if prefs.QuietHoursEnabled else '' }}>
+              <span class="settings-option-description">
+                When quiet hours begin (for example, 22:00)
+              </span>
+            </div>
+            <div class="form-control">
+              <label for="quiet_hours_end">Quiet Hours End</label>
+              <input
+                type="time"
+                id="quiet_hours_end"
+                name="quiet_hours_end"
+                value="{{ prefs.QuietHoursEnd.strftime('%H:%M') if prefs.QuietHoursEnd else '07:00' }}"
+                {{ 'required' if prefs.QuietHoursEnabled else '' }}>
+              <span class="settings-option-description">
+                When quiet hours end (for example, 07:00)
+              </span>
+            </div>
+          </div>
+          <div class="settings-callout info">
+            <i class="fas fa-info-circle" aria-hidden="true"></i>
+            <div>
+              <strong>Heads up:</strong> Account status changes and security events will still send right away.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-coins" aria-hidden="true"></i>
+          <h2>Low Points Alert</h2>
+        </div>
+        <p class="settings-section-description">
+          Get a notification when your balance drops beneath a threshold you define.
+        </p>
+
+        <div class="settings-option">
+          <div class="settings-option-content">
+            <span class="settings-option-title">Enable Low Points Alert</span>
+            <span class="settings-option-description">
+              Receive a reminder shortly after a deduction brings you below your trigger level.
+            </span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" name="low_points_alert_enabled" id="low_points_alert_enabled" class="notification-toggle" {{ 'checked' if prefs.LowPointsAlertEnabled else '' }}>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <div id="low_points_settings" class="settings-card settings-card--nested {% if not prefs.LowPointsAlertEnabled %}is-hidden{% endif %}">
+          <div class="inline-form">
+            <div class="form-control">
+              <label for="low_points_threshold">Points Threshold</label>
+              <input
+                type="number"
+                id="low_points_threshold"
+                name="low_points_threshold"
+                min="0"
+                step="1"
+                value="{{ prefs.LowPointsThreshold if prefs.LowPointsThreshold else '' }}"
+                placeholder="Enter threshold (e.g., 100)"
+                {{ 'required' if prefs.LowPointsAlertEnabled else '' }}>
+              <span class="settings-option-description">
+                We will notify you once your balance falls below this number.
+              </span>
+            </div>
+          </div>
+          <div class="settings-callout warning">
+            <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+            <div>
+              Alerts trigger after a point deduction reduces your balance under the limit.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="settings-actions">
+        <a class="btn btn-secondary" href="{{ url_for('driver.driver_account') }}">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save" aria-hidden="true"></i>
+          Save Settings
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const quietHoursToggle = document.getElementById('quiet_hours_enabled');
+  const quietHoursSettings = document.getElementById('quiet_hours_settings');
+  const quietHoursStart = document.getElementById('quiet_hours_start');
+  const quietHoursEnd = document.getElementById('quiet_hours_end');
+
+  const lowPointsToggle = document.getElementById('low_points_alert_enabled');
+  const lowPointsSettings = document.getElementById('low_points_settings');
+  const lowPointsThreshold = document.getElementById('low_points_threshold');
+
+  function syncToggle(toggle, target, requiredFields = []) {
+    if (!toggle || !target) return;
+    const isEnabled = toggle.checked;
+    target.classList.toggle('is-hidden', !isEnabled);
+    requiredFields.forEach(field => {
+      if (!field) return;
+      field.required = isEnabled;
+    });
+  }
+
+  syncToggle(quietHoursToggle, quietHoursSettings, [quietHoursStart, quietHoursEnd]);
+  syncToggle(lowPointsToggle, lowPointsSettings, [lowPointsThreshold]);
+
+  quietHoursToggle?.addEventListener('change', () => {
+    syncToggle(quietHoursToggle, quietHoursSettings, [quietHoursStart, quietHoursEnd]);
+  });
+
+  lowPointsToggle?.addEventListener('change', () => {
+    syncToggle(lowPointsToggle, lowPointsSettings, [lowPointsThreshold]);
+  });
+});
+</script>
+{% endblock %}
+

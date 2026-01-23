@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base gray background - darker with rounded corners for cards -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/shimmer_base" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <!-- Shimmer gradient overlay -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="@color/shimmer_base"
+                android:centerColor="@color/shimmer_start"
+                android:endColor="@color/shimmer_base"
+                android:type="linear" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</layer-list>
+

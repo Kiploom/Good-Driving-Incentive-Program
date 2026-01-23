@@ -1,0 +1,313 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Pinned Products{% endblock %}
+
+{% block page_title %}Pinned Products{% endblock %}
+{% block page_subtitle %}
+Highlight the products you want drivers to see first. Update pins from the preview to curate a tailored catalog.
+{% endblock %}
+{% block hero_actions %}
+<a href="{{ url_for('sponsor_catalog.preview_page') }}" class="btn">Search & Pin Products</a>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+
+<style>
+    .pinned-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 18px;
+        margin-top: 12px;
+    }
+
+    .pinned-card {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--bg-card);
+        overflow: hidden;
+        box-shadow: 0 18px 32px var(--shadow-sm);
+        transition: all 0.2s ease;
+    }
+
+    .pinned-card:hover {
+        box-shadow: 0 24px 40px rgba(245, 158, 11, 0.18);
+        transform: translateY(-2px);
+        border-color: var(--accent-border);
+    }
+
+    .pinned-card.error {
+        border-color: var(--error);
+        background: rgba(239, 68, 68, 0.12);
+    }
+
+    .pinned-card img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+        background: var(--bg-hover);
+    }
+
+    .pinned-card-placeholder {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 1rem;
+    }
+
+    .pinned-card-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .pinned-card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1rem;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .pinned-card-price {
+        color: var(--success);
+        font-weight: 600;
+        font-size: 1.05rem;
+    }
+
+    .pinned-card-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: auto;
+    }
+
+    .pinned-card-actions {
+        padding: 16px;
+        display: flex;
+        gap: 8px;
+        border-top: 1px solid var(--border);
+    }
+
+    .error-badge {
+        background: rgba(239, 68, 68, 0.18);
+        color: #b91c1c;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .no-pins {
+        text-align: center;
+        padding: 64px 24px;
+        color: var(--text-muted);
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        background: var(--bg-secondary);
+    }
+
+    .no-pins-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .btn-small {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.85rem;
+    }
+
+    .btn-danger {
+        background: var(--error);
+        color: #fff;
+        border: 1px solid var(--error);
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+        border-color: #dc2626;
+    }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent-border);
+        color: var(--accent);
+    }
+
+    .pin-rank-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: #ffffff;
+        color: #1e293b;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme="dark"] .pin-rank-badge {
+        background: rgba(15, 23, 42, 0.95);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+</style>
+
+{% if pinned_items %}
+<div class="pinned-grid">
+    {% for item in pinned_items %}
+    <div class="pinned-card {% if item.error %}error{% endif %}">
+        <div style="position: relative;">
+            {% if item.pin_rank %}
+            <span class="pin-rank-badge">#{{ item.pin_rank }}</span>
+            {% endif %}
+            {% if item.image %}
+            <img src="{{ item.image }}" alt="{{ item.title }}">
+            {% else %}
+            <div class="pinned-card-placeholder">No Image</div>
+            {% endif %}
+        </div>
+        <div class="pinned-card-body">
+            <div class="pinned-card-title">{{ item.title }}</div>
+            {% if item.error %}
+            <span class="error-badge">{{ item.error }}</span>
+            {% elif item.price %}
+            <div class="pinned-card-price">${{ "%.2f"|format(item.price) }}</div>
+            {% endif %}
+            {% if item.pinned_at %}
+            <div class="pinned-card-meta">
+                Pinned {{ item.pinned_at.strftime('%Y-%m-%d') }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="pinned-card-actions">
+            {% if item.url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener" class="btn btn-small btn-secondary">
+                View on eBay
+            </a>
+            {% endif %}
+            <button class="btn btn-small btn-danger" onclick="unpinProduct('{{ item.pin_id }}', this)">
+                🗑️ Unpin
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-pins">
+    <div class="no-pins-icon">📌</div>
+    <h3>No Pinned Products</h3>
+    <p>Pin products from the preview page to feature them in your drivers' catalogs.</p>
+    <a href="{{ url_for('sponsor_catalog.preview_page') }}" class="btn" style="margin-top: 16px;">
+        Go to Preview & Pin Products
+    </a>
+</div>
+{% endif %}
+
+</section>
+
+<script>
+    async function unpinProduct(pinId, btn) {
+        if (!confirm('Remove this pinned product?')) return;
+        
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            console.error('[UNPIN DEBUG] CSRF token not found!');
+            alert('Security token missing. Please refresh the page.');
+            return;
+        }
+        
+        console.log('[UNPIN DEBUG] Starting unpin operation for pin:', pinId);
+        
+        btn.disabled = true;
+        btn.textContent = 'Removing...';
+        
+        try {
+            const fd = new FormData();
+            fd.append('csrf_token', csrfToken);
+            
+            const startTime = performance.now();
+            const r = await fetch("{{ url_for('sponsor_catalog.unpin_product', pin_id='__ID__') }}".replace('__ID__', pinId), {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const endTime = performance.now();
+            const duration = (endTime - startTime).toFixed(2);
+            
+            console.log(`[UNPIN DEBUG] Unpin request completed in ${duration}ms`);
+            console.log('[UNPIN DEBUG] Response status:', r.status, r.statusText);
+            console.log('[UNPIN DEBUG] Response Content-Type:', r.headers.get('Content-Type'));
+            
+            if (r.ok) {
+                const responseText = await r.text();
+                console.log('[UNPIN DEBUG] Raw response text:', responseText);
+                
+                let responseData = {};
+                try {
+                    if (responseText && responseText.trim()) {
+                        responseData = JSON.parse(responseText);
+                        console.log('[UNPIN DEBUG] Parsed response data:', responseData);
+                    }
+                } catch (parseError) {
+                    console.error('[UNPIN DEBUG] Failed to parse JSON response:', parseError);
+                }
+                
+                console.log('[UNPIN DEBUG] ✓ Product unpinned successfully');
+                
+                // Reload the page to show updated ranks
+                location.reload();
+            } else {
+                const responseText = await r.text().catch(() => '');
+                console.error('[UNPIN DEBUG] ✗ Unpin request failed');
+                console.error('[UNPIN DEBUG] Response status:', r.status);
+                console.error('[UNPIN DEBUG] Response text:', responseText);
+                
+                // Check if it's a CSRF error (HTML response)
+                if (responseText.includes('<!doctype html>') || r.headers.get('Content-Type')?.includes('text/html')) {
+                    alert('Security error. Please refresh the page and try again.');
+                } else {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        alert(errorData.message || 'Failed to unpin product');
+                    } catch {
+                        alert('Failed to unpin product. Please try again.');
+                    }
+                }
+                btn.disabled = false;
+                btn.textContent = '🗑️ Unpin';
+            }
+        } catch (e) {
+            console.error('[UNPIN DEBUG] ✗ Exception during unpin operation:', e);
+            alert('Error unpinning product: ' + e.message);
+            btn.disabled = false;
+            btn.textContent = '🗑️ Unpin';
+        }
+    }
+</script>
+{% endblock %}
+

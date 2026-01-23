@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Account Deactivation{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:820px;margin:0 auto;">
+    <h1 style="margin-bottom:12px;">Request Account Deactivation</h1>
+    <p style="color:#4b5563;margin-bottom:24px;">
+        Use this form to request that your account be deactivated. Once approved, your account status will be set to
+        inactive. You can cancel a pending request at any time before it is processed.
+    </p>
+
+    {% if account.Status and account.Status.upper() == 'I' %}
+    <div class="alert alert-warning" role="alert" style="border-radius:8px;padding:16px;margin-bottom:20px;">
+        <strong>Account Inactive:</strong> Your account is currently inactive. Contact support if this is unexpected.
+    </div>
+    {% endif %}
+
+    {% set pending = None %}
+    {% for row in requests %}
+        {% if row.request.is_pending %}
+            {% set pending = row.request %}
+        {% endif %}
+    {% endfor %}
+
+    <div style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+        {% if pending %}
+            <h2 style="margin-top:0;">Pending Request</h2>
+            <p style="color:#4b5563;">You submitted a request on {{ pending.CreatedAt.strftime('%Y-%m-%d %H:%M') }}. An administrator or sponsor will review it shortly.</p>
+            <form method="POST" action="{{ url_for('account_deactivation.request_page') }}" style="margin-top:16px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="cancel">
+                <button type="submit" class="btn btn-outline-danger">Cancel Pending Request</button>
+            </form>
+        {% else %}
+            <h2 style="margin-top:0;">Submit a New Request</h2>
+            <form method="POST" action="{{ url_for('account_deactivation.request_page') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="submit">
+
+                <div style="display:flex;flex-direction:column;gap:18px;max-width:640px;">
+                    <div style="display:flex;flex-direction:column;">
+                        <label for="reason_code" class="form-label" style="font-weight:600;">Reason</label>
+                        <select class="form-select" id="reason_code" name="reason_code" required style="max-width:320px;">
+                            <option value="" selected>Choose a reason...</option>
+                            {% for value, label in reason_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;">
+                        <label for="reason_details" class="form-label" style="font-weight:600;">Additional Details (optional)</label>
+                        <textarea class="form-control" id="reason_details" name="reason_details" rows="4" placeholder="Share anything that might help us process this request." style="max-width:100%;"></textarea>
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:center;margin-top:20px;">
+                    <button type="submit" class="btn btn-danger" style="padding:12px 28px;font-weight:600;">Submit Deactivation Request</button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+
+    <h2 style="margin-bottom:12px;">Request History</h2>
+    <div style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:0;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+        {% if requests %}
+        <table class="table" style="margin:0;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 16px;">Submitted</th>
+                    <th style="padding:12px 16px;">Reason</th>
+                    <th style="padding:12px 16px;">Status</th>
+                    <th style="padding:12px 16px;">Processed</th>
+                    <th style="padding:12px 16px;">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in requests %}
+                <tr>
+                    <td style="padding:12px 16px;vertical-align:top;">{{ row.request.CreatedAt.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td style="padding:12px 16px;vertical-align:top;">{{ row.reason }}</td>
+                    <td style="padding:12px 16px;vertical-align:top;">
+                        <span class="badge bg-{% if row.request.Status == 'approved' %}success{% elif row.request.Status == 'denied' %}danger{% elif row.request.Status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                            {{ row.status_label }}
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;vertical-align:top;">
+                        {% if row.request.ProcessedAt %}
+                            {{ row.request.ProcessedAt.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 16px;vertical-align:top;white-space:pre-wrap;min-width:200px;text-align:left;">
+                        {% if row.request.DecisionNotes %}
+                            {{ row.request.DecisionNotes }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding:24px;color:#4b5563;">
+            You have not submitted any deactivation requests yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

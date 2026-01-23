@@ -1,0 +1,389 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Product Reports{% endblock %}
+
+{% block page_title %}Product Reports{% endblock %}
+{% block page_subtitle %}
+Review items flagged by drivers for content, accuracy, or quality issues and decide whether to remove, blacklist, or restore them.
+{% endblock %}
+{% block hero_actions %}
+<a class="btn btn-muted" href="{{ url_for('sponsor_catalog.blacklisted_products_page') }}">Open Blacklist</a>
+<a class="btn" href="{{ url_for('sponsor_catalog.preview_page') }}">Preview Catalog</a>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+<style>
+    .reports-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-card);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 32px var(--shadow-sm);
+    }
+
+    .reports-table thead {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .reports-table th {
+        padding: 14px 18px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .reports-table td {
+        padding: 16px 18px;
+        border-top: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text-secondary);
+    }
+
+    .reports-table tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .product-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: background 0.2s ease;
+        padding: 4px;
+        margin: -4px;
+        border-radius: 6px;
+    }
+
+    .product-link:hover {
+        background: var(--bg-hover);
+    }
+
+    .product-link:hover .product-title {
+        color: var(--accent);
+        text-decoration: underline;
+    }
+
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .product-info img {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--bg-hover);
+        flex-shrink: 0;
+    }
+
+    .product-placeholder {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-hover);
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .product-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .product-id {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+        letter-spacing: 0.04em;
+    }
+
+    .report-reason {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(245, 158, 11, 0.18);
+        color: #b45309;
+    }
+
+    .report-reason.inappropriate {
+        background: rgba(239, 68, 68, 0.18);
+        color: #b91c1c;
+    }
+
+    .report-reason.broken_link {
+        background: rgba(59, 130, 246, 0.18);
+        color: #1d4ed8;
+    }
+
+    .report-description {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-top: 4px;
+        max-width: 300px;
+        word-wrap: break-word;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: rgba(107, 114, 128, 0.18);
+        color: var(--text-secondary);
+    }
+
+    .status-badge.pending {
+        background: rgba(245, 158, 11, 0.18);
+        color: #b45309;
+    }
+
+    .status-badge.approved {
+        background: rgba(16, 185, 129, 0.18);
+        color: #047857;
+    }
+
+    .status-badge.denied {
+        background: rgba(156, 163, 175, 0.2);
+        color: var(--text-muted);
+    }
+
+    .status-badge.restored {
+        background: rgba(59, 130, 246, 0.18);
+        color: #1d4ed8;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .action-buttons button {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .action-buttons button:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent-border);
+        color: var(--accent);
+    }
+
+    .action-buttons button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        background: var(--bg-secondary);
+    }
+
+    .empty-state h3 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+
+    .driver-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .driver-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .driver-email {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .report-date {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+</style>
+
+{% if reports %}
+<table class="reports-table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>Reason</th>
+            <th>Driver</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for report in reports %}
+        <tr data-report-id="{{ report.ID }}">
+            <td>
+                <a href="{{ report.ItemURL or ('https://www.ebay.com/itm/' ~ report.ExternalItemID) }}" target="_blank" rel="noopener" class="product-link">
+                    <div class="product-info">
+                        {% if report.ItemImageURL %}
+                        <img src="{{ report.ItemImageURL }}" alt="{{ report.ItemTitle or 'Product' }}">
+                        {% else %}
+                        <div class="product-placeholder">📦</div>
+                        {% endif %}
+                        <div>
+                            <div class="product-title">{{ report.ItemTitle or 'Unknown Product' }}</div>
+                            <div class="product-id">ID: {{ report.ExternalItemID }}</div>
+                        </div>
+                    </div>
+                </a>
+            </td>
+            <td>
+                <span class="report-reason {{ report.ReportReason }}">{{ report.ReportReason }}</span>
+                {% if report.ReportDescription %}
+                <div class="report-description">{{ report.ReportDescription }}</div>
+                {% endif %}
+            </td>
+            <td>
+                <div class="driver-info">
+                    {% set driver = drivers.get(report.DriverID) %}
+                    {% if driver %}
+                        <div class="driver-name">{{ driver.FirstName }} {{ driver.LastName }}</div>
+                        <div class="driver-email">{{ driver.Email }}</div>
+                    {% else %}
+                        <div class="driver-name">Unknown Driver</div>
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                <div class="report-date">{{ report.CreatedAt.strftime('%b %d, %Y') }}</div>
+                <div class="report-date">{{ report.CreatedAt.strftime('%I:%M %p') }}</div>
+            </td>
+            <td>
+                <span class="status-badge {{ report.Status }}">{{ report.Status.title() }}</span>
+            </td>
+            <td>
+                {% if report.Status == 'pending' %}
+                <div class="action-buttons">
+                    <button class="btn" onclick="handleReport('{{ report.ID }}', 'approve')">
+                        ✓ Approve & Blacklist
+                    </button>
+                    <button class="btn btn-muted" onclick="handleReport('{{ report.ID }}', 'deny')">
+                        ✗ Deny
+                    </button>
+                </div>
+                {% else %}
+                <span class="muted" style="font-size: 0.85rem;">
+                    {% if report.Status == 'approved' %}
+                        Approved & Blacklisted
+                    {% else %}
+                        Denied
+                    {% endif %}
+                </span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <h3>No Product Reports</h3>
+    <p>Drivers haven't reported any products yet.</p>
+</div>
+{% endif %}
+
+</section>
+
+<script>
+async function handleReport(reportId, action) {
+    const row = document.querySelector(`tr[data-report-id="${reportId}"]`);
+    const buttons = row.querySelectorAll('button');
+    
+    // Disable buttons during request
+    buttons.forEach(btn => btn.disabled = true);
+    
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                     document.querySelector('meta[name="csrf-token"]')?.content ||
+                     null;
+    
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    // Add CSRF token to headers if available
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    try {
+        const response = await fetch(`/sponsor-catalog/product-reports/${reportId}/${action}`, {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',  // Include cookies for CSRF
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            // Update UI
+            const statusBadge = row.querySelector('.status-badge');
+            const actionsCell = row.querySelector('.action-buttons').parentElement;
+            
+            if (action === 'approve') {
+                statusBadge.textContent = 'APPROVED';
+                statusBadge.className = 'status-badge approved';
+                actionsCell.innerHTML = '<span class="muted" style="font-size:0.85rem;">Approved & Blacklisted</span>';
+                alert('Report approved. Product has been added to the blacklist.');
+            } else {
+                statusBadge.textContent = 'DENIED';
+                statusBadge.className = 'status-badge denied';
+                actionsCell.innerHTML = '<span class="muted" style="font-size:0.85rem;">Denied</span>';
+                alert('Report denied.');
+            }
+        } else {
+            alert('Error: ' + (data.message || 'Unknown error'));
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    } catch (error) {
+        console.error('Error handling report:', error);
+        alert('Error processing report. Please try again.');
+        buttons.forEach(btn => btn.disabled = false);
+    }
+}
+</script>
+
+{% endblock %}
+

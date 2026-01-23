@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+  .invoice-table .invoice-line-item-row td {
+    background: var(--bg-secondary);
+    font-size: 0.9rem;
+    border-top: none;
+  }
+  .invoice-table .invoice-line-item-title {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .invoice-table .invoice-line-item-meta {
+    font-size: 0.8rem;
+  }
+  .invoice-table .invoice-line-item-row td:first-child {
+    border-left: none;
+  }
+  .invoice-table .invoice-total-row td {
+    border-top: 2px solid var(--border);
+    background: var(--bg-card);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      {% if selected_sponsor %}
+        <h1>{{ selected_sponsor.Company }} Invoice Center</h1>
+        <p>Generate and review invoices for {{ selected_sponsor.Company }}. Currently viewing <strong>{{ selected_month_display }}</strong>.</p>
+      {% else %}
+        <h1>Invoice Center</h1>
+        <p>Select a sponsor and month to generate an invoice covering all orders in the selected billing period.</p>
+      {% endif %}
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics', company_filter=company_filter) }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Analytics</span>
+      </a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics_invoice_log', company_filter=company_filter) }}">
+        <i class="fas fa-list"></i>
+        <span>Invoice Log</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form class="admin-form" method="get" id="invoice-filter-form">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Select Sponsor</label>
+          <select id="company-filter" name="company_filter">
+            <option value="">Choose a sponsor…</option>
+            {% for sponsor_id, company_name in sponsors %}
+              <option value="{{ company_name }}" data-sponsor-id="{{ sponsor_id }}" {% if selected_sponsor and selected_sponsor.Company == company_name %}selected{% endif %}>{{ company_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="invoice-month">Invoice Month</label>
+          <input type="month" id="invoice-month" name="invoice_month" value="{{ selected_month }}" max="{{ current_month }}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+        {% if selected_sponsor %}
+        <a href="{{ url_for('admin.analytics_invoices', invoice_month=selected_month) }}" class="btn btn-secondary">
+          <i class="fas fa-undo"></i>
+          <span>Clear Selection</span>
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-header" style="padding: 0;">
+      <div>
+        <h2>Invoice Overview – {{ selected_month_display }}</h2>
+        <p class="admin-muted">Includes all submitted orders for the selected month. For the current month, the report includes orders up to the current time.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="generate-invoice-btn" {% if not selected_sponsor %}disabled{% endif %}>
+        Generate Invoice
+      </button>
+    </div>
+    <div id="invoice-status" class="admin-muted">
+      {% if selected_sponsor %}
+        Loading invoice for {{ selected_sponsor.Company }}…
+      {% else %}
+        Select a sponsor to view or generate their invoice.
+      {% endif %}
+    </div>
+    <div id="invoice-summary" hidden></div>
+    <div id="invoice-orders" hidden></div>
+    <div id="invoice-export-actions" class="form-actions" hidden></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function csrfToken() {
+  const match = document.cookie.split(';').map(part => part.trim()).find(part => part.startsWith('csrf_token='));
+  if (!match) return '';
+  return decodeURIComponent(match.split('=').slice(1).join('='));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('company-filter');
+  const monthInput = document.getElementById('invoice-month');
+  const generateInvoiceBtn = document.getElementById('generate-invoice-btn');
+  const invoiceStatusEl = document.getElementById('invoice-status');
+  const invoiceSummaryEl = document.getElementById('invoice-summary');
+  const invoiceOrdersEl = document.getElementById('invoice-orders');
+  const invoiceExportActionsEl = document.getElementById('invoice-export-actions');
+
+  function clearInvoiceStatusState() {
+    invoiceStatusEl.classList.remove('text-danger');
+    invoiceStatusEl.hidden = false;
+  }
+
+  function setInvoiceLoading(message) {
+    clearInvoiceStatusState();
+    invoiceStatusEl.textContent = message;
+  }
+
+  function setInvoiceError(message) {
+    invoiceStatusEl.textContent = message;
+    invoiceStatusEl.classList.add('text-danger');
+    invoiceSummaryEl.hidden = true;
+    invoiceOrdersEl.hidden = true;
+  }
+
+  function resetInvoiceCard() {
+    invoiceSummaryEl.innerHTML = '';
+    invoiceOrdersEl.innerHTML = '';
+    invoiceSummaryEl.hidden = true;
+    invoiceOrdersEl.hidden = true;
+    if (invoiceExportActionsEl) {
+      invoiceExportActionsEl.innerHTML = '';
+      invoiceExportActionsEl.hidden = true;
+    }
+  }
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value || 0);
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  }
+
+  function formatShortDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString();
+  }
+
+  function formatMonthLabel(value) {
+    if (!value) return '—';
+    const [year, month] = value.split('-');
+    if (!year || !month) return value;
+    const date = new Date(`${value}-01T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+  }
+
+  function getSelectedSponsorId() {
+    if (!select) return '';
+    const option = select.options[select.selectedIndex];
+    if (!option) return '';
+    return option.dataset.sponsorId || '';
+  }
+
+  function getSelectedMonth() {
+    if (!monthInput || !monthInput.value) {
+      const today = new Date();
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    }
+    return monthInput.value;
+  }
+
+  function renderInvoice(invoicePayload) {
+    if (!invoicePayload || !invoicePayload.invoice) {
+      setInvoiceLoading('No invoice has been generated for the current month yet.');
+      invoiceSummaryEl.hidden = true;
+      invoiceOrdersEl.hidden = true;
+      return;
+    }
+
+    const { invoice, orders, sponsor } = invoicePayload;
+    const totalAmount = formatCurrency(invoice.total_amount);
+    const totalPoints = new Intl.NumberFormat().format(invoice.total_points || 0);
+    const totalOrders = invoice.total_orders || 0;
+    const periodStart = formatShortDate(invoice.period_start);
+    const periodEnd = formatShortDate(invoice.period_end);
+    const generatedAt = formatDate(invoice.generated_at);
+    const status = (invoice.status || 'PENDING').toUpperCase();
+
+    invoiceSummaryEl.innerHTML = `
+      <div class="admin-summary">
+        <div class="admin-summary-item">
+          <span>Total Orders</span>
+          <strong>${totalOrders}</strong>
+        </div>
+        <div class="admin-summary-item">
+          <span>Total Points</span>
+          <strong>${totalPoints}</strong>
+        </div>
+        <div class="admin-summary-item">
+          <span>Total Amount</span>
+          <strong>${totalAmount}</strong>
+        </div>
+        <div class="admin-summary-item">
+          <span>Status</span>
+          <strong>${status}</strong>
+        </div>
+        <div class="admin-summary-item">
+          <span>Period</span>
+          <strong>${periodStart} → ${periodEnd}</strong>
+        </div>
+        <div class="admin-summary-item">
+          <span>Generated</span>
+          <strong>${generatedAt}</strong>
+        </div>
+      </div>
+    `;
+    invoiceSummaryEl.hidden = false;
+
+    if (Array.isArray(orders) && orders.length) {
+      const rows = orders.map(order => {
+        const orderRow = `
+          <tr class="invoice-order-row">
+            <td data-label="Date">${formatShortDate(order.order_created_at)}</td>
+            <td data-label="Order #">${order.order_number || '—'}</td>
+            <td data-label="Driver">${order.driver_name || '—'}<br><span class="admin-muted">${order.driver_email || ''}</span></td>
+            <td data-label="Points">${new Intl.NumberFormat().format(order.total_points || 0)}</td>
+            <td data-label="Amount">${formatCurrency(order.total_amount)}</td>
+            <td data-label="Line Items">${order.line_item_count ?? 0}</td>
+          </tr>
+        `;
+
+        const lineItemRows = (order.line_items || []).map(item => `
+          <tr class="invoice-line-item-row">
+            <td></td>
+            <td colspan="2">
+              <div class="invoice-line-item-title">${item.title || '—'}</div>
+              <div class="invoice-line-item-meta admin-muted">
+                Qty: ${item.quantity} &nbsp;•&nbsp; Unit Points: ${item.unit_points}
+              </div>
+            </td>
+            <td data-label="Line Points">${new Intl.NumberFormat().format(item.line_total_points || 0)}</td>
+            <td data-label="Line Amount">${formatCurrency(item.line_total_amount || 0)}</td>
+            <td></td>
+          </tr>
+        `).join('');
+
+        return orderRow + lineItemRows;
+      }).join('');
+
+      invoiceOrdersEl.innerHTML = `
+        <div class="admin-table-card">
+          <div class="table-wrapper">
+            <table class="table invoice-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Order #</th>
+                  <th>Driver / Item</th>
+                  <th>Points</th>
+                  <th>Amount</th>
+                  <th>Line Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+                <tr class="invoice-total-row">
+                  <td colspan="4" style="text-align:right;font-weight:600;">Total Invoice Amount</td>
+                  <td colspan="2" style="font-weight:600;">${formatCurrency(invoice.total_amount)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      invoiceOrdersEl.hidden = false;
+    } else {
+      invoiceOrdersEl.innerHTML = '<p>No orders were found for the current invoice period.</p>';
+      invoiceOrdersEl.hidden = false;
+    }
+
+    if (invoiceExportActionsEl) {
+      if (invoice.id) {
+        const pdfUrl = {{ url_for('admin.analytics_invoice_pdf', invoice_id='__ID__') | tojson }};
+        const csvUrl = {{ url_for('admin.analytics_invoice_csv', invoice_id='__ID__') | tojson }};
+        invoiceExportActionsEl.innerHTML = `
+          <a class="btn btn-secondary" href="${pdfUrl.replace('__ID__', invoice.id)}" target="_blank">Export PDF</a>
+          <a class="btn btn-secondary" href="${csvUrl.replace('__ID__', invoice.id)}" target="_blank">Export CSV</a>
+        `;
+        invoiceExportActionsEl.hidden = false;
+      } else {
+        invoiceExportActionsEl.innerHTML = '';
+        invoiceExportActionsEl.hidden = true;
+      }
+    }
+
+    const monthLabel = formatMonthLabel(invoice.invoice_month);
+    if (invoice.finalized) {
+      invoiceStatusEl.textContent = sponsor && sponsor.company
+        ? `Invoice generated for ${sponsor.company} (${monthLabel}) – Status: ${status}.`
+        : `Invoice generated (${monthLabel}) – Status: ${status}.`;
+    } else {
+      invoiceStatusEl.textContent = sponsor && sponsor.company
+        ? `Draft totals for ${sponsor.company} (${monthLabel}). Status: ${status}. Click Generate to finalize this invoice.`
+        : `Draft totals for ${monthLabel}. Status: ${status}. Click Generate to finalize this invoice.`;
+    }
+    clearInvoiceStatusState();
+  }
+
+  async function fetchLatestInvoice() {
+    const sponsorId = getSelectedSponsorId();
+    if (!sponsorId) {
+      resetInvoiceCard();
+      invoiceStatusEl.textContent = 'Select a sponsor to view or generate their invoice.';
+      invoiceStatusEl.classList.remove('text-danger');
+      if (generateInvoiceBtn) generateInvoiceBtn.disabled = true;
+      return;
+    }
+
+    if (generateInvoiceBtn) generateInvoiceBtn.disabled = false;
+    setInvoiceLoading('Loading invoice details…');
+    resetInvoiceCard();
+
+    try {
+      const params = new URLSearchParams({ sponsor_id: sponsorId, month: getSelectedMonth() });
+      const response = await fetch(`/admin/analytics/invoices/latest?${params.toString()}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await response.json();
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || 'Failed to load invoice.');
+      }
+      renderInvoice(data);
+    } catch (error) {
+      console.error('Invoice load failed', error);
+      setInvoiceError(error.message || 'Unable to load invoice.');
+    } finally {
+      if (generateInvoiceBtn) generateInvoiceBtn.disabled = !getSelectedSponsorId();
+    }
+  }
+
+  async function generateInvoice() {
+    const sponsorId = getSelectedSponsorId();
+    if (!sponsorId) return;
+
+    generateInvoiceBtn.disabled = true;
+    setInvoiceLoading('Generating invoice…');
+    resetInvoiceCard();
+
+    try {
+      const response = await fetch('/admin/analytics/invoices/generate', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-CSRFToken': csrfToken(),
+        },
+        body: JSON.stringify({ sponsor_id: sponsorId, month: getSelectedMonth() }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || 'Failed to generate invoice.');
+      }
+      renderInvoice(data);
+      invoiceStatusEl.textContent += ' The invoice was regenerated successfully.';
+    } catch (error) {
+      console.error('Invoice generation failed', error);
+      setInvoiceError(error.message || 'Unable to generate invoice.');
+    } finally {
+      generateInvoiceBtn.disabled = !getSelectedSponsorId();
+    }
+  }
+
+  if (generateInvoiceBtn) {
+    generateInvoiceBtn.addEventListener('click', generateInvoice);
+  }
+
+  if (select) {
+    select.addEventListener('change', function() {
+      document.getElementById('invoice-filter-form').requestSubmit();
+    });
+  }
+
+  if (monthInput) {
+    monthInput.addEventListener('change', function() {
+      document.getElementById('invoice-filter-form').requestSubmit();
+    });
+  }
+
+  fetchLatestInvoice();
+});
+</script>
+{% endblock %}
+

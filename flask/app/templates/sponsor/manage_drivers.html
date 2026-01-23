@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% block title %}Driver Management{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-users-cog" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Driver Management</h1>
+        <p>
+          Keep your fleet moving by reviewing applications, updating statuses, and stepping into a driver's view when help is needed.
+        </p>
+      </div>
+      <div class="settings-header-actions">
+        <a href="{{ url_for('sponsor.sponsor_account') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to Account
+        </a>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="settings-card">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="settings-card">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-bolt" aria-hidden="true"></i>
+          <h2>Driver Operations</h2>
+        </div>
+        <p class="settings-section-description">
+          Jump into the high-touch workflows that keep your drivers supported.
+        </p>
+        <div class="settings-grid two-column">
+          <a href="{{ url_for('sponsor_apps.index') }}" class="settings-option settings-option--link">
+            <span class="settings-option-icon">
+              <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+            </span>
+            <div class="settings-option-content">
+              <span class="settings-option-title">Driver Applications</span>
+              <span class="settings-option-description">
+                Review pending applications, approve new drivers, or request more information.
+              </span>
+            </div>
+            <span class="settings-option-cta">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </a>
+
+          <a href="{{ url_for('account_deactivation.sponsor_list') }}" class="settings-option settings-option--link">
+            <span class="settings-option-icon">
+              <i class="fas fa-user-shield" aria-hidden="true"></i>
+            </span>
+            <div class="settings-option-content">
+              <span class="settings-option-title">Deactivation Requests</span>
+              <span class="settings-option-description">
+                Track and resolve driver deactivation requests waiting on a sponsor decision.
+              </span>
+            </div>
+            <span class="settings-option-cta">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </a>
+
+          <a href="{{ url_for('sponsor.bulk_import_accounts') }}" class="settings-option settings-option--link">
+            <span class="settings-option-icon">
+              <i class="fas fa-file-import" aria-hidden="true"></i>
+            </span>
+            <div class="settings-option-content">
+              <span class="settings-option-title">Bulk Import Accounts</span>
+              <span class="settings-option-description">
+                Upload a CSV to create driver and sponsor user accounts for your company in one batch.
+              </span>
+            </div>
+            <span class="settings-option-cta">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </a>
+
+          <a href="{{ url_for('sponsor.manage_disputes') }}" class="settings-option settings-option--link">
+            <span class="settings-option-icon">
+              <i class="fas fa-gavel" aria-hidden="true"></i>
+            </span>
+            <div class="settings-option-content">
+              <span class="settings-option-title">Point Disputes</span>
+              <span class="settings-option-description">
+                Review and resolve disputes submitted by drivers regarding point deductions.
+              </span>
+            </div>
+            <span class="settings-option-cta">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-user-check" aria-hidden="true"></i>
+          <h2>Driver Directory</h2>
+        </div>
+        <p class="settings-section-description">
+          Search for drivers, update account status, and impersonate accounts to troubleshoot issues.
+        </p>
+
+        <form method="GET" class="row g-3 align-items-end manage-drivers-filters" id="driverFiltersForm">
+          <div class="col-md-4">
+            <label for="driver-search" class="form-label">Search</label>
+            <input
+              id="driver-search"
+              type="text"
+              class="form-control"
+              name="q"
+              placeholder="Search by name or email"
+              value="{{ q }}" />
+          </div>
+          <div class="col-md-3">
+            <label for="driver-status" class="form-label">Status</label>
+            <select id="driver-status" class="form-select" name="status">
+              <option value="">All</option>
+              <option value="A" {% if status_filter == 'A' %}selected{% endif %}>Active</option>
+              <option value="I" {% if status_filter == 'I' %}selected{% endif %}>Inactive</option>
+              <option value="H" {% if status_filter == 'H' %}selected{% endif %}>Archived</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              Apply
+            </button>
+          </div>
+          <div class="col-md-3">
+            <a href="{{ url_for('sponsor.export_drivers_csv', q=q, status=status_filter, points_mode=points_mode, points_min=points_min, points_max=points_max) }}" class="btn btn-success w-100">
+              <i class="fas fa-file-csv" aria-hidden="true"></i>
+              Export CSV
+            </a>
+          </div>
+          <div class="col-12">
+            <div class="points-filter-card" data-max="{{ points_ceiling }}" data-mode="{{ points_mode }}">
+              <div class="points-filter-header">
+                <div>
+                  <label class="form-label mb-1">Points Balance Filter</label>
+                  <p class="points-filter-hint mb-0">Filter drivers by their point balance.</p>
+                </div>
+                <select class="form-select form-select-sm w-auto points-mode-select" name="points_mode" id="pointsModeSelect">
+                  <option value="any" {% if points_mode == 'any' %}selected{% endif %}>Any balance</option>
+                  <option value="at_least" {% if points_mode == 'at_least' %}selected{% endif %}>At least</option>
+                  <option value="at_most" {% if points_mode == 'at_most' %}selected{% endif %}>At most</option>
+                  <option value="between" {% if points_mode == 'between' %}selected{% endif %}>Within range</option>
+                </select>
+              </div>
+              <div class="points-input-container" id="pointsInputContainer">
+                <div class="points-input-wrapper" id="pointsAtLeastWrapper" style="display: {% if points_mode == 'at_least' %}block{% else %}none{% endif %};">
+                  <label for="pointsAtLeastInput" class="form-label">Minimum Points</label>
+                  <input type="number" min="0" max="{{ points_ceiling }}" step="1" value="{{ points_min if points_min is not none else '' }}" id="pointsAtLeastInput" {% if points_mode == 'at_least' %}name="points_min"{% endif %} class="form-control" placeholder="Enter minimum points">
+                  <small class="form-text text-muted">Show drivers with at least this many points</small>
+                </div>
+                <div class="points-input-wrapper" id="pointsAtMostWrapper" style="display: {% if points_mode == 'at_most' %}block{% else %}none{% endif %};">
+                  <label for="pointsAtMostInput" class="form-label">Maximum Points</label>
+                  <input type="number" min="0" max="{{ points_ceiling }}" step="1" value="{{ points_max if points_max is not none else '' }}" id="pointsAtMostInput" {% if points_mode == 'at_most' %}name="points_max"{% endif %} class="form-control" placeholder="Enter maximum points">
+                  <small class="form-text text-muted">Show drivers with at most this many points</small>
+                </div>
+                <div class="points-input-wrapper points-range-wrapper" id="pointsBetweenWrapper" style="display: {% if points_mode == 'between' %}block{% else %}none{% endif %};">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="pointsMinInput" class="form-label">Minimum Points</label>
+                      <input type="number" min="0" max="{{ points_ceiling }}" step="1" value="{{ points_min if points_min is not none else '' }}" id="pointsMinInput" {% if points_mode == 'between' %}name="points_min"{% endif %} class="form-control" placeholder="0">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="pointsMaxInput" class="form-label">Maximum Points</label>
+                      <input type="number" min="0" max="{{ points_ceiling }}" step="1" value="{{ points_max if points_max is not none else '' }}" id="pointsMaxInput" {% if points_mode == 'between' %}name="points_max"{% endif %} class="form-control" placeholder="{{ points_ceiling }}">
+                    </div>
+                  </div>
+                  <small class="form-text text-muted">Show drivers with points between these values</small>
+                </div>
+                <div class="points-input-wrapper" id="pointsAnyWrapper" style="display: {% if points_mode == 'any' or not points_mode %}block{% else %}none{% endif %};">
+                  <p class="text-muted mb-0">No points filter applied. All drivers will be shown.</p>
+                </div>
+              </div>
+              <div class="points-filter-actions">
+                <button type="button" class="btn btn-link btn-sm points-reset" id="pointsClearFilter">
+                  <i class="fas fa-times"></i> Clear Filter
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div class="manage-drivers-stats">
+          <div class="stat-pill">
+            <div class="stat-pill-icon total">
+              <i class="fas fa-users" aria-hidden="true"></i>
+            </div>
+            <div class="stat-pill-content">
+              <span class="stat-pill-label">Total Drivers</span>
+              <span class="stat-pill-value">{{ total }}</span>
+            </div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-icon active">
+              <i class="fas fa-user-check" aria-hidden="true"></i>
+            </div>
+            <div class="stat-pill-content">
+              <span class="stat-pill-label">Active</span>
+              <span class="stat-pill-value">{{ count_a }}</span>
+            </div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-icon inactive">
+              <i class="fas fa-user-minus" aria-hidden="true"></i>
+            </div>
+            <div class="stat-pill-content">
+              <span class="stat-pill-label">Inactive</span>
+              <span class="stat-pill-value">{{ count_i }}</span>
+            </div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-icon archived">
+              <i class="fas fa-archive" aria-hidden="true"></i>
+            </div>
+            <div class="stat-pill-content">
+              <span class="stat-pill-label">Archived</span>
+              <span class="stat-pill-value">{{ count_h }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-table-wrapper">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Email</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="text-center">Points</th>
+                  <th scope="col" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for drv, acct, link in drivers %}
+                {% set points_balance = link.PointsBalance or 0 %}
+                <tr>
+                  <td>{{ acct.Email }}</td>
+                  <td>{{ acct.FirstName }} {{ acct.LastName }}</td>
+                  <td>
+                    <form method="POST" action="{{ url_for('sponsor.change_driver_status', driver_id=drv.DriverID) }}" class="d-flex gap-2">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <select name="status" class="form-select form-select-sm flex-grow-1">
+                        <option value="A" {% if acct.Status and acct.Status.upper() == 'A' %}selected{% endif %}>Active</option>
+                        <option value="I" {% if acct.Status and acct.Status.upper() == 'I' %}selected{% endif %}>Inactive</option>
+                        <option value="H" {% if acct.Status and acct.Status.upper() == 'H' %}selected{% endif %}>Archived</option>
+                      </select>
+                      <button class="btn btn-sm btn-primary" type="submit">
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        Update
+                      </button>
+                    </form>
+                  </td>
+                  <td class="text-center">
+                    <div class="driver-points-chip" data-level="
+                      {% if points_balance >= 25000 %}platinum{% elif points_balance >= 10000 %}gold{% elif points_balance >= 1000 %}silver{% else %}bronze{% endif %}">
+                      <span class="driver-points-value">{{ "{:,}".format(points_balance) }}</span>
+                      <span class="driver-points-unit">pts</span>
+                    </div>
+                  </td>
+                  <td class="text-end">
+                    <div class="d-flex gap-2 justify-content-end">
+                      <a href="{{ url_for('sponsor.export_driver_profile_pdf', driver_id=drv.DriverID) }}" class="btn btn-sm btn-outline-primary" title="Export driver profile as PDF">
+                        <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                        Export PDF
+                      </a>
+                      <button class="btn btn-sm btn-outline-warning" onclick="confirmImpersonate(event, '{{ acct.AccountID }}', '{{ acct.Email }}', '{{ acct.FirstName }} {{ acct.LastName }}')">
+                        <i class="fas fa-user-secret" aria-hidden="true"></i>
+                        Impersonate
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-5">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    No drivers matched your filters.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+// Impersonation confirmation and execution
+function confirmImpersonate(event, accountId, email, name) {
+  const message = `Are you sure you want to impersonate ${name || email}?\n\nYou will be logged in as this driver and have access to all their capabilities. Click OK to continue or Cancel to abort.`;
+  if (confirm(message)) {
+    // Show loading state
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Impersonating...';
+    
+    // Get CSRF token from meta tag (most reliable)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    
+    if (!csrfToken) {
+      alert('CSRF token not found. Please refresh the page and try again.');
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      return;
+    }
+    
+    // Use FormData to ensure CSRF token is properly handled (Flask-WTF standard approach)
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+    
+    // Make the request to impersonate
+    // Note: Don't set Content-Type header when using FormData - browser sets it automatically with boundary
+    fetch(`{{ url_for('sponsor.impersonate_driver', account_id='__ID__') }}`.replace('__ID__', accountId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken  // Also send in header for AJAX requests (Flask-WTF supports both form data and header)
+      },
+      credentials: 'same-origin',
+      body: formData
+    })
+    .then(async response => {
+      // Try to parse JSON response
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Failed to parse server response. Status: ' + response.status);
+      }
+      
+      if (response.ok) {
+        if (data.success) {
+          // Redirect to dashboard as the impersonated driver
+          const redirectUrl = data.redirect_url || '{{ url_for("dashboard") }}';
+          console.log('Impersonation successful, redirecting to:', redirectUrl);
+          window.location.href = redirectUrl;
+          return;
+        } else {
+          throw new Error(data.error || 'Impersonation failed: Unknown error');
+        }
+      }
+      
+      // Handle error responses
+      if (response.status === 400) {
+        throw new Error(data.error || 'Bad request. Please refresh the page and try again.');
+      } else if (response.status === 403) {
+        throw new Error(data.error || 'Access denied. You must be a sponsor to impersonate drivers.');
+      } else if (response.status === 404) {
+        throw new Error(data.error || 'Driver not found.');
+      } else if (response.status === 500) {
+        throw new Error(data.error || 'Server error. Please try again later.');
+      } else {
+        throw new Error(data.error || 'Impersonation failed with status: ' + response.status);
+      }
+    })
+    .catch(error => {
+      console.error('Impersonation error:', error);
+      alert('Impersonation failed: ' + error.message);
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const pointsCard = document.querySelector('.points-filter-card');
+  if (!pointsCard) return;
+
+  const modeSelect = document.getElementById('pointsModeSelect');
+  const clearBtn = document.getElementById('pointsClearFilter');
+  const atLeastWrapper = document.getElementById('pointsAtLeastWrapper');
+  const atMostWrapper = document.getElementById('pointsAtMostWrapper');
+  const betweenWrapper = document.getElementById('pointsBetweenWrapper');
+  const anyWrapper = document.getElementById('pointsAnyWrapper');
+  const atLeastInput = document.getElementById('pointsAtLeastInput');
+  const atMostInput = document.getElementById('pointsAtMostInput');
+  const minInput = document.getElementById('pointsMinInput');
+  const maxInput = document.getElementById('pointsMaxInput');
+
+  if (!modeSelect) return;
+
+  function updateModeDisplay() {
+    const mode = modeSelect.value;
+    
+    // Hide all wrappers and disable/remove name attributes from inactive inputs
+    if (atLeastWrapper) {
+      atLeastWrapper.style.display = 'none';
+      if (atLeastInput) {
+        atLeastInput.removeAttribute('name');
+        atLeastInput.disabled = true;
+      }
+    }
+    if (atMostWrapper) {
+      atMostWrapper.style.display = 'none';
+      if (atMostInput) {
+        atMostInput.removeAttribute('name');
+        atMostInput.disabled = true;
+      }
+    }
+    if (betweenWrapper) {
+      betweenWrapper.style.display = 'none';
+      if (minInput) {
+        minInput.removeAttribute('name');
+        minInput.disabled = true;
+      }
+      if (maxInput) {
+        maxInput.removeAttribute('name');
+        maxInput.disabled = true;
+      }
+    }
+    if (anyWrapper) {
+      anyWrapper.style.display = 'none';
+    }
+    
+    // Show the appropriate wrapper and enable/set name attributes
+    if (mode === 'at_least' && atLeastWrapper) {
+      atLeastWrapper.style.display = 'block';
+      if (atLeastInput) {
+        atLeastInput.setAttribute('name', 'points_min');
+        atLeastInput.disabled = false;
+      }
+    } else if (mode === 'at_most' && atMostWrapper) {
+      atMostWrapper.style.display = 'block';
+      if (atMostInput) {
+        atMostInput.setAttribute('name', 'points_max');
+        atMostInput.disabled = false;
+      }
+    } else if (mode === 'between' && betweenWrapper) {
+      betweenWrapper.style.display = 'block';
+      if (minInput) {
+        minInput.setAttribute('name', 'points_min');
+        minInput.disabled = false;
+      }
+      if (maxInput) {
+        maxInput.setAttribute('name', 'points_max');
+        maxInput.disabled = false;
+      }
+    } else if (anyWrapper) {
+      anyWrapper.style.display = 'block';
+    }
+    
+    // Update card active state
+    pointsCard.classList.toggle('points-active', mode !== 'any');
+    
+    // Only clear inputs when explicitly switching to 'any' mode
+    if (mode === 'any') {
+      if (atLeastInput) atLeastInput.value = '';
+      if (atMostInput) atMostInput.value = '';
+      if (minInput) minInput.value = '';
+      if (maxInput) maxInput.value = '';
+    }
+  }
+
+  // Handle mode change
+  modeSelect.addEventListener('change', updateModeDisplay);
+
+  // Handle clear button
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      modeSelect.value = 'any';
+      if (atLeastInput) atLeastInput.value = '';
+      if (atMostInput) atMostInput.value = '';
+      if (minInput) minInput.value = '';
+      if (maxInput) maxInput.value = '';
+      updateModeDisplay();
+    });
+  }
+
+  // Validate range inputs
+  if (minInput && maxInput) {
+    function validateRange() {
+      const minVal = parseInt(minInput.value, 10);
+      const maxVal = parseInt(maxInput.value, 10);
+      
+      if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
+        minInput.setCustomValidity('Minimum must be less than or equal to maximum');
+      } else {
+        minInput.setCustomValidity('');
+        maxInput.setCustomValidity('');
+      }
+    }
+    
+    minInput.addEventListener('input', validateRange);
+    maxInput.addEventListener('input', validateRange);
+  }
+
+  // Set initial state based on current mode (before calling updateModeDisplay)
+  const initialMode = modeSelect.value;
+  if (initialMode === 'between') {
+    // Ensure between inputs have their names set initially
+    if (minInput) minInput.setAttribute('name', 'points_min');
+    if (maxInput) maxInput.setAttribute('name', 'points_max');
+  } else if (initialMode === 'at_least') {
+    if (atLeastInput) atLeastInput.setAttribute('name', 'points_min');
+  } else if (initialMode === 'at_most') {
+    if (atMostInput) atMostInput.setAttribute('name', 'points_max');
+  }
+  
+  // Initial display
+  updateModeDisplay();
+});
+</script>
+{% endblock %}
+
+

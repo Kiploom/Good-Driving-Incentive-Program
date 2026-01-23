@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Driver Reports{% endblock %}
+
+{% block content %}
+<style>
+  .analytics-shell {
+    max-width: 1100px;
+    margin: 32px auto 48px;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .analytics-header {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: var(--text-inverse);
+    padding: 32px;
+    border-radius: 20px;
+    box-shadow: 0 16px 40px var(--shadow);
+  }
+
+  .analytics-header h1 {
+    margin: 0 0 8px;
+    font-size: 1.75rem;
+    color: inherit;
+  }
+
+  .analytics-header p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .analytics-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .analytics-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 6px 18px var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  [data-theme="dark"] .analytics-card {
+    border-color: var(--accent-border);
+    box-shadow: 0 14px 34px var(--shadow-md);
+    background: var(--bg-secondary);
+    backdrop-filter: blur(6px);
+  }
+
+  .analytics-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+  }
+
+  .analytics-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .metric-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  [data-theme="dark"] .metric-card {
+    border-color: var(--accent-border);
+  }
+
+  .metric-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .metric-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 10px var(--shadow-sm);
+  }
+
+  [data-theme="dark"] .filters {
+    border-color: var(--accent-border);
+  }
+
+  .filter-field {
+    flex: 1 1 200px;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filters label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .status-active {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .status-inactive {
+    color: var(--error);
+    font-weight: 600;
+  }
+
+  .status-pending {
+    color: var(--warning);
+    font-weight: 600;
+  }
+
+  .points-positive {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .points-negative {
+    color: var(--error);
+    font-weight: 600;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table-scroll table {
+    min-width: 100%;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 16px;
+  }
+
+  .engagement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .engagement-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  [data-theme="dark"] .engagement-card {
+    border-color: var(--accent-border);
+  }
+
+  .engagement-card h4 {
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .engagement-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .engagement-meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .engagement-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+  }
+
+  .engagement-stat {
+    text-align: center;
+    flex: 1 1 100px;
+  }
+
+  .engagement-stat-value {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .engagement-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .analytics-shell {
+      padding: 0 18px 24px;
+    }
+
+    .analytics-header {
+      padding: 24px;
+    }
+
+    .filters {
+      padding: 16px;
+    }
+  }
+</style>
+
+<div class="analytics-shell">
+  <div class="analytics-header">
+    <h1>{{ sponsor.Company }} Driver Reports</h1>
+    <p>Comprehensive driver analytics and engagement tracking with advanced filtering options.</p>
+  </div>
+
+  <div class="analytics-toolbar">
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics') }}">← Back to Analytics</a>
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_driver_reports_pdf', date_from=date_from, date_to=date_to, driver_status=driver_status, driver_id=driver_id) }}" style="background: var(--accent); color: white;">
+      <i class="fas fa-file-pdf"></i>
+      Export PDF
+    </a>
+    <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_driver_reports_csv', date_from=date_from, date_to=date_to, driver_status=driver_status, driver_id=driver_id) }}" style="background: var(--accent); color: white;">
+      <i class="fas fa-file-csv"></i>
+      Export CSV
+    </a>
+  </div>
+
+  <div class="analytics-card">
+    <h3>📊 Monthly Points Summary</h3>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value">{{ monthly_total }}</div>
+        <div class="metric-label">Points Issued This Month</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${{ "%.2f"|format(monthly_total * sponsor.PointToDollarRate) }}</div>
+        <div class="metric-label">Dollar Value This Month</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">{{ all_drivers|length }}</div>
+        <div class="metric-label">Total Drivers</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">
+          {% set active_drivers = all_drivers|selectattr('0.Status', 'equalto', 'active')|list|length %}
+          {{ active_drivers }}
+        </div>
+        <div class="metric-label">Active Drivers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>🔍 Report Filters</h3>
+    <form class="filters" method="get">
+      <div class="filter-field">
+        <label for="date_from">From Date</label>
+        <input type="date" name="date_from" id="date_from" value="{{ date_from or '' }}" onchange="this.form.submit()">
+      </div>
+
+      <div class="filter-field">
+        <label for="date_to">To Date</label>
+        <input type="date" name="date_to" id="date_to" value="{{ date_to or '' }}" onchange="this.form.submit()">
+      </div>
+
+      <div class="filter-field">
+        <label for="driver_status">Driver Status</label>
+        <select name="driver_status" id="driver_status" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="active" {% if driver_status == 'active' %}selected{% endif %}>Active Only</option>
+          <option value="inactive" {% if driver_status == 'inactive' %}selected{% endif %}>Inactive Only</option>
+          <option value="pending" {% if driver_status == 'pending' %}selected{% endif %}>Pending Only</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="driver_id">Specific Driver</label>
+        <select name="driver_id" id="driver_id" onchange="this.form.submit()">
+          <option value="">All Drivers</option>
+          {% for driver, account in all_drivers %}
+            <option value="{{ driver.DriverID }}" {% if driver_id == driver.DriverID|string %}selected{% endif %}>
+              {{ account.FirstName }} {{ account.LastName }} ({{ driver.Status }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn" type="submit">Apply Filters</button>
+        <a href="{{ url_for('sponsor.sponsor_analytics_driver_reports') }}" class="btn btn-secondary">Reset Filters</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="analytics-card">
+    <h3>👥 Driver Engagement Summary</h3>
+    <p>Total points spent across all orders for each driver (filtered by date range if specified):</p>
+    <div class="engagement-grid">
+      {% for driver_id, engagement in driver_engagement.items() %}
+      <div class="engagement-card">
+        <h4>{{ engagement.account.FirstName }} {{ engagement.account.LastName }}</h4>
+        <p class="engagement-meta">
+          {{ engagement.account.Email }} •
+          <span class="status-{{ engagement.driver.Status.lower() }}">{{ engagement.driver.Status }}</span>
+        </p>
+        <div class="engagement-stats">
+          <div class="engagement-stat">
+            <div class="engagement-stat-value">
+              <span class="points-{{ 'positive' if engagement.total_points > 0 else 'negative' if engagement.total_points < 0 else '' }}">
+                {{ '+' if engagement.total_points > 0 else '' }}{{ engagement.total_points }}
+              </span>
+            </div>
+            <div class="engagement-stat-label">Total Points</div>
+          </div>
+          <div class="engagement-stat">
+            <div class="engagement-stat-value">${{ "%.2f"|format(engagement.total_points * sponsor.PointToDollarRate) }}</div>
+            <div class="engagement-stat-label">Dollar Value</div>
+          </div>
+          <div class="engagement-stat">
+            <div class="engagement-stat-value">{{ engagement.transaction_count }}</div>
+            <div class="engagement-stat-label">Transactions</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>📋 Detailed Point Changes Report</h3>
+    <p>Complete breakdown of all point changes with sponsor information and reasons:</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver Name</th>
+            <th>Driver Email</th>
+            <th>Driver Status</th>
+            <th>Points Change</th>
+            <th>Reason</th>
+            <th>Changed By</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for driver, account, point_change in rows %}
+          <tr>
+            <td>{{ account.FirstName }} {{ account.LastName }}</td>
+            <td>{{ account.Email }}</td>
+            <td>
+              <span class="status-{{ driver.Status.lower() }}">{{ driver.Status }}</span>
+            </td>
+            <td>
+              {% if point_change %}
+                <span class="points-{{ 'positive' if point_change.DeltaPoints > 0 else 'negative' }}">
+                  {{ '+' if point_change.DeltaPoints > 0 else '' }}{{ point_change.DeltaPoints }}
+                </span>
+              {% else %}
+                N/A
+              {% endif %}
+            </td>
+            <td>{{ point_change.Reason if point_change else 'N/A' }}</td>
+            <td>{{ sponsor.Company }}</td>
+            <td>{{ point_change.CreatedAt.strftime('%Y-%m-%d %H:%M') if point_change else 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if not rows %}
+  <div class="analytics-card">
+    <p class="empty-state">
+      No point change data found for the selected filters.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

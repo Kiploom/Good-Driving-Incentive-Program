@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<style>
+  .analytics-shell {
+    max-width: 1100px;
+    margin: 32px auto 48px;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .analytics-header {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: var(--text-inverse);
+    padding: 32px;
+    border-radius: 20px;
+    box-shadow: 0 16px 40px var(--shadow);
+  }
+
+  .analytics-header h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    color: inherit;
+  }
+
+  .analytics-header p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .analytics-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .analytics-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 6px 18px var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  [data-theme="dark"] .analytics-card {
+    border-color: var(--accent-border);
+    box-shadow: 0 14px 34px var(--shadow-md);
+    background: var(--bg-secondary);
+    backdrop-filter: blur(6px);
+  }
+
+  .analytics-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+  }
+
+  .analytics-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .analytics-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--success);
+    color: var(--text-inverse);
+    margin-left: 8px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .summary-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  [data-theme="dark"] .summary-card {
+    border-color: var(--accent-border);
+  }
+
+  .summary-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .summary-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .analytics-shell {
+      padding: 0 18px 24px;
+    }
+
+    .analytics-header {
+      padding: 24px;
+    }
+  }
+</style>
+
+<div class="analytics-shell">
+  <div class="analytics-header">
+    <h1>{{ sponsor.Company }} Analytics</h1>
+    <p>Analytics and reporting tools for your drivers and company performance.</p>
+  </div>
+
+  <div class="analytics-toolbar">
+    <a class="btn" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="analytics-card">
+      <h3>Driver Reports <span class="analytics-pill">Live</span></h3>
+      <p>Comprehensive driver analytics with monthly summaries, engagement tracking, and detailed point change reports.</p>
+      <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_driver_reports') }}">Open Driver Reports</a>
+    </div>
+
+    <div class="analytics-card">
+      <h3>Driver Performance Analytics <span class="analytics-pill">Live</span></h3>
+      <p>Analyze your drivers' performance metrics, point trends, and productivity. Track individual driver progress and identify top performers.</p>
+      <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_driver_performance') }}">Open Driver Performance</a>
+    </div>
+
+    <div class="analytics-card">
+      <h3>Financial Analytics <span class="analytics-pill">Live</span></h3>
+      <p>Track your point spending, costs, and ROI. Monitor financial performance and optimize your point allocation strategy.</p>
+      <a class="btn" href="{{ url_for('sponsor.sponsor_analytics_financial') }}">Open Financial Analytics</a>
+    </div>
+
+    <div class="analytics-card">
+      <h3>Sales By Report <span class="analytics-pill">Live</span></h3>
+      <p>Generate detailed sales reports by driver, order status, and date range. Export reports as PDF or CSV for analysis.</p>
+      <a class="btn" href="{{ url_for('sponsor.sponsor_sales_by') }}">Open Sales By Report</a>
+    </div>
+
+    <div class="analytics-card">
+      <h3>Invoice Center <span class="analytics-pill">Live</span></h3>
+      <p>View and manage invoices generated for your company. Review invoice details, export as PDF or CSV, and track payment status.</p>
+      <a class="btn" href="{{ url_for('sponsor.sponsor_invoices') }}">View Invoices</a>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>📊 This Month's Summary</h3>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-value">{{ monthly_total }}</div>
+        <div class="summary-label">Points Issued This Month</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">${{ "%.2f"|format(monthly_total * sponsor.PointToDollarRate) }}</div>
+        <div class="summary-label">Dollar Value This Month</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ driver_count }}</div>
+        <div class="summary-label">Total Drivers</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ active_driver_count }}</div>
+        <div class="summary-label">Active Drivers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-card">
+    <h3>Quick Company Overview</h3>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-value">{{ sponsor.PointToDollarRate }}</div>
+        <div class="summary-label">Point Rate ($)</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ sponsor.MinPointsPerTxn }}</div>
+        <div class="summary-label">Min Points/Txn</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ sponsor.MaxPointsPerTxn }}</div>
+        <div class="summary-label">Max Points/Txn</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{% if sponsor.IsAdmin %}Yes{% else %}No{% endif %}</div>
+        <div class="summary-label">Admin Status</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

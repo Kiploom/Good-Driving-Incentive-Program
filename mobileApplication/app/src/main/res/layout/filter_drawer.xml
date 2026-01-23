@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Background Overlay -->
+    <View
+        android:id="@+id/overlay_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Filter Drawer -->
+    <LinearLayout
+        android:id="@+id/filter_content"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="?attr/colorSurface"
+        android:elevation="8dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="?attr/colorPrimary">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Filter &amp; Sort"
+            android:textSize="18sp"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/close_filter_drawer"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Close Filter"
+            android:padding="4dp" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- View Recommended Button -->
+            <Button
+                android:id="@+id/view_recommended"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="View Recommended Items"
+                android:textSize="14sp"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp"
+                android:backgroundTint="?attr/colorPrimaryVariant" />
+
+            <!-- Sort Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sort By"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp" />
+
+            <RadioGroup
+                android:id="@+id/sort_radio_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
+
+                <RadioButton
+                    android:id="@+id/sort_best_match"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Best Match"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="true"
+                    android:layout_marginBottom="4dp" />
+
+                <RadioButton
+                    android:id="@+id/sort_points_asc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Points: Low → High"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="4dp" />
+
+                <RadioButton
+                    android:id="@+id/sort_points_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Points: High → Low"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="4dp" />
+
+                <RadioButton
+                    android:id="@+id/sort_stock_asc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Stock: Low → High"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="4dp" />
+
+                <RadioButton
+                    android:id="@+id/sort_stock_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Stock: High → Low"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="4dp" />
+
+                <RadioButton
+                    android:id="@+id/sort_newest"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Newest"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="4dp" />
+
+            </RadioGroup>
+
+            <!-- Point Range Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Point Range"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <EditText
+                    android:id="@+id/min_points"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:hint="Min Points"
+                    android:inputType="numberDecimal"
+                    android:padding="12dp"
+                    android:background="@drawable/edittext_background" />
+
+                <EditText
+                    android:id="@+id/max_points"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:hint="Max Points"
+                    android:inputType="numberDecimal"
+                    android:padding="12dp"
+                    android:background="@drawable/edittext_background" />
+
+            </LinearLayout>
+
+            <!-- Affordable Filter Button -->
+            <Button
+                android:id="@+id/show_affordable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Only Affordable Items"
+                android:textSize="14sp"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp"
+                android:backgroundTint="?attr/colorPrimaryVariant" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="0"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Categories Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Categories"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/categories_help_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select a category to browse products. Only categories selected by your sponsor are shown."
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnSurface"
+                android:alpha="0.7"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Category Search -->
+            <EditText
+                android:id="@+id/category_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Search categories..."
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@drawable/edittext_background"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Expand/Collapse Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+                
+                <Button
+                    android:id="@+id/expand_all_categories"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Expand All"
+                    android:textSize="12sp"
+                    android:padding="10dp"
+                    android:layout_marginEnd="4dp"
+                    android:backgroundTint="?attr/colorPrimaryVariant" />
+
+                <Button
+                    android:id="@+id/collapse_all_categories"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Collapse All"
+                    android:textSize="12sp"
+                    android:padding="10dp"
+                    android:layout_marginStart="4dp"
+                    android:backgroundTint="?attr/colorPrimaryVariant" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/categories_loading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Loading categories..."
+                android:textSize="14sp"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/categories_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No categories available"
+                android:textSize="14sp"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/categories_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:nestedScrollingEnabled="false" />
+
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- Apply Button -->
+    <Button
+        android:id="@+id/apply_filters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="Apply Filters"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="?attr/colorPrimary" />
+
+    </LinearLayout>
+
+</FrameLayout>

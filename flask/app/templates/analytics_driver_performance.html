@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Driver Performance Analytics{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      {% if selected_sponsor %}
+        <h1>{{ selected_sponsor.Company }} Driver Performance Analytics</h1>
+        <p class="admin-page-description">
+          Analyze point trends, productivity metrics, and recent activity for drivers at {{ selected_sponsor.Company }}. 
+          This page displays all point change transactions, including purchases, refunds, manual adjustments, and dispute resolutions. 
+          Each row represents a point change event that occurred when a driver made a purchase, received a refund, had points adjusted by a sponsor, or had a dispute resolved.
+        </p>
+      {% else %}
+        <h1>Driver Performance Analytics</h1>
+        <p class="admin-page-description">
+          Analyze performance metrics, point trends, and productivity across all sponsors. 
+          This page displays all point change transactions, including purchases, refunds, manual adjustments, and dispute resolutions. 
+          Each row represents a point change event that occurred when a driver made a purchase, received a refund, had points adjusted by a sponsor, or had a dispute resolved.
+        </p>
+      {% endif %}
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Analytics</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form class="admin-form" method="get">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Company</label>
+          <select id="company-filter" name="company_filter" onchange="this.form.submit()">
+            <option value="">All companies</option>
+            {% for sponsor_id, sponsor_name in sponsors %}
+              <option value="{{ sponsor_name }}" {% if company_filter == sponsor_name %}selected{% endif %}>{{ sponsor_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="driver-filter">Driver (Name or Email)</label>
+          <input type="text" id="driver-filter" name="driver_filter" value="{{ driver_filter or '' }}" placeholder="Search by name or email...">
+        </div>
+
+        <div>
+          <label for="date_from">From Date</label>
+          <input type="date" id="date_from" name="date_from" value="{{ date_from or '' }}" onchange="this.form.submit()">
+        </div>
+
+        <div>
+          <label for="date_to">To Date</label>
+          <input type="date" id="date_to" name="date_to" value="{{ date_to or '' }}" onchange="this.form.submit()">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">Apply Filters</button>
+        {% if selected_sponsor %}
+          <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_performance', company_filter=company_filter) }}">
+            Reset Filters
+          </a>
+        {% else %}
+          <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_performance') }}">
+            Reset Filters
+          </a>
+        {% endif %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_performance_pdf', company_filter=company_filter, date_from=date_from, date_to=date_to, driver_filter=driver_filter) }}" target="_blank">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_performance_csv', company_filter=company_filter, date_from=date_from, date_to=date_to, driver_filter=driver_filter) }}">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="admin-card">
+    <h2>Key Performance Metrics</h2>
+    <div class="admin-summary">
+      <div class="admin-summary-item">
+        <span class="label">Total Records</span>
+        <span class="value">{{ rows|length }}</span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Unique Drivers</span>
+        <span class="value">
+          {% set unique_drivers = rows|map(attribute='0')|unique|list|length %}
+          {{ unique_drivers }}
+        </span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Companies</span>
+        <span class="value">
+          {% set unique_companies = rows|map(attribute='2')|map(attribute='CompanyName')|reject('equalto', None)|unique|list|length %}
+          {{ unique_companies }}
+        </span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Total Points</span>
+        <span class="value">
+          {% set total_points = rows|map(attribute='3')|reject('equalto', None)|map(attribute='DeltaPoints')|sum %}
+          {{ total_points or 0 }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <h2>Driver Performance Data</h2>
+      <p class="admin-muted">
+        Detailed summary of driver point change transactions and related metadata. 
+        <strong>New entries are created automatically when:</strong> drivers make purchases (points deducted), orders are refunded or cancelled (points returned), sponsors manually adjust points, or point disputes are approved (points restored). 
+        Drivers without any point change history will show "N/A" for Points Change, Reason, and Date columns.
+      </p>
+    </header>
+    <div class="table-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Driver Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Points Change</th>
+            <th>Reason</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for driver, account, sponsor_company, point_change in rows %}
+          <tr>
+            <td>{{ account.FirstName }} {{ account.LastName }}</td>
+            <td>{{ account.Email }}</td>
+            <td>{{ sponsor_company.CompanyName if sponsor_company else 'Unassigned' }}</td>
+            <td>
+              <span class="admin-status-badge admin-status-badge--{{ driver.Status|lower if driver.Status else 'unknown' }}">
+                {{ driver.Status or 'Unknown' }}
+              </span>
+            </td>
+            <td>{{ driver.Age or 'N/A' }}</td>
+            <td>{{ driver.Gender or 'N/A' }}</td>
+            <td>
+              {% if point_change %}
+                <span class="{{ 'admin-points-positive' if point_change.DeltaPoints > 0 else 'admin-points-negative' }}">
+                  {{ '+' if point_change.DeltaPoints > 0 else '' }}{{ point_change.DeltaPoints }}
+                </span>
+              {% else %}
+                N/A
+              {% endif %}
+            </td>
+            <td>{{ point_change.Reason if point_change else 'N/A' }}</td>
+            <td>{{ point_change.CreatedAt.strftime('%Y-%m-%d %H:%M') if point_change else 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if not rows %}
+  <div class="admin-card">
+    <div class="admin-empty-state">
+      <i class="fas fa-clipboard-list"></i>
+      <p>No driver performance data found for the selected filters.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

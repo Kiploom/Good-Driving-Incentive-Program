@@ -1,0 +1,123 @@
+<div class="filters-container">
+    <h3>Filters</h3>
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label>Keywords</label>
+            <input id="q" placeholder="search within sponsor-allowed items">
+        </div>
+        
+        <div class="filter-group">
+            <label>Sort</label>
+            <select id="sort" name="sort">
+                <option value="best_match">Best match</option>
+                <option value="points_asc">Points: Low → High</option>
+                <option value="points_desc">Points: High → Low</option>
+                <option value="stock_asc">Stock: Low → High</option>
+                <option value="stock_desc">Stock: High → Low</option>
+                <option value="newest">Newest</option>
+            </select>
+        </div>
+
+        <div class="filter-group filter-group-full">
+            <h4 style="margin:0 0 8px 0;">Categories</h4>
+            <div id="cat-chips" class="muted">Sponsor-allowed categories will apply automatically. (Optional) Enter raw IDs,
+                comma-separated:</div>
+            <input id="cat-ids" placeholder="e.g., 182172,26405">
+        </div>
+
+        <div class="filter-actions">
+            <button onclick="applyFilters()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.filters-container {
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.filters-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group-full {
+    grid-column: 1 / -1;
+}
+
+.filter-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-actions button {
+    padding: 8px 16px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.filter-actions button:hover {
+    background: #1d4ed8;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .filter-group-full {
+        grid-column: 1;
+    }
+    
+    .filter-actions {
+        grid-column: 1;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .filters-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>

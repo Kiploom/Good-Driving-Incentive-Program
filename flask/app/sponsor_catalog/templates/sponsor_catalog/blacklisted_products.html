@@ -1,0 +1,268 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Blacklisted Products{% endblock %}
+
+{% block page_title %}Blacklisted Products{% endblock %}
+{% block page_subtitle %}
+Items listed here are hidden from every driver experience. Remove them to allow the product back into search results.
+{% endblock %}
+{% block hero_actions %}
+<a class="btn" href="{{ url_for('sponsor_catalog.preview_page') }}">Preview Catalog</a>
+{% endblock %}
+
+{% block body %}
+<section class="pm-section">
+
+<style>
+    .blacklist-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-card);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 32px var(--shadow-sm);
+    }
+
+    .blacklist-table thead {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .blacklist-table th {
+        padding: 14px 18px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .blacklist-table td {
+        padding: 16px 18px;
+        border-top: 1px solid var(--border);
+        vertical-align: middle;
+        color: var(--text-secondary);
+    }
+
+    .blacklist-table tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .product-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: background 0.2s ease;
+        padding: 4px;
+        margin: -4px;
+        border-radius: 6px;
+    }
+
+    .product-link:hover {
+        background: var(--bg-hover);
+    }
+
+    .product-link:hover .product-title {
+        color: var(--accent);
+        text-decoration: underline;
+    }
+
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .product-info img {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--bg-hover);
+        flex-shrink: 0;
+    }
+
+    .product-placeholder {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-hover);
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .product-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .product-id {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+        letter-spacing: 0.04em;
+    }
+
+    .reason-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        max-width: 300px;
+        word-wrap: break-word;
+    }
+
+    .blacklist-date {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .unblacklist-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        background: var(--error);
+        color: #fff;
+        border: 1px solid var(--error);
+    }
+
+    .unblacklist-btn:hover {
+        background: #dc2626;
+        border-color: #dc2626;
+    }
+
+    .unblacklist-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        background: var(--bg-secondary);
+    }
+
+    .empty-state h3 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+</style>
+
+{% if blacklisted_products %}
+<table class="blacklist-table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>Reason</th>
+            <th>Blacklisted Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in blacklisted_products %}
+        <tr data-blacklist-id="{{ item.ID }}">
+            <td>
+                <a href="{{ item.ItemURL or ('https://www.ebay.com/itm/' ~ item.ItemID) }}" target="_blank" rel="noopener" class="product-link">
+                    <div class="product-info">
+                        {% if item.ItemImageURL %}
+                        <img src="{{ item.ItemImageURL }}" alt="{{ item.ItemTitle or 'Product' }}" />
+                        {% else %}
+                        <div class="product-placeholder">📦</div>
+                        {% endif %}
+                        <div>
+                            <div class="product-title">{{ item.ItemTitle or 'Unknown Product' }}</div>
+                            <div class="product-id">ID: {{ item.ItemID }}</div>
+                        </div>
+                    </div>
+                </a>
+            </td>
+            <td>
+                <div class="reason-text">{{ item.Reason or 'No reason provided' }}</div>
+            </td>
+            <td>
+                <div class="blacklist-date">{{ item.CreatedAt.strftime('%b %d, %Y') }}</div>
+                <div class="blacklist-date">{{ item.CreatedAt.strftime('%I:%M %p') }}</div>
+            </td>
+            <td>
+                <button class="unblacklist-btn" onclick="unblacklistProduct('{{ item.ID }}', '{{ item.ItemTitle or 'this product' }}')">
+                    Remove from Blacklist
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <h3>No Blacklisted Products</h3>
+    <p>You haven't blacklisted any products yet.</p>
+</div>
+{% endif %}
+
+</section>
+
+<script>
+async function unblacklistProduct(blacklistId, itemTitle) {
+    if (!confirm(`Remove "${itemTitle}" from blacklist? This product will appear in driver searches again.`)) {
+        return;
+    }
+    
+    const row = document.querySelector(`tr[data-blacklist-id="${blacklistId}"]`);
+    const button = row.querySelector('button');
+    
+    // Disable button during request
+    button.disabled = true;
+    button.textContent = 'Removing...';
+    
+    try {
+        const response = await fetch(`/sponsor-catalog/blacklisted-products/${blacklistId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            // Remove row with animation
+            row.style.opacity = '0';
+            row.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                row.remove();
+                
+                // Check if table is now empty
+                const tbody = document.querySelector('.blacklist-table tbody');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload(); // Reload to show empty state
+                }
+            }, 300);
+            
+            alert('Product removed from blacklist successfully.');
+        } else {
+            alert('Error: ' + (data.message || 'Unknown error'));
+            button.disabled = false;
+            button.textContent = 'Remove from Blacklist';
+        }
+    } catch (error) {
+        console.error('Error removing from blacklist:', error);
+        alert('Error removing product. Please try again.');
+        button.disabled = false;
+        button.textContent = 'Remove from Blacklist';
+    }
+}
+</script>
+
+{% endblock %}
+

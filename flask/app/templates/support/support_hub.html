@@ -1,0 +1,253 @@
+{% extends "support/base.html" %}
+
+{% block title %}Support Hub{% endblock %}
+
+{% block content %}
+<div class="settings-page support-page-shell">
+  <div class="settings-container support-wrapper">
+    <div class="user-support-container support-theme">
+      <div class="user-header">
+        <div class="header-content">
+          <h1><i class="fas fa-headset" aria-hidden="true"></i> Support Center</h1>
+          <p class="header-subtitle">Get help with your account, orders, and technical issues.</p>
+        </div>
+        <div class="header-actions">
+          <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+            Create Ticket
+          </a>
+        </div>
+      </div>
+
+      <div class="support-dashboard">
+        <section class="support-panel support-stats panel-overview">
+          <header class="support-panel-header">
+            <div>
+              <h2>Overview</h2>
+              <p>Live snapshot of your ticket activity.</p>
+            </div>
+          </header>
+          <div class="support-panel-body">
+            <div class="support-stats-grid">
+              <div class="stat-card total">
+                <div class="stat-icon">
+                  <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.total }}</div>
+                  <div class="stat-label">Total Tickets</div>
+                </div>
+              </div>
+
+              <div class="stat-card new">
+                <div class="stat-icon">
+                  <i class="fas fa-plus-circle" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.new }}</div>
+                  <div class="stat-label">New</div>
+                </div>
+              </div>
+
+              <div class="stat-card open">
+                <div class="stat-icon">
+                  <i class="fas fa-clock" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.open }}</div>
+                  <div class="stat-label">Open</div>
+                </div>
+              </div>
+
+              <div class="stat-card waiting">
+                <div class="stat-icon">
+                  <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.waiting }}</div>
+                  <div class="stat-label">Waiting</div>
+                </div>
+              </div>
+
+              <div class="stat-card resolved">
+                <div class="stat-icon">
+                  <i class="fas fa-check-circle" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.resolved }}</div>
+                  <div class="stat-label">Resolved</div>
+                </div>
+              </div>
+
+              <div class="stat-card closed">
+                <div class="stat-icon">
+                  <i class="fas fa-archive" aria-hidden="true"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number">{{ ticket_counts.closed }}</div>
+                  <div class="stat-label">Closed</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="support-panel support-tickets panel-tickets">
+          <header class="support-panel-header support-panel-header--with-count">
+            <div>
+              <h2>Recent Tickets</h2>
+              <p>Stay up to date on your latest conversations.</p>
+            </div>
+            <span class="support-count-pill">
+              <i class="fas fa-inbox" aria-hidden="true"></i>
+              {{ recent_tickets|length }} {{ 'ticket' if recent_tickets|length == 1 else 'tickets' }}
+            </span>
+          </header>
+          <div class="support-panel-body">
+            {% if recent_tickets %}
+            <div class="support-ticket-list">
+              {% for ticket in recent_tickets %}
+              <article class="ticket-card {{ ticket.Status }}">
+                <div class="ticket-card-header">
+                  <div class="ticket-priority">
+                    <span class="status-badge {{ ticket.Status }}">
+                      <i class="fas fa-circle" aria-hidden="true"></i> {{ ticket.Status|title }}
+                    </span>
+                  </div>
+                  <div class="ticket-id">
+                    #{{ ticket.TicketID[:8] }}
+                  </div>
+                </div>
+
+                <div class="ticket-card-body">
+                  <h3 class="ticket-title">
+                    <a href="{{ url_for('support_ui.ticket_detail', ticket_id=ticket.TicketID) }}" class="ticket-link">
+                      {{ ticket.Title }}
+                    </a>
+                  </h3>
+
+                  <p class="ticket-preview">
+                    {{ ticket.Body[:120] }}{% if ticket.Body|length > 120 %}...{% endif %}
+                  </p>
+
+                  <div class="ticket-meta">
+                    <div class="meta-item">
+                      <i class="fas fa-clock" aria-hidden="true"></i>
+                      <span class="meta-label">Created</span>
+                      <span class="meta-value">{{ ticket.CreatedAt.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                    </div>
+
+                    <div class="meta-item">
+                      <i class="fas fa-sync" aria-hidden="true"></i>
+                      <span class="meta-label">Updated</span>
+                      <span class="meta-value">{{ ticket.UpdatedAt.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                    </div>
+
+                    {% if ticket.category %}
+                    <div class="meta-item">
+                      <i class="fas fa-tag" aria-hidden="true"></i>
+                      <span class="meta-label">Category</span>
+                      <span class="meta-value">{{ ticket.category.Name }}</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="ticket-card-footer">
+                  <div class="ticket-actions">
+                    <a href="{{ url_for('support_ui.ticket_detail', ticket_id=ticket.TicketID) }}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-eye" aria-hidden="true"></i>
+                      View
+                    </a>
+                  </div>
+                  <div class="ticket-age">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    {{ (moment().subtract(ticket.CreatedAt).days) if moment else 'Recently' }} days old
+                  </div>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state support-empty">
+              <div class="empty-icon">
+                <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+              </div>
+              <h3>No tickets yet</h3>
+              <p class="empty-message">You haven't created any support tickets yet.</p>
+              <div class="empty-actions">
+                <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+                  <i class="fas fa-plus" aria-hidden="true"></i>
+                  Create Your First Ticket
+                </a>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          <footer class="support-panel-footer">
+            <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              New Ticket
+            </a>
+            <a href="{{ url_for('support_ui.my_tickets') }}" class="btn btn-secondary">
+              <i class="fas fa-list" aria-hidden="true"></i>
+              View All
+            </a>
+          </footer>
+        </section>
+
+        <section class="support-panel support-help panel-help">
+          <header class="support-panel-header compact">
+            <div>
+              <h2>Quick Help</h2>
+              <p>Answers at a glance.</p>
+            </div>
+          </header>
+          <div class="support-panel-body compact">
+            <div class="headline">
+              <i class="fas fa-life-ring" aria-hidden="true"></i>
+              <span>Need help fast? Start with these shortcuts.</span>
+            </div>
+
+            <ul class="support-quick-list">
+              <li>
+                <span class="icon">
+                  <i class="fas fa-user-shield" aria-hidden="true"></i>
+                </span>
+                <div class="content">
+                  <strong>Account &amp; Access</strong>
+                  <p>Login issues, password resets, profile updates.</p>
+                </div>
+                <a href="{{ url_for('support_ui.new_ticket') }}" class="pill-link">Open ticket</a>
+              </li>
+
+              <li>
+                <span class="icon">
+                  <i class="fas fa-box" aria-hidden="true"></i>
+                </span>
+                <div class="content">
+                  <strong>Orders &amp; Points</strong>
+                  <p>Track orders, check balances, request adjustments.</p>
+                </div>
+                <a href="{{ url_for('support_ui.new_ticket') }}" class="pill-link">Review status</a>
+              </li>
+
+              <li>
+                <span class="icon">
+                  <i class="fas fa-headset" aria-hidden="true"></i>
+                </span>
+                <div class="content">
+                  <strong>Contact Support</strong>
+                  <p>Email support@example.com · 1-800-SUPPORT · Mon–Fri, 8a–6p CT</p>
+                </div>
+                <a href="{{ url_for('support_ui.new_ticket') }}" class="pill-link accent">Message us</a>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

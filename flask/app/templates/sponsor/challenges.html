@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block title %}Sponsor Challenges{% endblock %}
+{% block head %}
+<style>
+  .challenges-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .challenges-card {
+    padding: clamp(1.25rem, 1.6vw, 1.75rem);
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: clamp(1.25rem, 1.8vw, 1.4rem);
+    color: var(--text-primary);
+  }
+
+  .section-subtitle {
+    margin: 0.35rem 0 0;
+    color: var(--text-muted);
+  }
+
+  .muted {
+    color: var(--text-muted);
+  }
+
+  .template-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .template-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.3s ease;
+  }
+
+  .template-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px var(--shadow-sm);
+  }
+
+  .template-pill.active {
+    background: var(--info-soft);
+    color: var(--info);
+    border-color: var(--info);
+    box-shadow: 0 4px 12px var(--shadow-sm);
+  }
+
+  .challenges-form {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+  }
+
+  .challenges-form textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .challenges-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .challenges-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .challenges-toolbar__filter {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .challenge-card {
+    border: 1px solid var(--border);
+    border-radius: 0.9rem;
+    padding: 1.25rem;
+    background: var(--bg-card);
+    box-shadow: 0 2px 10px var(--shadow-sm);
+    display: grid;
+    gap: 1rem;
+  }
+
+  [data-theme="dark"] .challenge-card {
+    background: var(--glass-bg);
+    border-color: var(--border);
+    box-shadow: 0 4px 16px var(--shadow);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .challenge-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .challenge-card__title {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+  }
+
+  .challenge-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .challenge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+
+  .challenge-status--active {
+    background: var(--success-soft);
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  .challenge-status--upcoming {
+    background: var(--info-soft);
+    color: var(--info);
+    border-color: var(--info);
+  }
+
+  .challenge-status--expired {
+    background: var(--error-soft);
+    color: var(--error);
+    border-color: var(--error);
+  }
+
+  .challenge-status--deactivated {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+
+  .challenge-card__description {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .challenge-card__grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .challenge-card__grid-item strong {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+  }
+
+  .challenge-card__grid-item span {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+  }
+
+  .challenge-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .challenge-edit {
+    display: none;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .challenge-edit.is-open {
+    display: grid;
+  }
+
+  .challenge-edit__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .empty-state {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: 0.9rem;
+    background: var(--bg-secondary);
+  }
+
+  .table-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .challenge-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 0.9rem 1.15rem;
+    border-radius: 0.75rem;
+    background: var(--success);
+    color: var(--text-inverse);
+    box-shadow: 0 18px 30px var(--shadow-lg);
+    display: none;
+    z-index: 1200;
+    font-weight: 600;
+  }
+
+  .challenge-toast[data-tone="error"] {
+    background: var(--error);
+  }
+
+  @media (max-width: 768px) {
+    .challenges-card {
+      padding: 1.15rem;
+    }
+
+    .challenge-toast {
+      left: 1rem;
+      right: 1rem;
+      text-align: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+  <div class="challenges-page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Sponsor Challenges</h1>
+        <p class="page-description">Create and manage challenges for your drivers across all sponsor environments.</p>
+      </div>
+      <div class="page-header__actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.manage_drivers') }}">
+          <i class="fas fa-arrow-left"></i>
+          Back to Sponsor Hub
+        </a>
+      </div>
+    </div>
+
+    <section class="card challenges-card" id="challenge-create-card">
+      <header>
+        <h2 class="section-title">Create a New Challenge</h2>
+        <p class="section-subtitle">Select a template, customize the details, and publish to your drivers instantly.</p>
+      </header>
+
+      <div class="template-select" id="template-pills"></div>
+
+      <form id="challenge-create-form" class="challenges-form">
+        <div class="form-grid">
+          <label>
+            Title
+            <input type="text" name="title" placeholder="e.g., Weekend Warrior" required>
+          </label>
+          <label>
+            Reward Points
+            <input type="number" name="reward_points" min="1" step="1" placeholder="Enter points" required>
+          </label>
+          <label>
+            Optional Challenge?
+            <select name="is_optional">
+              <option value="true" selected>Optional (driver opt-in)</option>
+              <option value="false">Required (auto-assigned)</option>
+            </select>
+          </label>
+          <label>
+            Starts At (optional)
+            <input type="datetime-local" name="starts_at">
+          </label>
+          <label>
+            Expires At (optional)
+            <input type="datetime-local" name="expires_at">
+          </label>
+        </div>
+
+        <label>
+          Description
+          <textarea name="description" placeholder="Describe what drivers must do to complete this challenge."></textarea>
+        </label>
+
+        <div class="challenges-actions">
+          <button class="btn btn-info" type="submit">
+            <i class="fas fa-plus-circle"></i>
+            Create Challenge
+          </button>
+          <button class="btn btn-secondary" type="button" id="reset-form-btn">
+            <i class="fas fa-undo"></i>
+            Reset
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card challenges-card">
+      <div class="challenges-toolbar">
+        <div>
+          <h2 class="section-title">Your Challenges</h2>
+          <p class="section-subtitle">Manage active, upcoming, and historical challenges.</p>
+        </div>
+        <div class="challenges-toolbar__filter">
+          <label for="challenge-filter">Filter</label>
+          <select id="challenge-filter">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="expired">Expired</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="challenge-list" class="table-grid"></div>
+    </section>
+  </div>
+</div>
+
+<div id="challenge-toast" class="challenge-toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sponsor_challenges.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.SponsorChallenges) {
+      window.SponsorChallenges.init({
+        sponsorId: '{{ sponsor.SponsorID }}'
+      });
+    }
+  });
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,158 @@
+{% extends "support/base.html" %}
+
+{% block title %}Create New Ticket{% endblock %}
+
+{% block content %}
+<div class="settings-page support-page-shell support-ticket-page">
+  <div class="settings-container support-ticket-container">
+    <header class="settings-header support-ticket-header">
+      <div class="settings-header-content">
+        <h1><i class="fas fa-edit" aria-hidden="true"></i> Create New Support Ticket</h1>
+        <p>Describe your issue and we'll help you resolve it quickly.</p>
+      </div>
+      <div class="support-ticket-actions">
+        <a href="{{ url_for('support_ui.support_hub') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to Support
+        </a>
+      </div>
+    </header>
+
+    <div class="settings-card support-ticket-card">
+      <div class="ticket-card-heading">
+        <div>
+          <h2><i class="fas fa-ticket-alt" aria-hidden="true"></i> Ticket Details</h2>
+          <p>Please provide as much detail as possible to help us assist you quickly.</p>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('support_ui.create_ticket') }}" class="ticket-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="title" class="form-label">
+              <i class="fas fa-heading" aria-hidden="true"></i>
+              Subject <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="title"
+              name="title"
+              placeholder="Brief description of your issue"
+              required
+              maxlength="200">
+            <div class="form-help">Be specific and concise — this helps us prioritize your request.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="category_id" class="form-label">
+              <i class="fas fa-tag" aria-hidden="true"></i>
+              Category
+            </label>
+            <select class="form-control" id="category_id" name="category_id">
+              <option value="">Select a category (optional)</option>
+              {% for category in categories %}
+              <option value="{{ category.CategoryID }}">{{ category.Name }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-help">Choose the category that best fits your issue.</div>
+          </div>
+
+          <div class="form-group form-group--full">
+            <label for="body" class="form-label">
+              <i class="fas fa-align-left" aria-hidden="true"></i>
+              Description <span class="required">*</span>
+            </label>
+            <textarea
+              class="form-control form-control--textarea"
+              id="body"
+              name="body"
+              rows="8"
+              placeholder="Include important details, steps to reproduce, and any error messages."
+              required></textarea>
+            <div class="form-help">The more details you provide, the better we can help you.</div>
+          </div>
+        </div>
+
+        <div class="form-info support-ticket-info">
+          <div class="info-icon">
+            <i class="fas fa-info-circle" aria-hidden="true"></i>
+          </div>
+          <div class="info-content">
+            <h4>Before submitting:</h4>
+            <ul>
+              <li>Check if your issue is already covered in our FAQ.</li>
+              <li>Include any error messages you’ve received.</li>
+              <li>Describe the steps you took before the issue occurred.</li>
+              <li>Specify your browser and device if it’s a technical issue.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="support-ticket-footer">
+          <a href="{{ url_for('support_ui.support_hub') }}" class="btn btn-secondary">
+            <i class="fas fa-times" aria-hidden="true"></i>
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            Submit Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('title');
+    const bodyTextarea = document.getElementById('body');
+    
+    // Auto-resize textarea
+    bodyTextarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+    
+    // Character count for title
+    const titleCounter = document.createElement('div');
+    titleCounter.className = 'form-text text-end';
+    titleInput.parentNode.appendChild(titleCounter);
+    
+    titleInput.addEventListener('input', function() {
+        const remaining = 200 - this.value.length;
+        titleCounter.textContent = `${remaining} characters remaining`;
+        titleCounter.className = remaining < 20 ? 'form-text text-end text-warning' : 'form-text text-end';
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const title = titleInput.value.trim();
+        const body = bodyTextarea.value.trim();
+        
+        if (!title || !body) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return;
+        }
+        
+        if (title.length < 5) {
+            e.preventDefault();
+            alert('Please provide a more descriptive subject (at least 5 characters).');
+            titleInput.focus();
+            return;
+        }
+        
+        if (body.length < 20) {
+            e.preventDefault();
+            alert('Please provide a more detailed description (at least 20 characters).');
+            bodyTextarea.focus();
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

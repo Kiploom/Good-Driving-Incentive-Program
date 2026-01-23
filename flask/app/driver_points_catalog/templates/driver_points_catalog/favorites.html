@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+{% block title %}My Favorites{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-bar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-cards.css') }}">
+{% endblock %}
+
+{% block content %}
+<style>
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .page-wrap {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(24px, 6vw, 60px);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+  }
+
+  .catalog-shell {
+    width: min(100%, 75vw);
+    max-width: 1280px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 28px);
+    background: linear-gradient(145deg, rgba(41, 51, 73, 0.12), rgba(17, 24, 39, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 22px;
+    padding: clamp(22px, 3vw, 34px);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  [data-theme="dark"] .catalog-shell {
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
+  }
+
+  .catalog-shell .catalog-header,
+  .catalog-shell #grid,
+  .catalog-shell #status {
+    width: 100%;
+  }
+
+  /* Catalog bar styles moved to catalog-bar.css */
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-height: 36px;
+    box-sizing: border-box;
+  }
+
+  .btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  /* Grid and card styles moved to catalog-cards.css */
+
+  /* Loading state for View button */
+  .btn.loading {
+    opacity: 0.6;
+    cursor: wait;
+    position: relative;
+  }
+
+  .btn.loading::after {
+    content: "Loading...";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .btn.loading span {
+    opacity: 0;
+  }
+
+  /* Disabled state during loading */
+  .pager .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pager.loading .btn {
+    opacity: 0.6;
+  }
+
+  /* Card, badge, and list view styles moved to catalog-cards.css */
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 8px;
+    background: var(--bg-card);
+  }
+
+  /* Pagination styles moved to catalog-cards.css */
+</style>
+
+<div id="catalog-root"
+     class="page-wrap"
+     data-mode="favorites"
+     data-data-endpoint="{{ url_for('driver_points_catalog.favorites_data') }}"
+     data-toggle-endpoint="/driver-catalog/favorites"
+     data-favorites-only="true">
+  <div class="catalog-shell">
+    <div class="catalog-header">
+      <div class="catalog-title-area">
+        <div class="catalog-title">My Favorites</div>
+        <div class="catalog-title-actions">
+          <button type="button"
+                  class="catalog-action-btn catalog-history-btn"
+                  id="open-driver-recent-products"
+                  aria-label="View recently viewed products"
+                  title="Recently viewed products">
+            <span class="catalog-action-icon" aria-hidden="true">
+              <i class="fas fa-history"></i>
+            </span>
+            <span class="catalog-action-label">Recently Viewed</span>
+          </button>
+          <button type="button"
+                  class="catalog-action-btn catalog-filter-toggle"
+                  id="catalog-filter-toggle"
+                  aria-controls="catalog-filter-modal"
+                  aria-expanded="false"
+                  title="Filter favorites">
+            <span class="catalog-action-icon" aria-hidden="true">
+              <i class="fas fa-filter"></i>
+            </span>
+            <span class="catalog-action-label">Filter</span>
+          </button>
+          <a href="{{ url_for('driver_points_catalog.browse') }}"
+             class="catalog-action-btn favorites-link"
+             title="Browse catalog">
+            <span class="catalog-action-icon" aria-hidden="true">
+              <i class="fas fa-arrow-left"></i>
+            </span>
+            <span class="catalog-action-label">Back to Catalog</span>
+          </a>
+        </div>
+        <div class="catalog-view-toggle">
+          <button id="view-toggle-btn"
+                  type="button"
+                  class="catalog-view-btn active"
+                  aria-pressed="true"
+                  title="Switch to list view"
+                  aria-label="Switch to list view">
+            ⊞
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="catalog-search-row">
+      <form id="search-form" onsubmit="return false;" class="catalog-search-group">
+        <input id="q" type="search" placeholder="Search favorites…" value="{{ request.args.get('q','') }}">
+        <button id="search-btn" class="catalog-search-btn" type="button">Search</button>
+      </form>
+    </div>
+
+    <div id="catalog-filter-modal"
+         class="modal hidden catalog-filter-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="catalog-filter-modal-title">
+      <div class="modal-overlay" data-close="1"></div>
+      <div class="modal-dialog">
+        <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+        <div class="catalog-filter-modal-header">
+          <h3 id="catalog-filter-modal-title">Filter favorites</h3>
+          <p class="muted">Narrow results by point range.</p>
+        </div>
+        <div class="catalog-filter-modal-body">
+          <label for="min-points">
+            Min pts
+            <input id="min-points" type="number" min="0" step="1" placeholder="Min pts">
+          </label>
+          <label for="max-points">
+            Max pts
+            <input id="max-points" type="number" min="0" step="1" placeholder="Max pts">
+          </label>
+        </div>
+        <div class="catalog-filter-modal-actions">
+          <button type="button" class="btn btn-primary catalog-filter-close" data-close="1">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <ul id="grid" class="grid" aria-live="polite" aria-busy="false"></ul>
+    <div id="status" class="status" style="display:none;">No favorites found.</div>
+  </div>
+</div>
+
+{% include "driver_points_catalog/_recent_products_modal.html" %}
+
+<template id="card">
+  <li class="card" tabindex="0" role="link" aria-label="">
+    <div class="card-image-wrapper">
+      <img src="" alt="" class="card-image">
+      <span class="badge pinned" data-pinned="1" style="display:none;">Pinned</span>
+      <span class="badge low" data-low-stock="1" style="display:none;">Low stock</span>
+      <span class="badge out-of-stock" data-no-stock="1" style="display:none;">Out of stock</span>
+      <button type="button" class="favorite-btn filled" data-favorite="1" style="display:none;" title="Remove from favorites">❤</button>
+      <button type="button" class="favorite-btn unfavorite" data-unfavorite="1" title="Add to favorites">❤</button>
+    </div>
+    <div class="card-body">
+      <div class="title"></div>
+      <div class="meta">
+        <span class="points"><span class="number"></span><span class="label"> pts</span></span>
+        <div class="action-buttons">
+          <button type="button"
+                  class="add-to-cart-btn icon-only btn-primary"
+                  style="display:none;"
+                  aria-label="Add to cart">
+            <svg class="icon cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3h2l.4 2M7 13h10l1.5-7H5.21M7 13l-2 9m12-9l2 9M9 21h6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <svg class="icon check-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 13l4 4L19 7"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </li>
+</template>
+
+<!-- Item Modal -->
+<div id="item-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <img id="modal-img" alt="" />
+    <h3 id="modal-title"></h3>
+    <div id="modal-cost" class="muted" style="color:var(--text-muted);"></div>
+    <p id="modal-desc" class="desc"></p>
+    <div class="modal-actions">
+      <button id="modal-add-to-cart" class="btn btn-primary" style="display:none;">Add to Cart</button>
+      <a id="modal-link" class="btn" target="_blank" rel="noopener" style="display:none;">Open on eBay</a>
+      <button id="modal-report-btn" class="btn secondary" style="display:none;">Report Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <h3 id="report-modal-title">Report Item</h3>
+    <form id="report-form">
+      <div class="form-group">
+        <label for="report-reason">Reason for reporting:</label>
+        <select id="report-reason" required>
+          <option value="">Select a reason</option>
+          <option value="inappropriate">Inappropriate content</option>
+          <option value="broken_link">Broken or invalid link</option>
+          <option value="wrong_category">Wrong category</option>
+          <option value="spam">Spam or misleading</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="report-description">Additional details (optional):</label>
+        <textarea id="report-description" rows="3" placeholder="Please provide any additional information..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close="1">Cancel</button>
+        <button type="submit" class="btn secondary">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .modal-dialog {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    width: calc(100% - 32px);
+    margin: 6vh auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 14px;
+  }
+
+  [data-theme="dark"] .modal-dialog {
+    border-color: var(--accent-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .modal-dialog img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--bg-hover);
+  }
+
+  .modal-dialog h3 {
+    margin: .25rem 0 .25rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .modal-dialog .desc {
+    margin: .5rem 0 1rem;
+    white-space: pre-wrap;
+    color: var(--text-secondary);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .btn.secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .btn.secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-input);
+    color: var(--text-primary);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .modal-close:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width:640px) {
+    .modal-dialog {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script src="{{ url_for('static', filename='js/driver_catalog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/driver_recent_products.js') }}" defer></script>
+{% endblock %}

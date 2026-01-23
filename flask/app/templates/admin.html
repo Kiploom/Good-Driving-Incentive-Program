@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Create Admin Account{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Create Admin Account</h1>
+      <p>Provision a new platform administrator with secure credentials and verified contact details.</p>
+    </div>
+    <div class="admin-actions">
+      <a href="{{ url_for('admin.account_management') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Account Management</span>
+      </a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="admin-content">
+        {% for category, msg in messages %}
+          <div class="admin-banner {% if category == 'error' %}admin-banner--error{% elif category == 'success' %}admin-banner--success{% else %}admin-banner--info{% endif %}">
+            <i class="fas {% if category == 'error' %}fa-circle-exclamation{% elif category == 'success' %}fa-check-circle{% else %}fa-circle-info{% endif %}"></i>
+            <div>{{ msg }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% if error %}
+    <div class="admin-banner admin-banner--error">
+      <i class="fas fa-triangle-exclamation"></i>
+      <div>{{ error }}</div>
+    </div>
+  {% endif %}
+
+  <div class="admin-card">
+    <form action="{{ url_for('admin.admin_create_admin') }}" method="POST" class="admin-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-grid">
+        <div>
+          <label for="Username">Username</label>
+          <input type="text" id="Username" name="Username" placeholder="e.g. jadmin" minlength="1" maxlength="100" required>
+        </div>
+        <div>
+          <label for="Email">Email Address</label>
+          <input type="email" id="Email" name="Email" placeholder="validemail@example.com" minlength="1" maxlength="255" required>
+        </div>
+        <div>
+          <label for="Phone">Phone Number</label>
+          <input type="tel" id="Phone" name="Phone" placeholder="555-555-5555" minlength="10" maxlength="20">
+        </div>
+        <div>
+          <label for="Role">Role Description</label>
+          <input type="text" id="Role" name="Role" placeholder="Platform Administrator" minlength="1" maxlength="100" required>
+        </div>
+        <div>
+          <label for="FirstName">First Name</label>
+          <input type="text" id="FirstName" name="FirstName" placeholder="First Name" minlength="1" maxlength="100" required>
+        </div>
+        <div>
+          <label for="LastName">Last Name</label>
+          <input type="text" id="LastName" name="LastName" placeholder="Last Name" minlength="1" maxlength="100" required>
+        </div>
+        <div>
+          <label for="Password">Temporary Password</label>
+          <input type="password" id="password" name="Password" placeholder="Choose a secure password" required>
+          <ul class="password-rules">
+            <li id="rule-length" class="invalid" data-label="At least 8 characters">At least 8 characters</li>
+            <li id="rule-upper" class="invalid" data-label="Contains an uppercase letter">Contains an uppercase letter</li>
+            <li id="rule-lower" class="invalid" data-label="Contains a lowercase letter">Contains a lowercase letter</li>
+            <li id="rule-number" class="invalid" data-label="Contains a number">Contains a number</li>
+            <li id="rule-special" class="invalid" data-label="Contains a special character (!@#$%^&*)">Contains a special character (!@#$%^&*)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="admin-banner admin-banner--info">
+        <i class="fas fa-shield-check"></i>
+        <div>New admins will be prompted to verify their email address on first login to activate the account.</div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-user-plus"></i>
+          <span>Create Admin</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const passwordField = document.getElementById('password');
+    if (!passwordField) return;
+
+    const rules = {
+      length: document.getElementById('rule-length'),
+      upper: document.getElementById('rule-upper'),
+      lower: document.getElementById('rule-lower'),
+      number: document.getElementById('rule-number'),
+      special: document.getElementById('rule-special')
+    };
+
+    const tests = {
+      length: value => value.length >= 8,
+      upper: value => /[A-Z]/.test(value),
+      lower: value => /[a-z]/.test(value),
+      number: value => /[0-9]/.test(value),
+      special: value => /[!@#$%^&*(),.?":{}|<>]/.test(value)
+    };
+
+    function updateRule(ruleEl, passed) {
+      if (!ruleEl) return;
+      const label = ruleEl.dataset.label || ruleEl.textContent.trim();
+      ruleEl.textContent = `${passed ? '✅' : '❌'} ${label}`;
+      ruleEl.classList.toggle('valid', passed);
+      ruleEl.classList.toggle('invalid', !passed);
+    }
+
+    passwordField.addEventListener('input', function () {
+      const value = this.value || '';
+      Object.keys(tests).forEach(key => {
+        updateRule(rules[key], tests[key](value));
+      });
+    });
+  })();
+</script>
+{% endblock %}

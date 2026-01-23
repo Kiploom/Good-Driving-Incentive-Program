@@ -1,0 +1,785 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}Edit Filter Set{% endblock %}
+
+{% block body %}
+<script>
+    // Define toggleAllCategories early so it's available for onclick handlers
+    window.toggleAllCategories = function() {
+        const btn = document.querySelector('#toggleAllCategories');
+        if (!btn) return;
+        
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        const checkedCount = document.querySelectorAll('.category-checkbox:checked').length;
+        const allChecked = checkedCount === checkboxes.length;
+        
+        // Toggle all checkboxes
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            if (window.updateCheckboxHighlight) {
+                window.updateCheckboxHighlight(cb);
+            }
+        });
+        
+        // Toggle all parent checkboxes
+        const parentCheckboxes = document.querySelectorAll('.category-parent-checkbox');
+        parentCheckboxes.forEach(pcb => {
+            pcb.checked = !allChecked;
+            pcb.indeterminate = false;
+        });
+        
+        // Update button text
+        if (window.updateToggleAllButton) {
+            window.updateToggleAllButton();
+        }
+    };
+</script>
+<style>
+    /* Category checkbox highlighting */
+    .category-checkbox-label.category-checkbox-selected {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .category-checkbox-label.category-checkbox-selected:hover {
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.5);
+    }
+    
+    .category-checkbox-label:hover {
+        background: var(--bg-hover);
+    }
+    
+    .category-section summary::-webkit-details-marker {
+        display: none;
+    }
+    
+    /* Parent checkbox styling */
+    .category-parent-checkbox {
+        accent-color: var(--accent);
+        width: 18px;
+        height: 18px;
+    }
+</style>
+
+<h2>Edit Filter Set</h2>
+
+<form onsubmit="return updateFS(event)">
+    <div class="row">
+        <div class="col">
+            <label>Name</label>
+            <input id="name" value="{{ row.name }}" required>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h4 style="margin: 0;">Categories</h4>
+        <button type="button" id="toggleAllCategories" class="btn btn-muted" style="font-size: 0.875rem; padding: 6px 12px;" onclick="toggleAllCategories()">Select All</button>
+    </div>
+    {% include "sponsor_catalog/_category_browser.html" %}
+
+    <h4>Advanced Rules JSON</h4>
+    <p class="muted">Optional fine-grained edits. Your category selections above will be merged into
+        <code>categories.include</code> when you save.
+    </p>
+    <textarea id="rules" rows="16" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">
+{{ row.rules_json|tojson(indent=2) }}
+  </textarea>
+
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <a class="btn" href="{{ url_for('sponsor_catalog.filter_sets') }}">Cancel</a>
+        <button class="btn primary" type="submit">Update</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<!-- seed rules for the category browser -->
+<script type="application/json" id="rules-json">
+  {{ (row.rules_json | default({})) | tojson }}
+</script>
+
+<script>
+    // ---------- Global Error Handlers for Debugging ----------
+    (function() {
+        // Track unhandled errors
+        window._errorCount = 0;
+        window._lastError = null;
+        
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            window._errorCount++;
+            window._lastError = event.reason;
+            console.error('[DEBUG] ❌❌❌ UNHANDLED PROMISE REJECTION:', event.reason);
+            console.error('[DEBUG] Promise rejection stack:', event.reason?.stack);
+            console.error('[DEBUG] Total unhandled errors so far:', window._errorCount);
+        });
+        
+        // Catch uncaught errors
+        window.addEventListener('error', function(event) {
+            window._errorCount++;
+            window._lastError = event.error || event.message;
+            console.error('[DEBUG] ❌❌❌ UNCAUGHT ERROR:', event.error || event.message);
+            console.error('[DEBUG] Error at:', event.filename, 'line', event.lineno, 'col', event.colno);
+            if (event.error && event.error.stack) {
+                console.error('[DEBUG] Error stack:', event.error.stack);
+            }
+            console.error('[DEBUG] Total uncaught errors so far:', window._errorCount);
+        });
+        
+        console.log('[DEBUG] ✅ Global error handlers installed');
+    })();
+    
+    // Category Browser Functions (Checkbox-based for Filter Sets)
+    
+    // Load categories with checkboxes for filter set selection
+    window.loadCategories = async function() {
+        const loadStartTime = performance.now();
+        console.group('🔍 [DEBUG] loadCategories() called');
+        console.log('[DEBUG] 📊 Performance: Starting category load at', new Date().toISOString());
+        
+        // Reset recursion tracking
+        window._maxRecursionDepth = 0;
+        
+        try {
+            const browserEl = document.querySelector('.sponsor-category-browser');
+            if (!browserEl) {
+                console.warn('[CATEGORY BROWSER] Category browser not found');
+                return;
+            }
+            
+            let gridEl = browserEl.querySelector('#categories-grid');
+            if (!gridEl) {
+                gridEl = document.createElement('div');
+                gridEl.id = 'categories-grid';
+                gridEl.className = 'categories-grid';
+                browserEl.appendChild(gridEl);
+            }
+            
+            const loadingEl = browserEl.querySelector('#category-loading');
+            
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (gridEl) gridEl.style.display = 'none';
+            
+            // Load full category tree with exclude_explicit=true
+            const categoriesUrl = `{{ url_for('sponsor_catalog.get_categories') }}?exclude_explicit=true`;
+            const response = await fetch(categoriesUrl);
+            const data = await response.json();
+            
+            if (!data.categories) {
+                if (loadingEl) loadingEl.innerHTML = '<p style="color: var(--text-muted);">No categories available.</p>';
+                return;
+            }
+            
+            // Determine which categories should be selected
+            let selectedIdsSet = null;
+            if (window._pendingCategoryReset !== undefined && window._pendingCategoryReset !== null) {
+                if (window._pendingCategoryReset === 'all') {
+                    selectedIdsSet = 'all';
+                } else if (Array.isArray(window._pendingCategoryReset) && window._pendingCategoryReset.length > 0) {
+                    selectedIdsSet = new Set(window._pendingCategoryReset.map(id => String(id)));
+                } else {
+                    selectedIdsSet = 'none';
+                }
+            } else {
+                // Check rules-json element for existing selections
+                const rulesJsonEl = document.getElementById('rules-json');
+                if (rulesJsonEl) {
+                    try {
+                        const rules = JSON.parse(rulesJsonEl.textContent || '{}');
+                        if (rules.categories && rules.categories.include && Array.isArray(rules.categories.include) && rules.categories.include.length > 0) {
+                            selectedIdsSet = new Set(rules.categories.include.map(id => String(id)));
+                        } else {
+                            selectedIdsSet = new Set(); // Empty set for edit page when no categories selected
+                        }
+                    } catch (e) {
+                        selectedIdsSet = new Set(); // Empty set on error
+                    }
+                } else {
+                    selectedIdsSet = new Set(); // Empty set if no rules-json element
+                }
+            }
+            
+            // Ensure selectedIdsSet is never null - default to empty Set if somehow it still is
+            if (selectedIdsSet === null) {
+                console.warn('[DEBUG] ⚠️ selectedIdsSet is null, defaulting to empty Set');
+                selectedIdsSet = new Set();
+            }
+            
+            // Render categories with checkboxes
+            console.log('[DEBUG] Step: Rendering category tree...');
+            try {
+                const renderStartTime = performance.now();
+                console.log('[DEBUG] 📊 Starting render at', new Date().toISOString());
+                
+                renderCategoryTreeWithCheckboxes(data.categories, gridEl, 0, selectedIdsSet);
+                
+                const renderTime = performance.now() - renderStartTime;
+                console.log(`[DEBUG] ✅ Category tree rendered (took ${renderTime.toFixed(2)}ms)`);
+                
+                // Check memory after rendering
+                if (performance.memory) {
+                    const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+                    console.log(`[DEBUG] 📊 Memory usage after render: ${memMB} MB`);
+                }
+                
+                // Count elements created
+                const checkboxes = gridEl.querySelectorAll('.category-checkbox');
+                const parentCheckboxes = gridEl.querySelectorAll('.category-parent-checkbox');
+                console.log(`[DEBUG] 📊 Elements created: ${checkboxes.length} checkboxes, ${parentCheckboxes.length} parent checkboxes`);
+            } catch (renderError) {
+                console.error('[DEBUG] ❌ Error rendering category tree:', renderError);
+                console.error('[DEBUG] Error name:', renderError.name);
+                console.error('[DEBUG] Error message:', renderError.message);
+                console.error('[DEBUG] Stack trace:', renderError.stack);
+                throw renderError;
+            }
+            
+            // Apply pending category reset if any (for immediate updates)
+            if (window._pendingCategoryReset !== undefined) {
+                setTimeout(() => {
+                    const checkboxes = document.querySelectorAll('.category-checkbox');
+                    if (checkboxes.length > 0) {
+                        if (window._pendingCategoryReset === 'all') {
+                            checkboxes.forEach(cb => {
+                                cb.checked = true;
+                                updateCheckboxHighlight(cb);
+                            });
+                        } else if (Array.isArray(window._pendingCategoryReset)) {
+                            const idsSet = new Set(window._pendingCategoryReset.map(id => String(id)));
+                            checkboxes.forEach(cb => {
+                                cb.checked = idsSet.has(String(cb.value));
+                                updateCheckboxHighlight(cb);
+                            });
+                        }
+                        window._pendingCategoryReset = null;
+                    }
+                }, 50);
+            }
+            
+            // Update all highlights and parent checkboxes after rendering
+            setTimeout(() => {
+                document.querySelectorAll('.category-checkbox').forEach(cb => {
+                    updateCheckboxHighlight(cb);
+                });
+                updateParentCheckboxes();
+            }, 150);
+            
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (gridEl) gridEl.style.display = 'block';
+            
+            // Update toggle all button after categories are loaded
+            setTimeout(() => {
+                updateToggleAllButton();
+            }, 100);
+            
+            const totalLoadTime = performance.now() - loadStartTime;
+            console.log(`[DEBUG] ✅ loadCategories() completed successfully`);
+            console.log(`[DEBUG] 📊 Total load time: ${totalLoadTime.toFixed(2)}ms (${(totalLoadTime/1000).toFixed(2)}s)`);
+            
+            // Final memory check
+            if (performance.memory) {
+                const memMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+                console.log(`[DEBUG] 📊 Final memory usage: ${memMB} MB`);
+            }
+            
+            console.groupEnd();
+        } catch (error) {
+            const totalLoadTime = performance.now() - loadStartTime;
+            console.error('[DEBUG] ❌❌❌ FATAL ERROR in loadCategories():', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+            console.error(`[DEBUG] 📊 Load failed after ${totalLoadTime.toFixed(2)}ms`);
+            console.groupEnd();
+            
+            const loadingEl = document.querySelector('.sponsor-category-browser #category-loading');
+            if (loadingEl) {
+                loadingEl.innerHTML = '<p style="color: #ef4444;">Error loading categories: ' + error.message + '</p>';
+            }
+            
+            // Log error count
+            if (window._errorCount) {
+                console.error(`[DEBUG] ⚠️ Total unhandled errors during load: ${window._errorCount}`);
+            }
+        }
+    };
+    
+    // Helper function to count total leaf categories in a node
+    function countLeafCategories(node) {
+        if (typeof node !== 'object' || node === null) return 0;
+        const values = Object.values(node);
+        const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+        if (allValuesAreStrings) {
+            return Object.keys(node).length;
+        }
+        let total = 0;
+        for (const subcat of Object.values(node)) {
+            total += countLeafCategories(subcat);
+        }
+        return total;
+    }
+    
+    // Helper function to extract all category IDs from a node
+    function extractCategoryIds(node, ids = []) {
+        if (typeof node !== 'object' || node === null) return ids;
+        const values = Object.values(node);
+        const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+        if (allValuesAreStrings) {
+            ids.push(...Object.keys(node));
+        } else {
+            for (const subcat of Object.values(node)) {
+                extractCategoryIds(subcat, ids);
+            }
+        }
+        return ids;
+    }
+    
+    // Render category tree with checkboxes (for filter set selection)
+    function renderCategoryTreeWithCheckboxes(data, container, level = 0, selectedIdsSet = null) {
+        const startTime = performance.now();
+        const recursionDepth = level;
+        
+        // Track max recursion depth
+        if (!window._maxRecursionDepth) window._maxRecursionDepth = 0;
+        if (recursionDepth > window._maxRecursionDepth) {
+            window._maxRecursionDepth = recursionDepth;
+            console.warn(`[DEBUG] ⚠️ NEW MAX RECURSION DEPTH: ${recursionDepth}`);
+        }
+        
+        // Warn about deep recursion
+        if (recursionDepth > 10) {
+            console.warn(`[DEBUG] ⚠️ WARNING: Deep recursion detected (level ${recursionDepth})`);
+        }
+        
+        console.log(`[DEBUG] renderCategoryTreeWithCheckboxes called - level: ${level}, hasContainer: ${!!container}`);
+        
+        try {
+            if (!data || typeof data !== 'object') {
+                console.error('[DEBUG] ❌ Invalid data passed to renderCategoryTreeWithCheckboxes:', data);
+                return '';
+            }
+            
+            let html = '';
+            const entries = Object.entries(data);
+            console.log(`[DEBUG] Processing ${entries.length} category entries at level ${level}`);
+            
+            for (const [categoryName, subcategories] of entries) {
+            if (typeof subcategories === 'object' && subcategories !== null) {
+                const values = Object.values(subcategories);
+                const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                
+                if (allValuesAreStrings) {
+                    // Leaf categories - check if only one subcategory
+                    const categoryEntries = Object.entries(subcategories);
+                    if (categoryEntries.length === 1) {
+                        // Single subcategory - render directly as checkbox, no dropdown
+                        const [catId, catName] = categoryEntries[0];
+                        const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                        const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                        html += `
+                            <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                <span>${catName}</span>
+                            </label>
+                        `;
+                    } else {
+                        // Multiple leaf categories - render as checkboxes
+                        for (const [catId, catName] of categoryEntries) {
+                            const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                            const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                            html += `
+                                <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                    <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                    <span>${catName}</span>
+                                </label>
+                            `;
+                        }
+                    }
+                } else {
+                    // Nested structure - check if only one subcategory exists at this level
+                    const leafCount = countLeafCategories(subcategories);
+                    if (leafCount === 1) {
+                        // Only one subcategory total - find and render it directly
+                        function findSingleLeaf(node) {
+                            const values = Object.values(node);
+                            const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                            if (allValuesAreStrings) {
+                                return Object.entries(node)[0];
+                            }
+                            for (const subcat of Object.values(node)) {
+                                const result = findSingleLeaf(subcat);
+                                if (result) return result;
+                            }
+                            return null;
+                        }
+                        const singleLeaf = findSingleLeaf(subcategories);
+                        if (singleLeaf) {
+                            const [catId, catName] = singleLeaf;
+                            const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const isSelected = selectedIdsSet === null || selectedIdsSet === 'all' || (selectedIdsSet instanceof Set && selectedIdsSet.has(String(catId)));
+                            const highlightClass = isSelected ? 'category-checkbox-selected' : '';
+                            html += `
+                                <label class="category-checkbox-label ${highlightClass}" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 6px; transition: background 0.2s;">
+                                    <input type="checkbox" class="category-checkbox" value="${catId}" data-category-name="${escapedName}" ${isSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="updateToggleAllButton(); updateCheckboxHighlight(this); updateParentCheckboxes();">
+                                    <span>${catName}</span>
+                                </label>
+                            `;
+                        }
+                    } else {
+                        // Multiple subcategories - render as collapsible section with checkbox in header
+                        const uniqueId = `fs-cat-${categoryName.replace(/\s+/g, '-').toLowerCase()}-${level}`;
+                        const sectionCategoryIds = extractCategoryIds(subcategories);
+                        // Check if all children should be selected
+                        let allChildrenSelected = false;
+                        if (selectedIdsSet === 'all') {
+                            allChildrenSelected = true;
+                        } else if (selectedIdsSet instanceof Set && selectedIdsSet.size > 0) {
+                            allChildrenSelected = sectionCategoryIds.length > 0 && sectionCategoryIds.every(id => selectedIdsSet.has(String(id)));
+                        } else if (selectedIdsSet === 'none') {
+                            allChildrenSelected = false;
+                        }
+                        html += `
+                            <details class="category-section" data-category-ids="${sectionCategoryIds.join(',')}" style="margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: var(--bg-secondary);">
+                                <summary style="padding: 8px; cursor: pointer; font-weight: 600; color: var(--text-primary); list-style: none; display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="category-parent-checkbox" data-category-ids="${sectionCategoryIds.join(',')}" ${allChildrenSelected && selectedIdsSet !== 'none' ? 'checked' : ''} onchange="toggleCategorySection(this); event.stopPropagation();" style="cursor: pointer; margin: 0;">
+                                    <span style="user-select: none; flex: 1;">${categoryName}</span>
+                                </summary>
+                                <div style="padding: 8px; padding-left: 20px;">
+                                    ${renderCategoryTreeWithCheckboxes(subcategories, null, level + 1, selectedIdsSet)}
+                                </div>
+                            </details>
+                        `;
+                    }
+                }
+            }
+        }
+        
+        const elapsed = performance.now() - startTime;
+        const htmlSizeKB = (html.length / 1024).toFixed(2);
+        
+        if (container) {
+            console.log(`[DEBUG] Setting innerHTML for container (length: ${html.length} chars, ${htmlSizeKB} KB, took ${elapsed.toFixed(2)}ms)`);
+            
+            // Warn about large HTML
+            if (html.length > 500000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: Large HTML string (${htmlSizeKB} KB) - may cause performance issues`);
+            }
+            
+            try {
+                const setHTMLStart = performance.now();
+                container.innerHTML = html;
+                const setHTMLTime = performance.now() - setHTMLStart;
+                console.log(`[DEBUG] ✅ HTML set successfully (innerHTML operation took ${setHTMLTime.toFixed(2)}ms)`);
+            } catch (innerHTMLError) {
+                console.error('[DEBUG] ❌ Error setting innerHTML:', innerHTMLError);
+                console.error('[DEBUG] HTML length was:', html.length);
+                console.error('[DEBUG] Error name:', innerHTMLError.name);
+                console.error('[DEBUG] Error message:', innerHTMLError.message);
+                throw innerHTMLError;
+            }
+        }
+        
+        if (level === 0) {
+            console.log(`[DEBUG] ✅ renderCategoryTreeWithCheckboxes completed (root level) - Total time: ${elapsed.toFixed(2)}ms, HTML size: ${htmlSizeKB} KB`);
+            console.log(`[DEBUG] 📊 Max recursion depth reached: ${window._maxRecursionDepth || 0}`);
+        }
+        
+        return html;
+        } catch (renderError) {
+            console.error(`[DEBUG] ❌ Error in renderCategoryTreeWithCheckboxes at level ${level}:`, renderError);
+            console.error('[DEBUG] Error name:', renderError.name);
+            console.error('[DEBUG] Error message:', renderError.message);
+            console.error('[DEBUG] Error stack:', renderError.stack);
+            
+            // Check if it's a stack overflow
+            if (renderError.message && renderError.message.includes('Maximum call stack')) {
+                console.error('[DEBUG] ❌❌❌ STACK OVERFLOW DETECTED!');
+                console.error(`[DEBUG] Recursion depth was: ${level}`);
+            }
+            
+            throw renderError;
+        }
+    }
+    
+    // Reset category browser checkboxes
+    function resetCategoryBrowser(selectedIds = null) {
+        if (selectedIds === null || selectedIds === undefined) {
+            window._pendingCategoryReset = 'all';
+        } else {
+            window._pendingCategoryReset = Array.isArray(selectedIds) ? selectedIds.map(id => String(id)) : [String(selectedIds)];
+        }
+        
+        setTimeout(() => {
+            const checkboxes = document.querySelectorAll('.category-checkbox');
+            if (checkboxes.length > 0) {
+                if (selectedIds === null || selectedIds === undefined) {
+                    checkboxes.forEach(cb => cb.checked = true);
+                } else {
+                    const idsArray = Array.isArray(selectedIds) ? selectedIds : [selectedIds];
+                    const idsSet = new Set(idsArray.map(id => String(id)));
+                    checkboxes.forEach(cb => {
+                        cb.checked = idsSet.has(String(cb.value));
+                        updateCheckboxHighlight(cb);
+                    });
+                }
+                window._pendingCategoryReset = null;
+            }
+            // Update toggle all button and parent checkboxes after applying reset
+            setTimeout(() => {
+                updateToggleAllButton();
+                if (window.updateParentCheckboxes) {
+                    updateParentCheckboxes();
+                }
+            }, 50);
+            }
+        }, 100);
+    }
+    
+    // Get selected category IDs from checkboxes
+    function getSelectedCategoryIds() {
+        const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+    
+    // Update toggle all button text based on selection state
+    function updateToggleAllButton() {
+        const btn = document.querySelector('#toggleAllCategories');
+        if (!btn) return;
+        
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        const checkedCount = document.querySelectorAll('.category-checkbox:checked').length;
+        
+        btn.textContent = checkedCount === 0 ? 'Select All' : 'Deselect All';
+    }
+    
+    // Toggle all categories
+    window.toggleAllCategories = function() {
+        const btn = document.querySelector('#toggleAllCategories');
+        if (!btn) return;
+        
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        const checkedCount = document.querySelectorAll('.category-checkbox:checked').length;
+        const allChecked = checkedCount === checkboxes.length;
+        
+        // Toggle all checkboxes
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            updateCheckboxHighlight(cb);
+        });
+        
+        // Toggle all parent checkboxes
+        const parentCheckboxes = document.querySelectorAll('.category-parent-checkbox');
+        parentCheckboxes.forEach(pcb => {
+            pcb.checked = !allChecked;
+            pcb.indeterminate = false;
+        });
+        
+        // Update button text
+        updateToggleAllButton();
+    };
+    
+    // Toggle all categories in a section when parent checkbox is clicked
+    function toggleCategorySection(parentCheckbox) {
+        const categoryIds = parentCheckbox.getAttribute('data-category-ids');
+        if (!categoryIds) return;
+        
+        const idsArray = categoryIds.split(',').map(id => id.trim());
+        
+        // Find the parent <details> element containing this checkbox
+        const parentDetails = parentCheckbox.closest('.category-section');
+        
+        // Find all nested parent checkboxes (subcategory dropdowns) within this section
+        if (parentDetails) {
+            const nestedParentCheckboxes = parentDetails.querySelectorAll('.category-parent-checkbox');
+            nestedParentCheckboxes.forEach(nestedParent => {
+                // Skip the checkbox we're currently toggling
+                if (nestedParent !== parentCheckbox) {
+                    nestedParent.checked = parentCheckbox.checked;
+                    nestedParent.indeterminate = false;
+                    // Recursively toggle the nested section as well
+                    toggleCategorySection(nestedParent);
+                }
+            });
+        }
+        
+        // Find all individual category checkboxes with these category IDs
+        idsArray.forEach(catId => {
+            const checkbox = document.querySelector(`.category-checkbox[value="${catId}"]`);
+            if (checkbox) {
+                checkbox.checked = parentCheckbox.checked;
+                updateCheckboxHighlight(checkbox);
+            }
+        });
+        
+        // Update main toggle button
+        updateToggleAllButton();
+    }
+    
+    // Update parent checkboxes when child checkboxes change
+    function updateParentCheckboxes() {
+        const updateStartTime = performance.now();
+        console.log('[DEBUG] updateParentCheckboxes called');
+        try {
+            const parentCheckboxes = document.querySelectorAll('.category-parent-checkbox');
+            console.log('[DEBUG] Found', parentCheckboxes.length, 'parent checkboxes');
+            
+            if (parentCheckboxes.length > 1000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: Processing ${parentCheckboxes.length} parent checkboxes - this may take a while`);
+            }
+            
+            // Build a Map of category IDs to checkboxes for O(1) lookups instead of repeated querySelector calls
+            const checkboxMap = new Map();
+            const allCheckboxes = document.querySelectorAll('.category-checkbox');
+            allCheckboxes.forEach(cb => {
+                checkboxMap.set(String(cb.value), cb);
+            });
+            console.log('[DEBUG] Built checkbox map with', checkboxMap.size, 'entries');
+            
+            let processedCount = 0;
+            parentCheckboxes.forEach((parentCb, index) => {
+                processedCount++;
+                if (processedCount % 500 === 0) {
+                    console.log(`[DEBUG] Processing parent checkbox ${processedCount}/${parentCheckboxes.length}...`);
+                }
+            const categoryIds = parentCb.getAttribute('data-category-ids');
+            if (!categoryIds) return;
+            
+            const idsArray = categoryIds.split(',').map(id => id.trim());
+            let allChecked = true;
+            let anyChecked = false;
+            
+            idsArray.forEach(catId => {
+                const childCb = checkboxMap.get(String(catId));
+                if (childCb) {
+                    if (childCb.checked) {
+                        anyChecked = true;
+                    } else {
+                        allChecked = false;
+                    }
+                }
+            });
+            
+            // Set indeterminate state if some but not all are checked
+            if (anyChecked && !allChecked) {
+                parentCb.indeterminate = true;
+                parentCb.checked = false;
+            } else {
+                parentCb.indeterminate = false;
+                parentCb.checked = allChecked;
+            }
+            });
+            
+            const updateTime = performance.now() - updateStartTime;
+            console.log(`[DEBUG] ✅ updateParentCheckboxes completed (processed ${processedCount} checkboxes in ${updateTime.toFixed(2)}ms)`);
+            
+            if (updateTime > 1000) {
+                console.warn(`[DEBUG] ⚠️ WARNING: updateParentCheckboxes took ${(updateTime/1000).toFixed(2)}s - performance issue`);
+            }
+        } catch (error) {
+            console.error('[DEBUG] ❌ Error in updateParentCheckboxes:', error);
+            console.error('[DEBUG] Error name:', error.name);
+            console.error('[DEBUG] Error message:', error.message);
+            console.error('[DEBUG] Error stack:', error.stack);
+        }
+    }
+    
+    // Update checkbox highlight based on checked state
+    function updateCheckboxHighlight(checkbox) {
+        const label = checkbox.closest('.category-checkbox-label');
+        if (!label) return;
+        
+        if (checkbox.checked) {
+            label.classList.add('category-checkbox-selected');
+        } else {
+            label.classList.remove('category-checkbox-selected');
+        }
+    }
+    
+    // Make functions globally accessible
+    window.resetCategoryBrowser = resetCategoryBrowser;
+    window.getSelectedCategoryIds = getSelectedCategoryIds;
+    window.updateToggleAllButton = updateToggleAllButton;
+    window.toggleCategorySection = toggleCategorySection;
+    window.updateParentCheckboxes = updateParentCheckboxes;
+    window.updateCheckboxHighlight = updateCheckboxHighlight;
+    
+    (function initCategoryBrowser() {
+        try {
+            const raw = document.getElementById('rules-json')?.textContent || '{}';
+            const rules = JSON.parse(raw || '{}');
+            const ids = (rules.categories && rules.categories.include) || [];
+            resetCategoryBrowser(ids);
+        } catch (e) {
+            resetCategoryBrowser();
+        }
+        // Load categories after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            if (typeof window.loadCategories === 'function') {
+                window.loadCategories().catch(() => {
+                    // Silently handle errors
+                });
+            }
+        }, 200);
+    })();
+
+    async function updateFS(ev) {
+        ev.preventDefault();
+
+        // 1) Gather rules and merge category selections
+        let rules = {};
+        try {
+            rules = JSON.parse(document.getElementById('rules').value || '{}');
+        } catch (e) {
+            alert('Rules JSON is invalid.');
+            return false;
+        }
+        rules.categories = rules.categories || {};
+        let selectedIds = getSelectedCategoryIds();
+        const originalCount = selectedIds.length;
+        
+        // Filter out adult categories if exclude_explicit is enabled
+        const excludeExplicit = rules.safety && rules.safety.exclude_explicit;
+        if (excludeExplicit) {
+            // Adult category IDs from policies.py
+            const adultCategoryIds = new Set(["281", "184065", "293", "14080", "11450", "11433", "550", "11731"]);
+            const adultCatsFound = selectedIds.filter(id => adultCategoryIds.has(String(id)));
+            selectedIds = selectedIds.filter(id => !adultCategoryIds.has(String(id)));
+            
+            if (adultCatsFound.length > 0) {
+                console.group('🛡️ [ADULT_FILTER] Filter Set Edit - Adult Categories Filtered');
+                console.log(`Filtered out ${adultCatsFound.length} adult categories (${originalCount} -> ${selectedIds.length})`);
+                console.log('Adult category IDs removed:', adultCatsFound);
+                console.groupEnd();
+            }
+        }
+        
+        rules.categories.include = selectedIds;
+        
+        console.log(`[ADULT_FILTER] Filter Set Edit - Final category count: ${selectedIds.length} categories (exclude_explicit=${excludeExplicit})`);
+        
+        // Debug: Log categories being saved
+        console.group('💾 Sponsor Filter Set - Saving Filter Set');
+        console.log('Filter Set Name:', document.getElementById('name').value.trim());
+        console.log('Selected Category IDs:', selectedIds.join(', '));
+        console.log('Total categories selected:', selectedIds.length);
+        console.groupEnd();
+
+        // 2) Build payload (name + rules only; no more priority/active)
+        const fd = new FormData();
+        fd.append('name', document.getElementById('name').value.trim());
+        fd.append('rules_json', JSON.stringify(rules));
+
+        // 3) Submit
+        const url = "{{ url_for('sponsor_catalog.update_filter_set', fsid=row.id) }}";
+        const r = await fetch(url, { method: 'POST', body: fd });
+        if (r.ok) {
+            location.href = "{{ url_for('sponsor_catalog.filter_sets') }}";
+        } else {
+            alert('Update failed');
+        }
+        return false;
+    }
+</script>
+{% endblock %}

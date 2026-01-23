@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import Audit Log{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Bulk Import Audit Log</h1>
+      <p>Track every bulk import event, review outcomes, and identify error rows that need attention.</p>
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form class="admin-form" method="get">
+      <div class="form-grid">
+        <div>
+          <label for="filter-q">Search</label>
+          <input id="filter-q" type="text" name="q" value="{{ q or '' }}" placeholder="Search by uploader, filename, or company">
+        </div>
+        <div>
+          <label for="company-filter">Company</label>
+          <select id="company-filter" name="company_filter" onchange="this.form.submit()">
+            <option value="">All Companies</option>
+            {% for company in companies %}
+              <option value="{{ company.CompanyName }}" {% if company_filter==company.CompanyName %}selected{% endif %}>{{ company.CompanyName }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="date-from">From Date</label>
+          <input id="date-from" type="date" name="date_from" value="{{ date_from or '' }}" onchange="this.form.submit()">
+        </div>
+        <div>
+          <label for="date-to">To Date</label>
+          <input id="date-to" type="date" name="date_to" value="{{ date_to or '' }}" onchange="this.form.submit()">
+        </div>
+        <div>
+          <label for="sort-order">Sort</label>
+          <select id="sort-order" name="sort" onchange="this.form.submit()">
+            <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+            <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">
+          <i class="fas fa-filter"></i>
+          <span>Apply Filters</span>
+        </button>
+        <a href="{{ url_for('admin.bulk_import_audit_log') }}" class="btn btn-secondary">
+          <i class="fas fa-undo"></i>
+          <span>Reset</span>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <div class="admin-floating-actions">
+        <h2>Import History</h2>
+        <span class="admin-muted">{{ logs|length }} session{{ 's' if logs|length != 1 }}</span>
+      </div>
+    </header>
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Imported At</th>
+            <th>Company</th>
+            <th>Uploaded By</th>
+            <th>Role</th>
+            <th>File Name</th>
+            <th>Total Rows</th>
+            <th>Success</th>
+            <th>Errors</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bulk_log, account, company in logs %}
+          <tr>
+            <td>{{ bulk_log.ImportedAt.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              {% if company %}
+                <strong>{{ company.CompanyName }}</strong>
+              {% else %}
+                <span class="admin-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="user-primary">{{ account.FirstName }} {{ account.LastName }}</div>
+              <div class="user-secondary">{{ account.Email }}</div>
+            </td>
+            <td>
+              <span class="badge-type">{{ bulk_log.UploadedByRole }}</span>
+            </td>
+            <td>{{ bulk_log.FileName }}</td>
+            <td>{{ bulk_log.TotalRows }}</td>
+            <td><span class="admin-badge-success">{{ bulk_log.SuccessCount }}</span></td>
+            <td>
+              {% if bulk_log.ErrorCount > 0 %}
+                <span class="admin-badge-error">{{ bulk_log.ErrorCount }}</span>
+              {% else %}
+                <span class="admin-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if bulk_log.ErrorCount > 0 %}
+                <a href="{{ url_for('admin.bulk_import_error_details', log_id=bulk_log.BulkImportLogID) }}" class="admin-link">View Errors</a>
+              {% else %}
+                <span class="admin-muted">No errors</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9">
+              <div class="admin-empty-state">
+                <i class="fas fa-file-circle-question"></i>
+                <p>No bulk import logs found.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

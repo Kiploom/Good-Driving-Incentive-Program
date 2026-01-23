@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Sponsor Analytics{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      {% if selected_sponsor %}
+        <h1>{{ selected_sponsor.Company }} Company Analytics</h1>
+        <p class="admin-page-description">
+          Company-level metrics, performance insights, and recent points activity for {{ selected_sponsor.Company }}. This table displays sponsor information, driver relationships, and point change transactions. New entries are created when drivers make purchases, receive refunds/cancellations, have points manually adjusted by sponsors, when point disputes are resolved, when new drivers are assigned to sponsors, or when new sponsors are created. Sponsors without drivers or point changes will show 'N/A' for related columns.
+        </p>
+      {% else %}
+        <h1>Sponsor Analytics</h1>
+        <p class="admin-page-description">
+          Company-level metrics, driver counts, and performance comparisons across all sponsors. This table displays sponsor information, driver relationships, and point change transactions. New entries are created when drivers make purchases, receive refunds/cancellations, have points manually adjusted by sponsors, when point disputes are resolved, when new drivers are assigned to sponsors, or when new sponsors are created. Sponsors without drivers or point changes will show 'N/A' for related columns.
+        </p>
+      {% endif %}
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Analytics</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form class="admin-form" method="get">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Company</label>
+          <select id="company-filter" name="company_filter" onchange="this.form.submit()">
+            <option value="">All companies</option>
+            {% for sponsor_id, sponsor_name in sponsors %}
+              <option value="{{ sponsor_name }}" {% if company_filter == sponsor_name %}selected{% endif %}>{{ sponsor_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="date_from">From Date</label>
+          <input type="date" id="date_from" name="date_from" value="{{ date_from or '' }}" onchange="this.form.submit()">
+        </div>
+
+        <div>
+          <label for="date_to">To Date</label>
+          <input type="date" id="date_to" name="date_to" value="{{ date_to or '' }}" onchange="this.form.submit()">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">Apply Filters</button>
+        {% if selected_sponsor %}
+          <a class="btn btn-secondary" href="{{ url_for('admin.analytics_sponsor_analytics', company_filter=company_filter) }}">
+            Reset Filters
+          </a>
+        {% else %}
+          <a class="btn btn-secondary" href="{{ url_for('admin.analytics_sponsor_analytics') }}">
+            Reset Filters
+          </a>
+        {% endif %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_sponsor_analytics_pdf', company_filter=company_filter, date_from=date_from, date_to=date_to) }}" target="_blank">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_sponsor_analytics_csv', company_filter=company_filter, date_from=date_from, date_to=date_to) }}">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="admin-card">
+    <h2>Company Performance Metrics</h2>
+    <div class="admin-summary">
+      <div class="admin-summary-item">
+        <span class="label">Total Records</span>
+        <span class="value">{{ rows|length }}</span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Unique Sponsors</span>
+        <span class="value">
+          {% set unique_sponsors = rows|map(attribute='0')|unique|list|length %}
+          {{ unique_sponsors }}
+        </span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Active Drivers</span>
+        <span class="value">
+          {% set unique_drivers = rows|map(attribute='3')|reject('equalto', None)|map(attribute='DriverID')|unique|list|length %}
+          {{ unique_drivers }}
+        </span>
+      </div>
+      <div class="admin-summary-item">
+        <span class="label">Total Points Issued</span>
+        <span class="value">
+          {% set total_points = rows|map(attribute='4')|reject('equalto', None)|map(attribute='DeltaPoints')|sum %}
+          {{ total_points or 0 }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <h2>Sponsor Performance Data</h2>
+      <p class="admin-muted">Detailed sponsor configuration, engagement, and recent point distributions. Each row represents a sponsor-driver-point change combination. New entries are created when drivers make purchases, receive refunds/cancellations, have points manually adjusted by sponsors, when point disputes are resolved, when new drivers are assigned to sponsors, or when new sponsors are created. Sponsors without drivers or point changes will show 'N/A' for related columns.</p>
+    </header>
+    <div class="table-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Contact Name</th>
+            <th>Email</th>
+            <th>Admin Status</th>
+            <th>Point Rate</th>
+            <th>Min Points</th>
+            <th>Max Points</th>
+            <th>Driver Count</th>
+            <th>Points Issued</th>
+            <th>Last Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sponsor, account, sponsor_company, driver, point_change in rows %}
+          <tr>
+            <td>
+              <span class="table-strong">
+                {{ sponsor_company.CompanyName if sponsor_company else sponsor.Company }}
+              </span>
+            </td>
+            <td>{{ account.FirstName }} {{ account.LastName }}</td>
+            <td>{{ account.Email }}</td>
+            <td>
+              {% if sponsor.IsAdmin %}
+                <span class="admin-status-badge admin-status-badge--info">Admin</span>
+              {% else %}
+                <span class="admin-status-badge admin-status-badge--unknown">Standard</span>
+              {% endif %}
+            </td>
+            <td>${{ "%.2f"|format(sponsor.PointToDollarRate) }}</td>
+            <td>{{ sponsor.MinPointsPerTxn }}</td>
+            <td>{{ sponsor.MaxPointsPerTxn }}</td>
+            <td>{{ 1 if driver else 0 }}</td>
+            <td>
+              {% if point_change %}
+                <span class="{{ 'admin-points-positive' if point_change.DeltaPoints > 0 else 'admin-points-negative' }}">
+                  {{ '+' if point_change.DeltaPoints > 0 else '' }}{{ point_change.DeltaPoints }}
+                </span>
+              {% else %}
+                <span class="admin-muted">N/A</span>
+              {% endif %}
+            </td>
+            <td>{{ point_change.CreatedAt.strftime('%Y-%m-%d %H:%M') if point_change else 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if not rows %}
+  <div class="admin-card">
+    <div class="admin-empty-state">
+      <i class="fas fa-chart-line"></i>
+      <p>No sponsor analytics data found for the selected filters.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

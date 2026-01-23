@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Flask App Light Mode Colors -->
+    <!-- Background Colors -->
+    <color name="bg_primary">#FAFAF9</color>
+    <color name="bg_secondary">#FFFFFF</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_hover">#F5F5F4</color>
+    <color name="bg_input">#FFFFFF</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#1F2937</color>
+    <color name="text_secondary">#374151</color>
+    <color name="text_muted">#6B7280</color>
+    <color name="text_inverse">#FFFFFF</color>
+    
+    <!-- Accent Colors (Gold) -->
+    <color name="accent">#F59E0B</color>
+    <color name="accent_hover">#D97706</color>
+    <color name="accent_light">#FCD34D</color>
+    <color name="accent_border">#F59E0B</color>
+    
+    <!-- Border Colors -->
+    <color name="border">#E5E7EB</color>
+    <color name="border_light">#F3F4F6</color>
+    <color name="border_dark">#D1D5DB</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#10B981</color>
+    <color name="success_strong">#059669</color>
+    <color name="success_soft">#2910B981</color>
+    <color name="error">#EF4444</color>
+    <color name="error_strong">#DC2626</color>
+    <color name="error_soft">#29EF4444</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_soft">#29F59E0B</color>
+    <color name="info">#3B82F6</color>
+    <color name="info_strong">#2563EB</color>
+    <color name="info_soft">#293B82F6</color>
+    
+    <!-- Legacy/Compatibility Colors (using Flask theme) -->
+    <color name="purple_200">#FFFCD34D</color>
+    <color name="purple_500">#FFF59E0B</color>
+    <color name="purple_700">#FFD97706</color>
+    <color name="teal_200">#FF10B981</color>
+    <color name="teal_700">#FF059669</color>
+    
+    <!-- Button Colors -->
+    <color name="button_outline_dark_gray">#FFE5E7EB</color>
+    <color name="button_selected_green">#33F59E0B</color>
+    
+    <!-- Additional UI Colors -->
+    <color name="card_background_placeholder">#F5F5F5</color>
+    <color name="thumbnail_background">#E5E7EB</color>
+    <color name="product_card_background">#F5F5F5</color>
+    <color name="related_product_overlay">#80FFFFFF</color>
+    
+    <!-- Badge Colors (Light Mode) -->
+    <color name="badge_warning_bg">#FFF3CD</color>
+    <color name="badge_warning_text">#92400E</color>
+    <color name="badge_error_bg">#F8D7DA</color>
+    <color name="badge_error_text">#721C24</color>
+    <color name="badge_success_bg">#D1FAE5</color>
+    <color name="badge_success_text">#065F46</color>
+    
+    <!-- Spec Row Background -->
+    <color name="spec_row_background">#F9FAFB</color>
+    
+    <!-- Shimmer/Placeholder Colors (Light Mode) -->
+    <color name="shimmer_start">#E0E0E0</color>
+    <color name="shimmer_center">#F5F5F5</color>
+    <color name="shimmer_end">#E0E0E0</color>
+    <color name="shimmer_base">#BDBDBD</color>
+    
+    <!-- Drawable Colors -->
+    <color name="favorite_icon">#FF4444</color>
+    <color name="delete_button">#EF4444</color>
+    <color name="points_container">#F59E0B</color>
+    <color name="points_container_dark">#D97706</color>
+    <color name="pinned_badge">#F59E0B</color>
+    <color name="edittext_border">#CCCCCC</color>
+    
+    <!-- Order Status Colors (Light Mode) -->
+    <color name="status_completed_bg">#E3F2FD</color>
+    <color name="status_completed_text">#1976D2</color>
+    <color name="status_pending_bg">#FFF3CD</color>
+    <color name="status_pending_text">#F57F17</color>
+    <color name="status_refunded_bg">#FFEBEE</color>
+    <color name="status_refunded_text">#C62828</color>
+    <color name="status_default_bg">#F5F5F5</color>
+    <color name="status_default_text">#757575</color>
+    
+    <!-- Chart Colors -->
+    <color name="chart_earned">#10B981</color>
+    <color name="chart_spent">#EF4444</color>
+    <color name="chart_text_black">#FF000000</color>
+    <color name="chart_blue">#3B82F6</color>
+    <color name="chart_warning">#F59E0B</color>
+    <color name="chart_info">#3B82F6</color>
+    <color name="chart_purple">#9333EA</color>
+    <color name="chart_cyan">#06B6D4</color>
+    <color name="chart_amber">#F59E0B</color>
+    <color name="chart_brown">#92400E</color>
+    <color name="chart_grey">#6B7280</color>
+    <color name="chart_pink">#EC4899</color>
+</resources>

@@ -1,0 +1,908 @@
+{% extends "sponsor_catalog/base.html" %}
+{% block title %}{{ product.title }}{% endblock %}
+
+{% block body %}
+<div class="product-detail-container">
+  <div class="breadcrumb">
+    <a href="{{ url_for('sponsor_catalog.preview_page') }}" class="back-link">← Back to Preview</a>
+  </div>
+
+  <div class="product-detail-grid">
+    <!-- Left Column: Image Gallery -->
+    <div class="product-images">
+      <div class="main-image">
+        <img id="main-product-image" src="{{ product.image }}" alt="{{ product.title }}">
+      </div>
+      {% if product.additional_images %}
+      <div class="thumbnail-gallery">
+        <img src="{{ product.image }}" alt="Image 1" class="thumbnail active" onclick="changeImage('{{ product.image }}', this)">
+        {% for img in product.additional_images[:5] %}
+        <img src="{{ img }}" alt="Image {{ loop.index + 1 }}" class="thumbnail" onclick="changeImage('{{ img }}', this)">
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Product Info -->
+    <div class="product-info-section">
+      <h1 class="product-title">{{ product.title }}</h1>
+      
+      {% if product.subtitle %}
+      <p class="product-subtitle">{{ product.subtitle }}</p>
+      {% endif %}
+
+      <div class="product-price">
+        <span class="points-badge">{{ product.display_price }}</span>
+        {% if product.condition %}
+        <span class="condition-badge">{{ product.condition }}</span>
+        {% endif %}
+          <!-- Dynamic stock indicators that update with variation selection -->
+          <span class="badge low" id="low-stock-badge" style="display:none;">Low stock</span>
+          <span class="badge out-of-stock" id="out-of-stock-badge" style="display:none;">Out of stock</span>
+          <span class="badge available" id="available-badge" style="display:none;">Available</span>
+      </div>
+
+      {% if product.brand %}
+      <div class="product-meta">
+        <strong>Brand:</strong> {{ product.brand }}
+      </div>
+      {% endif %}
+
+      <!-- Variant Selection -->
+      {% if product.variants %}
+      {% set multi_option_variants = {} %}
+      {% for variant_type, options in product.variants.items() %}
+        {% if options|length > 1 %}
+          {% set _ = multi_option_variants.update({variant_type: options}) %}
+        {% endif %}
+      {% endfor %}
+      
+      {% if multi_option_variants %}
+      <div class="variants-section">
+        <h3>Available Options</h3>
+        <p class="variant-note" style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">Select options below. Prices may vary by selection.</p>
+        {% for variant_type, options in multi_option_variants.items() %}
+        <div class="variant-group">
+          <label for="variant-{{ variant_type }}">
+            {{ variant_type }}:
+            <span class="required-indicator" style="color: #ef4444;">*</span>
+          </label>
+          <select id="variant-{{ variant_type }}" class="variant-select" data-variant-type="{{ variant_type }}" required>
+            <option value="">Choose {{ variant_type }}</option>
+            {% for option in options %}
+            <option value="{{ option }}">{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+        <div id="variant-selection-note" style="display:none; margin-top: 12px; padding: 10px; background: #e0f2fe; border-radius: 6px; font-size: 13px; color: #0c4a6e;"></div>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      <!-- Description (minimal - just product details) -->
+      {% if product.subtitle %}
+      <div class="product-description">
+        <h3>About This Item</h3>
+        <div class="description-content">{{ product.subtitle }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Item Specifics -->
+      {% if product.item_specifics %}
+      <div class="item-specifics">
+        <h3>Product Details</h3>
+        <table class="specifics-table">
+          {% for key, value in product.item_specifics.items() %}
+          <tr>
+            <td class="spec-key">{{ key }}</td>
+            <td class="spec-value">{{ value }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+
+      <!-- Actions -->
+      <div class="product-actions">
+        <button type="button" class="pin-btn {{ 'active' if product.is_pinned else '' }}" onclick="togglePin('{{ product.id }}', {{ 'true' if product.is_pinned else 'false' }}, '{{ product.pin_id|escapejs if product.pin_id else '' }}')">
+          <span class="pin-icon">{{ '⭐' if product.is_pinned else '☆' }}</span>
+          <span class="pin-text">{{ 'Remove Recommendation' if product.is_pinned else 'Recommend Product' }}</span>
+        </button>
+        
+        {% if product.url %}
+        <a href="{{ product.url }}" target="_blank" rel="noopener" class="btn-primary">View on eBay</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Full Description Section removed - only showing structured product details table above -->
+
+  <!-- Related Items Section -->
+  <div class="related-items-section">
+    <h2>Related Items</h2>
+    {% if related_items and related_items|length > 0 %}
+    <div class="related-items-grid">
+      {% for item in related_items[:5] %}
+      <a href="{{ url_for('sponsor_catalog.product_detail', item_id=item.id|urlencode) }}" class="related-item-card">
+        {% if item.low_stock %}
+        <span class="badge low related-badge">Low stock{% if item.stock_qty is not none %} ({{ item.stock_qty }}){% endif %}</span>
+        {% endif %}
+        {% if item.no_stock %}
+        <span class="badge out-of-stock related-badge">Out of stock</span>
+        {% endif %}
+        <img src="{{ item.image }}" alt="{{ item.title }}">
+        <div class="related-item-info">
+          <div class="related-item-title">{{ item.title[:60] }}{{ '...' if item.title|length > 60 else '' }}</div>
+          <div class="related-item-points">
+            {% if item.price %}
+              {% if item.price is number %}
+                ${{ "%.2f"|format(item.price) }}
+              {% else %}
+                ${{ item.price }}
+              {% endif %}
+            {% else %}
+              N/A
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #6b7280; text-align: center; padding: 20px;">No related items found for this product.</p>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .product-detail-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .breadcrumb {
+    margin-bottom: 20px;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .product-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 60px;
+  }
+
+  @media (max-width: 968px) {
+    .product-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .product-images {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+  }
+
+  .main-image {
+    background: #f9fafb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .main-image img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+  }
+
+  .thumbnail-gallery {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .thumbnail:hover {
+    border-color: #3b82f6;
+  }
+
+  .thumbnail.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+  }
+
+  .product-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .product-subtitle {
+    font-size: 16px;
+    color: #6b7280;
+    margin-bottom: 20px;
+  }
+
+  .product-price {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .points-badge {
+    font-size: 32px;
+    font-weight: 700;
+    color: #059669;
+  }
+
+  .condition-badge {
+    background: #f3f4f6;
+    color: #374151;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .badge.low {
+    background: #fff3cd;
+    border: 1px solid #f0ad4e;
+    color: #92400e;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+
+  .badge.out-of-stock {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+
+  .badge.available {
+    background: #d1fae5;
+    border: 1px solid #86efac;
+    color: #065f46;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+
+  .product-meta {
+    margin-bottom: 16px;
+    font-size: 15px;
+    color: #374151;
+  }
+
+  .variants-section {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+
+  .variants-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .variant-group {
+    margin-bottom: 16px;
+  }
+
+  .variant-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .variant-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+
+  .variant-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .variant-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .product-description {
+    margin-bottom: 24px;
+  }
+
+  .product-description h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .description-content {
+    color: #374151;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  .item-specifics {
+    margin-bottom: 24px;
+  }
+
+  .item-specifics h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .specifics-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .specifics-table tr {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .specifics-table td {
+    padding: 12px 0;
+    font-size: 14px;
+  }
+
+  .spec-key {
+    font-weight: 500;
+    color: #6b7280;
+    width: 40%;
+  }
+
+  .spec-value {
+    color: #111827;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .product-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .pin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .pin-btn:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+  }
+
+  .pin-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+  }
+
+  .pin-btn.active:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #63398c 100%);
+  }
+
+  .pin-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pin-icon {
+    font-size: 18px;
+  }
+
+  .btn-primary {
+    display: block;
+    text-align: center;
+    padding: 14px 24px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: #2563eb;
+  }
+
+  .related-items-section {
+    margin-top: 40px;
+    padding: 24px;
+    background: #f9fafb;
+    border-radius: 12px;
+  }
+
+  .related-items-section h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #111827;
+  }
+
+  .related-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .related-item-card {
+    display: block;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .related-item-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-item-card img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+  }
+
+  .related-item-info {
+    padding: 12px;
+  }
+
+  .related-item-title {
+    font-size: 14px;
+    color: #111827;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .related-item-points {
+    font-size: 16px;
+    font-weight: 700;
+    color: #059669;
+  }
+
+  .related-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+</style>
+
+<script>
+  function changeImage(src, thumbnail) {
+    document.getElementById('main-product-image').src = src;
+    document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+    thumbnail.classList.add('active');
+  }
+
+  let currentPinId = '{{ product.pin_id|escapejs if product.pin_id else '' }}';
+
+  async function togglePin(itemId, isPinned, pinId) {
+    const btn = document.querySelector('.pin-btn');
+    const icon = btn.querySelector('.pin-icon');
+    const text = btn.querySelector('.pin-text');
+    
+    btn.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                     document.querySelector('meta[name="csrf-token"]')?.content ||
+                     null;
+    
+    try {
+      if (isPinned) {
+        // Unpin the product
+        const headers = {
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        if (csrfToken) {
+          headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        const response = await fetch(`/sponsor-catalog/unpin-product/${pinId}`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers
+        });
+        
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Unpin failed with status', response.status, ':', errorText);
+          let errorMsg = 'Error removing recommendation';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            errorMsg = response.statusText || errorMsg;
+          }
+          alert(errorMsg);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          btn.classList.remove('active');
+          icon.textContent = '📍';
+          text.textContent = 'Pin Product';
+          currentPinId = '';
+          btn.onclick = () => togglePin(itemId, false, '');
+        } else {
+          alert(data.message || 'Error removing recommendation');
+        }
+      } else {
+        // Recommend the product
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        formData.append('title', '{{ product.title|escapejs }}');
+        formData.append('image', '{{ product.image|escapejs }}');
+        
+        if (csrfToken) {
+          formData.append('csrf_token', csrfToken);
+        }
+        
+        const headers = {
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        if (csrfToken) {
+          headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        const response = await fetch('/sponsor-catalog/pin-product', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+          body: formData
+        });
+        
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Pin failed with status', response.status, ':', errorText);
+          let errorMsg = 'Error pinning product';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            errorMsg = response.statusText || errorMsg;
+          }
+          alert(errorMsg);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          btn.classList.add('active');
+          icon.textContent = '📌';
+          text.textContent = 'Unpin Product';
+          currentPinId = data.pin_id;
+          btn.onclick = () => togglePin(itemId, true, data.pin_id);
+        } else {
+          alert(data.message || 'Error pinning product');
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error updating pin status');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // Variant selection tracking and dynamic updates
+  const basePrice = {{ product.price if product.price else 0 }};
+  const baseImage = '{{ product.image|escapejs }}';
+  const baseAdditionalImages = {{ product.additional_images|tojson if product.get('additional_images') else '[]' }};
+  const variantSelections = {};
+  
+  const variationDetails = {{ product.variation_details|tojson if product.get('variation_details') else '[]' }};
+  console.log('Loaded variation details:', variationDetails);
+  
+  // Initialize stock indicators with base product data
+  function initializeStockIndicators() {
+    const lowStockBadge = document.getElementById('low-stock-badge');
+    const outOfStockBadge = document.getElementById('out-of-stock-badge');
+    const availableBadge = document.getElementById('available-badge');
+    
+    // Set initial stock indicators based on base product
+    if ({{ product.low_stock|tojson if product.get('low_stock') else 'false' }}) {
+      lowStockBadge.style.display = '';
+      const stockQty = {{ product.stock_qty if product.stock_qty is not none else 'null' }};
+      if (stockQty !== null) {
+        lowStockBadge.textContent = `Low stock (${stockQty})`;
+      } else {
+        lowStockBadge.textContent = 'Low stock';
+      }
+    } else if ({{ product.no_stock|tojson if product.get('no_stock') else 'false' }}) {
+      outOfStockBadge.style.display = '';
+    } else if ({{ product.available|tojson if product.get('available') else 'false' }}) {
+      availableBadge.style.display = '';
+    }
+  }
+  
+  // Initialize stock indicators on page load
+  initializeStockIndicators();
+  
+  const variantSelects = document.querySelectorAll('.variant-select');
+  
+  variantSelects.forEach(select => {
+    select.addEventListener('change', (e) => {
+      const variantType = e.target.dataset.variantType;
+      const value = e.target.value;
+      
+      if (value) {
+        variantSelections[variantType] = value;
+        e.target.classList.add('selected');
+      } else {
+        delete variantSelections[variantType];
+        e.target.classList.remove('selected');
+      }
+      
+      console.log(`Selected ${variantType}: ${value}`, variantSelections);
+      updateVariantDisplay();
+    });
+  });
+  
+  function updateVariantDisplay() {
+    const matchingVariation = findMatchingVariation();
+    
+    if (matchingVariation) {
+      console.log('Found matching variation:', matchingVariation);
+      
+      // Update image
+      if (matchingVariation.image) {
+        document.getElementById('main-product-image').src = matchingVariation.image;
+      }
+      
+      // Update thumbnail gallery with variant images
+      const variantAdditionalImages = matchingVariation.additional_images || [];
+      updateThumbnailGallery(matchingVariation.image, variantAdditionalImages);
+      
+      // Update price display
+      if (matchingVariation.price) {
+        const priceElement = document.querySelector('.points-badge');
+        if (priceElement) {
+          priceElement.textContent = `$${matchingVariation.price.toFixed(2)}`;
+        }
+      }
+      
+      // Update product details table
+      updateProductDetails(matchingVariation);
+      
+      // Update stock indicators for the selected variation
+      updateStockIndicators(matchingVariation);
+      
+      // Show selection note
+      const variantNote = document.getElementById('variant-selection-note');
+      if (variantNote) {
+        const variantString = Object.entries(variantSelections)
+          .map(([type, value]) => `${type}: ${value}`)
+          .join(', ');
+        variantNote.textContent = `Selected: ${variantString}`;
+        variantNote.style.display = 'block';
+      }
+    } else {
+      // Reset to base values
+      const priceElement = document.querySelector('.points-badge');
+      if (priceElement && basePrice) {
+        priceElement.textContent = `$${basePrice.toFixed(2)}`;
+      }
+      document.getElementById('main-product-image').src = baseImage;
+      updateThumbnailGallery(baseImage, baseAdditionalImages);
+      
+      const variantNote = document.getElementById('variant-selection-note');
+      if (variantNote) variantNote.style.display = 'none';
+      
+      // Reset stock indicators to base product values
+      resetStockIndicatorsToBase();
+    }
+  }
+  
+  function findMatchingVariation() {
+    if (Object.keys(variantSelections).length === 0) {
+      return null;
+    }
+    
+    for (const variation of variationDetails) {
+      let matches = true;
+      
+      for (const [key, value] of Object.entries(variantSelections)) {
+        if (variation.variants[key] !== value) {
+          matches = false;
+          break;
+        }
+      }
+      
+      if (matches) {
+        return variation;
+      }
+    }
+    return null;
+  }
+  
+  function updateProductDetails(variation) {
+    // Update the Product Details table dynamically for ANY variation type
+    const detailsTable = document.querySelector('.specifics-table');
+    if (!detailsTable) return;
+    
+    const rows = detailsTable.querySelectorAll('tr');
+    rows.forEach(row => {
+      const keyCell = row.querySelector('.spec-key');
+      const valueCell = row.querySelector('.spec-value');
+      
+      if (keyCell && valueCell) {
+        const key = keyCell.textContent.trim();
+        
+        // Update ANY variation type dynamically - no hard-coded types
+        if (variation.variants && variation.variants[key]) {
+          valueCell.textContent = variation.variants[key];
+        }
+      }
+    });
+  }
+  
+  function updateStockIndicators(variation) {
+    // Update stock indicators based on the selected variation
+    const lowStockBadge = document.getElementById('low-stock-badge');
+    const outOfStockBadge = document.getElementById('out-of-stock-badge');
+    const availableBadge = document.getElementById('available-badge');
+    
+    // Hide all badges first
+    lowStockBadge.style.display = 'none';
+    outOfStockBadge.style.display = 'none';
+    availableBadge.style.display = 'none';
+    
+    // Show appropriate badge based on variation stock status
+    if (variation.no_stock) {
+      outOfStockBadge.style.display = '';
+    } else if (variation.low_stock) {
+      lowStockBadge.style.display = '';
+      if (variation.stock_qty !== null && variation.stock_qty !== undefined) {
+        lowStockBadge.textContent = `Low stock (${variation.stock_qty})`;
+      } else {
+        lowStockBadge.textContent = 'Low stock';
+      }
+    } else if (variation.available) {
+      availableBadge.style.display = '';
+    }
+  }
+  
+  function resetStockIndicatorsToBase() {
+    // Reset stock indicators to base product values
+    const lowStockBadge = document.getElementById('low-stock-badge');
+    const outOfStockBadge = document.getElementById('out-of-stock-badge');
+    const availableBadge = document.getElementById('available-badge');
+    
+    // Hide all badges first
+    lowStockBadge.style.display = 'none';
+    outOfStockBadge.style.display = 'none';
+    availableBadge.style.display = 'none';
+    
+    // Show appropriate badge based on base product stock status
+    if ({{ product.no_stock|tojson if product.get('no_stock') else 'false' }}) {
+      outOfStockBadge.style.display = '';
+    } else if ({{ product.low_stock|tojson if product.get('low_stock') else 'false' }}) {
+      lowStockBadge.style.display = '';
+      const stockQty = {{ product.stock_qty if product.stock_qty is not none else 'null' }};
+      if (stockQty !== null) {
+        lowStockBadge.textContent = `Low stock (${stockQty})`;
+      } else {
+        lowStockBadge.textContent = 'Low stock';
+      }
+    } else if ({{ product.available|tojson if product.get('available') else 'false' }}) {
+      availableBadge.style.display = '';
+    }
+  }
+  
+  function updateThumbnailGallery(mainImage, additionalImages) {
+    // Update the thumbnail gallery with new images
+    const thumbnailGallery = document.querySelector('.thumbnail-gallery');
+    if (!thumbnailGallery) return;
+    
+    // Clear existing thumbnails
+    thumbnailGallery.innerHTML = '';
+    
+    // Add main image as first thumbnail
+    if (mainImage) {
+      const mainThumb = document.createElement('img');
+      mainThumb.src = mainImage;
+      mainThumb.alt = 'Image 1';
+      mainThumb.className = 'thumbnail active';
+      mainThumb.onclick = function() { changeImage(mainImage, this); };
+      thumbnailGallery.appendChild(mainThumb);
+    }
+    
+    // Add additional images
+    if (additionalImages && additionalImages.length > 0) {
+      additionalImages.slice(0, 5).forEach((img, index) => {
+        const thumb = document.createElement('img');
+        thumb.src = img;
+        thumb.alt = `Image ${index + 2}`;
+        thumb.className = 'thumbnail';
+        thumb.onclick = function() { changeImage(img, this); };
+        thumbnailGallery.appendChild(thumb);
+      });
+    }
+  }
+</script>
+{% endblock %}
+

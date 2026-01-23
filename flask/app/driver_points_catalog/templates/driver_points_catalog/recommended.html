@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Recommended Products{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-bar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-cards.css') }}">
+{% endblock %}
+
+{% block content %}
+<style>
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .page-wrap {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(24px, 6vw, 60px);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+  }
+
+  .catalog-shell {
+    width: min(100%, 75vw);
+    max-width: 1280px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 28px);
+    background: linear-gradient(145deg, rgba(41, 51, 73, 0.12), rgba(17, 24, 39, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 22px;
+    padding: clamp(22px, 3vw, 34px);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  [data-theme="dark"] .catalog-shell {
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
+  }
+
+  .catalog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .catalog-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    color: var(--text-primary);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    background: var(--bg-secondary);
+  }
+
+  .empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+</style>
+
+<div class="page-wrap">
+  <div class="catalog-shell">
+    <div class="catalog-header">
+      <h1>⭐ Recommended Products</h1>
+    </div>
+
+    {% if recommended_items %}
+    <ul id="grid" class="grid">
+      {% for item in recommended_items %}
+      <li class="card" tabindex="0" role="link" aria-label="{{ item.title }}">
+        <div class="card-image-wrapper">
+          <img src="{{ item.image or '/static/img/placeholder.png' }}" alt="{{ item.title }}" class="card-image">
+          {% if item.low_stock %}
+          <span class="badge low">Low stock</span>
+          {% endif %}
+          {% if item.no_stock %}
+          <span class="badge out-of-stock">Out of stock</span>
+          {% endif %}
+          <button type="button" class="favorite-btn {% if item.is_favorite %}filled{% else %}unfavorite{% endif %}" 
+                  data-item-id="{{ item.id }}"
+                  title="{% if item.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}">
+            ❤
+          </button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{{ item.title }}</h3>
+          <div class="meta">
+            <span class="points">
+              <span class="number">{{ item.points or 0 }}</span>
+              <span class="label"> pts</span>
+            </span>
+            <div class="action-buttons">
+              <button type="button" class="add-to-cart-btn icon-only btn-primary" 
+                      data-item-id="{{ item.id }}"
+                      aria-label="Add to cart">
+                <svg class="icon cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3h2l.4 2M7 13h10l1.5-7H5.21M7 13l-2 9m12-9l2 9M9 21h6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                <svg class="icon check-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">⭐</div>
+      <h3>No Recommended Products</h3>
+      <p>Your sponsor hasn't recommended any products yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/driver_catalog.js') }}"></script>
+<script>
+  // Initialize favorite and cart buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    // Favorite buttons
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+      btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        const itemId = this.getAttribute('data-item-id');
+        const isFavorite = this.classList.contains('filled');
+        
+        try {
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+          const headers = {
+            'Content-Type': 'application/json',
+          };
+          if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+          }
+          
+          if (isFavorite) {
+            // Remove from favorites
+            const response = await fetch(`/driver-catalog/favorites/${encodeURIComponent(itemId)}`, {
+              method: 'DELETE',
+              headers: headers,
+              credentials: 'same-origin'
+            });
+            if (response.ok) {
+              this.classList.remove('filled');
+              this.classList.add('unfavorite');
+              this.setAttribute('title', 'Add to favorites');
+            }
+          } else {
+            // Add to favorites
+            const response = await fetch('/driver-catalog/favorites', {
+              method: 'POST',
+              headers: headers,
+              credentials: 'same-origin',
+              body: JSON.stringify({ item_id: itemId })
+            });
+            if (response.ok) {
+              this.classList.add('filled');
+              this.classList.remove('unfavorite');
+              this.setAttribute('title', 'Remove from favorites');
+            }
+          }
+        } catch (error) {
+          console.error('Error toggling favorite:', error);
+        }
+      });
+    });
+    
+    // Cart buttons
+    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+      btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        const itemId = this.getAttribute('data-item-id');
+        
+        try {
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+          const headers = {
+            'Content-Type': 'application/json',
+          };
+          if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+          }
+          
+          const response = await fetch('/cart/add', {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',
+            body: JSON.stringify({ external_item_id: itemId })
+          });
+          
+          if (response.ok) {
+            this.classList.add('added');
+            setTimeout(() => {
+              this.classList.remove('added');
+            }, 2000);
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+        }
+      });
+    });
+    
+    // Card click handlers
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', function() {
+        const itemId = this.querySelector('[data-item-id]')?.getAttribute('data-item-id');
+        if (itemId) {
+          window.location.href = `/driver-catalog/product/${encodeURIComponent(itemId)}`;
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
+

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Admin Profile Changes Audit Log{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">Admin Profile Changes Audit Log</h1>
+      <p class="page-description">
+        Review administrator account updates, see who made the change, and compare previous values for audit purposes.
+      </p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search admin, email, field…">
+    <select name="admin_filter" onchange="this.form.submit()">
+      <option value="">All admins</option>
+      {% for admin_id, admin_name in admins %}
+        <option value="{{ admin_id }}" {% if admin_filter == admin_id %}selected{% endif %}>{{ admin_name }}</option>
+      {% endfor %}
+    </select>
+    <select name="field" onchange="this.form.submit()">
+      <option value="">All fields</option>
+      {% for field in fields %}
+        <option value="{{ field }}" {% if field_filter==field %}selected{% endif %}>{{ field }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      <a href="{{ url_for('admin.audit_admin_profile_changes') }}" class="btn btn-ghost">Reset</a>
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Changed At</th>
+          <th>Admin</th>
+          <th>Field</th>
+          <th>Old Value</th>
+          <th>New Value</th>
+          <th>Changed By</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for audit, admin, admin_account, changed_by in rows %}
+            {% set admin_name = (admin_account.WholeName
+                                or ((admin_account.FirstName or '') ~ (' ' if (admin_account.FirstName or admin_account.LastName) else '') ~ (admin_account.LastName or ''))).strip() %}
+            {% set actor_name = changed_by and (
+                  changed_by.WholeName
+                  or ((changed_by.FirstName or '') ~ (' ' if (changed_by.FirstName or changed_by.LastName) else '') ~ (changed_by.LastName or ''))
+                ) %}
+            <tr>
+              <td class="text-muted">
+                {{ audit.ChangedAt.strftime('%Y-%m-%d %H:%M') if audit.ChangedAt else '—' }}
+              </td>
+              <td>
+                <div class="table-strong">{{ admin_name if admin_name else 'Admin Account' }}</div>
+                <div class="table-meta">{{ admin_account.Email or '—' }}</div>
+                <div class="table-meta">{{ admin.Role or 'No role assigned' }}</div>
+                {% if admin and admin.AdminID %}
+                  <div class="table-meta">AdminID: {{ admin.AdminID[:8] }}…</div>
+                {% endif %}
+              </td>
+              <td class="table-strong">
+                {{ audit.FieldName }}
+              </td>
+              <td>
+                {% if audit.OldValue %}
+                  <span class="mono-chip mono-chip--old">{{ audit.OldValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if audit.NewValue %}
+                  <span class="mono-chip mono-chip--new">{{ audit.NewValue }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if changed_by %}
+                  <div class="table-strong">
+                    {{ actor_name and actor_name.strip() or (changed_by.Username or changed_by.Email or changed_by.AccountID) }}
+                  </div>
+                  <div class="table-meta">{{ changed_by.Email or '—' }}</div>
+                  <div class="table-meta">{{ changed_by.AccountType or '—' }}</div>
+                {% else %}
+                  <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">
+                {{ audit.ChangeReason or '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="table-empty">No admin profile changes found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

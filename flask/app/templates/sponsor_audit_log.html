@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <header class="page-header">
+    <h1 class="page-title">Audit Logs</h1>
+    <p class="page-description">
+      Choose an audit log to review point changes, driver activity, and configuration updates for your organization.
+    </p>
+  </header>
+
+  <div class="card-grid">
+    <article class="card">
+      <h3>Points Changes <span class="chip chip-info">Live</span></h3>
+      <p>Track point adjustments across all drivers in your organization.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.audit_point_changes') }}">Open Points Log</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Driver Applications <span class="chip chip-info">Live</span></h3>
+      <p>Review driver applications and decisions made by your team.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.audit_applications') }}">Open Applications Log</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Driver Profile Changes <span class="chip chip-info">Live</span></h3>
+      <p>See profile updates submitted by drivers and approvers.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.audit_driver_profile_changes') }}">Open Profile Changes Log</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Point Settings Changes <span class="chip chip-info">Live</span></h3>
+      <p>Track updates to point conversion rates and transaction limits.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.sponsor_audit_point_settings_changes') }}">Open Point Settings Log</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Profile Changes <span class="chip chip-info">Live</span></h3>
+      <p>Review edits to your company profile and account information.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.sponsor_audit_profile_changes') }}">Open Profile Changes Log</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>Bulk Import Logs <span class="chip chip-info">Live</span></h3>
+      <p>Inspect bulk import sessions, successes, and error details.</p>
+      <div class="card-actions">
+        <a class="btn btn-secondary" href="{{ url_for('sponsor.bulk_import_audit_log') }}">Open Bulk Import Log</a>
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

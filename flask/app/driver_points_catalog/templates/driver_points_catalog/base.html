@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Driver Catalog</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+    
+        .container {
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+        }
+    
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            color: var(--text-primary);
+        }
+    
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .75rem;
+            margin-bottom: 1.5rem;
+        }
+    
+        .filters input {
+            flex: 1;
+            min-width: 200px;
+            padding: .65rem .8rem;
+            border-radius: .5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+        }
+        
+        .filters input:focus {
+            outline: none;
+            border-color: var(--accent-border);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+    
+        .filters button {
+            padding: .65rem 1.2rem;
+            border-radius: .5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+    
+        .filters button:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-border);
+            color: var(--accent);
+        }
+    
+        .muted {
+            opacity: .7;
+            font-size: .9rem;
+            margin-bottom: .75rem;
+            color: var(--text-muted);
+        }
+    
+        .grid {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            padding: 0;
+            margin: 0;
+        }
+    
+        .card {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: .75rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px var(--shadow);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        
+        [data-theme="dark"] .card {
+            border-color: var(--accent-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-md);
+        }
+    
+        .card .thumb {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            background: var(--bg-hover);
+        }
+    
+        .card .body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: .85rem 1rem 1rem;
+        }
+    
+        .card .title {
+            font-weight: 600;
+            font-size: .95rem;
+            margin-bottom: .5rem;
+            color: var(--text-primary);
+            flex: 1;
+        }
+    
+        .card .points {
+            color: var(--accent);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    {% include "_navbar.html" %}
+    {% block content %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

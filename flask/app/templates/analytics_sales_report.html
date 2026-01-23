@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Analytics Report{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Sales Analytics Summary</h1>
+      <p class="admin-page-description">
+        Track submitted orders, point totals, and financial performance across all sponsors and drivers.
+      </p>
+    </div>
+    <div class="admin-actions">
+      <button class="btn btn-success" type="button" onclick="generatePDF()">📄 Generate PDF</button>
+      <button class="btn btn-warning" type="button" onclick="generateCSV()">📊 Export CSV</button>
+      <a class="btn btn-info" href="{{ url_for('admin.analytics_sales_detailed') }}">View Detailed Report</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Analytics</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-stat-grid">
+    <div class="admin-stat-card">
+      <h3>Total Orders</h3>
+      <p class="value">{{ total_orders }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Total Points</h3>
+      <p class="value">{{ "{:,}".format(total_points) }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Total Amount</h3>
+      <p class="value">${{ "{:,.2f}".format(total_amount) }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Average Order Value</h3>
+      <p class="value">${{ "{:,.2f}".format(total_amount / total_orders if total_orders > 0 else 0) }}</p>
+    </div>
+  </div>
+
+  {% if status_counts %}
+  <div class="admin-status-grid">
+    {% for status, count in status_counts.items() %}
+    <div class="admin-status-card">
+      <span class="status-name">{{ status }}</span>
+      <span class="status-count">{{ count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="admin-card">
+    <div class="admin-form">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Filter by Company</label>
+          <select id="company-filter" onchange="updateFilters()">
+            <option value="">All companies</option>
+            {% for sponsor_id, company_name in sponsors %}
+              <option value="{{ company_name }}" {% if company_filter == company_name %}selected{% endif %}>{{ company_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="driver-name-filter">Filter by Driver Name</label>
+          <input type="text" id="driver-name-filter" placeholder="Enter driver name..." value="{{ driver_name_filter }}" onchange="updateFilters()">
+        </div>
+        <div>
+          <label for="status-filter">Filter by Status</label>
+          <select id="status-filter" onchange="updateFilters()">
+            <option value="">All statuses</option>
+            {% for status in status_list %}
+              <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="date-from">Date From</label>
+          <input type="date" id="date-from" value="{{ date_from }}" onchange="updateFilters()">
+        </div>
+        <div>
+          <label for="date-to">Date To</label>
+          <input type="date" id="date-to" value="{{ date_to }}" onchange="updateFilters()">
+        </div>
+        <div>
+          <label for="sort-by">Sort by</label>
+          <select id="sort-by" onchange="updateFilters()">
+            <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Created Date</option>
+            <option value="sponsor_company" {% if sort_by == 'sponsor_company' %}selected{% endif %}>Sponsor Company</option>
+            <option value="driver_name" {% if sort_by == 'driver_name' %}selected{% endif %}>Driver Name</option>
+            <option value="total_points" {% if sort_by == 'total_points' %}selected{% endif %}>Total Points</option>
+            <option value="total_amount" {% if sort_by == 'total_amount' %}selected{% endif %}>Total Amount</option>
+            <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+          </select>
+        </div>
+        <div>
+          <label for="sort-order">Order</label>
+          <select id="sort-order" onchange="updateFilters()">
+            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
+            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <h2>Orders</h2>
+      <p class="admin-muted">Order-level summary with totals, sponsor and driver context, and current fulfillment status.</p>
+    </header>
+    <div class="table-wrapper">
+      {% if orders %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="sortable {% if sort_by == 'created_at' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('created_at')">Order Date</th>
+              <th>Order Number</th>
+              <th class="sortable {% if sort_by == 'sponsor_company' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('sponsor_company')">Sponsor Company</th>
+              <th class="sortable {% if sort_by == 'driver_name' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('driver_name')">Driver</th>
+              <th class="sortable {% if sort_by == 'total_points' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('total_points')">Total Points</th>
+              <th class="sortable {% if sort_by == 'total_amount' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('total_amount')">Total Amount</th>
+              <th class="sortable {% if sort_by == 'status' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('status')">Status</th>
+              <th>Driver Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order, driver, driver_account, sponsor, sponsor_account in orders %}
+              <tr>
+                <td>{{ order.CreatedAt.strftime('%Y-%m-%d %H:%M') if order.CreatedAt else 'N/A' }}</td>
+                <td><span class="admin-order-number">{{ order.OrderNumber }}</span></td>
+                <td>
+                  <span class="table-strong">{{ sponsor.Company }}</span>
+                  <br><span class="admin-muted">{{ sponsor_account.FirstName }} {{ sponsor_account.LastName }}</span>
+                </td>
+                <td class="table-strong">{{ driver_account.FirstName }} {{ driver_account.LastName }}</td>
+                <td><span class="admin-points-positive">{{ "{:,}".format(order.TotalPoints) }}</span></td>
+                <td>
+                  {% if order.TotalAmount and order.TotalAmount > 0 %}
+                    <span class="admin-points-positive">${{ "{:,.2f}".format(order.TotalAmount) }}</span>
+                  {% else %}
+                    <span class="admin-muted">${{ "{:,.2f}".format(order.TotalPoints * sponsor.PointToDollarRate) }}</span>
+                    <br><span class="admin-muted">(calculated)</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="admin-status-badge admin-status-badge--{{ order.Status|lower if order.Status else 'unknown' }}">
+                    {{ order.Status or 'Unknown' }}
+                  </span>
+                </td>
+                <td>{{ driver_account.Email }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="admin-empty-state">
+          <i class="fas fa-clipboard-check"></i>
+          <p>No orders match your current filters.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function updateFilters() {
+    const companyFilter = document.getElementById('company-filter').value;
+    const driverNameFilter = document.getElementById('driver-name-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const dateFrom = document.getElementById('date-from').value;
+    const dateTo = document.getElementById('date-to').value;
+    const sortBy = document.getElementById('sort-by').value;
+    const sortOrder = document.getElementById('sort-order').value;
+    
+    const url = new URL(window.location);
+    
+    if (companyFilter) {
+        url.searchParams.set('company_filter', companyFilter);
+    } else {
+        url.searchParams.delete('company_filter');
+    }
+    
+    if (driverNameFilter) {
+        url.searchParams.set('driver_name_filter', driverNameFilter);
+    } else {
+        url.searchParams.delete('driver_name_filter');
+    }
+    
+    if (statusFilter) {
+        url.searchParams.set('status_filter', statusFilter);
+    } else {
+        url.searchParams.delete('status_filter');
+    }
+    
+    if (dateFrom) {
+        url.searchParams.set('date_from', dateFrom);
+    } else {
+        url.searchParams.delete('date_from');
+    }
+    
+    if (dateTo) {
+        url.searchParams.set('date_to', dateTo);
+    } else {
+        url.searchParams.delete('date_to');
+    }
+    
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('sort_order', sortOrder);
+    
+    window.location.href = url.toString();
+}
+
+function sortTable(sortBy) {
+    const currentSortBy = '{{ sort_by }}';
+    const currentSortOrder = '{{ sort_order }}';
+    
+    let newSortOrder = 'desc';
+    if (currentSortBy === sortBy && currentSortOrder === 'desc') {
+        newSortOrder = 'asc';
+    }
+    
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('sort_order', newSortOrder);
+    
+    window.location.href = url.toString();
+}
+
+function clearFilters() {
+    const url = new URL(window.location);
+    url.searchParams.delete('company_filter');
+    url.searchParams.delete('driver_name_filter');
+    url.searchParams.delete('status_filter');
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    url.searchParams.set('sort_by', 'created_at');
+    url.searchParams.set('sort_order', 'desc');
+    window.location.href = url.toString();
+}
+
+function generatePDF() {
+    // Get all current filter parameters
+    const params = new URLSearchParams(window.location.search);
+    params.set('generate_pdf', 'true');
+    
+    // Build the URL with all filters
+    const pdfUrl = '{{ url_for("admin.analytics_sales_report_pdf") }}?' + params.toString();
+    
+    // Open the PDF generation URL in a new window
+    window.open(pdfUrl, '_blank');
+}
+
+function generateCSV() {
+    // Get all current filter parameters
+    const params = new URLSearchParams(window.location.search);
+    params.set('generate_csv', 'true');
+    
+    // Build the URL with all filters
+    const csvUrl = '{{ url_for("admin.analytics_sales_report_csv") }}?' + params.toString();
+    
+    // Open the CSV generation URL in a new window
+    window.open(csvUrl, '_blank');
+}
+
+</script>
+{% endblock %}

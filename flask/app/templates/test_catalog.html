@@ -1,0 +1,1392 @@
+{% extends "base.html" %}
+{% block title %}eBay Test Catalog - Browse API Demo{% endblock %}
+
+{% block head %}
+<style>
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .test-catalog-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .catalog-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .catalog-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .catalog-header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+  }
+
+  .filters-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .filters-panel h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  .filter-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .filter-group input,
+  .filter-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+  }
+
+  .filter-group input:focus,
+  .filter-group select:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .filter-checkbox input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+  }
+
+  .filter-checkbox label {
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+  }
+
+  .sort-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .sort-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sort-select label {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sort-select select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .search-button {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .search-button:hover {
+    background: #d97706;
+  }
+
+  .search-button:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+  }
+
+  .results-info {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .active-categories {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .active-categories-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-right: 0.5rem;
+  }
+
+  .category-badge {
+    background: #f59e0b;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .item-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .item-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    background: var(--bg-primary);
+  }
+
+  .item-details {
+    padding: 1rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .item-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.5rem;
+  }
+
+  .item-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .item-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 0.5rem;
+  }
+
+  .item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .item-meta span {
+    background: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .item-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+  }
+
+  .badge-free-shipping {
+    background: #10b981;
+    color: white;
+  }
+
+  .badge-buy-it-now {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .badge-auction {
+    background: #ef4444;
+    color: white;
+  }
+
+  .badge-condition {
+    background: #6366f1;
+    color: white;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+  }
+
+  .pagination button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .pagination button:hover:not(:disabled) {
+    background: var(--bg-primary);
+  }
+
+  .pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pagination .page-info {
+    padding: 0.5rem 1rem;
+    color: var(--text-muted);
+  }
+
+  .loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .error {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .category-browser-toggle {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .category-browser-toggle:hover {
+    background: #2563eb;
+  }
+
+  .category-browser {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .category-browser-header {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .category-browser-header input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .category-browser-header button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .category-browser-header button:hover {
+    background: var(--bg-primary);
+  }
+
+  .category-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .category-section {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+  }
+
+  .category-header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+  }
+
+  .category-header::-webkit-details-marker {
+    display: none;
+  }
+
+  .category-header::after {
+    content: "▶";
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+
+  .category-section[open] .category-header::after {
+    transform: rotate(90deg);
+  }
+
+  .category-header label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .category-header input[type="radio"],
+  .category-header input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+
+  .subcategory-list {
+    padding: 0.5rem 1rem 0.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-primary);
+  }
+
+  .subcategory-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .subcategory-item label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    flex: 1;
+    font-weight: normal;
+  }
+
+  .subcategory-item input[type="radio"],
+  .subcategory-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+
+  .subcategory-item:hover {
+    color: #3b82f6;
+  }
+
+  .category-hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 768px) {
+    .test-catalog-container {
+      padding: 1rem;
+    }
+
+    .filter-row {
+      grid-template-columns: 1fr;
+    }
+
+    .items-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .sort-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .category-browser {
+      max-height: 400px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-catalog-container">
+  <div class="catalog-header">
+    <h1>eBay Browse API Test Catalog</h1>
+    <p>Explore all filtering and sorting capabilities of the eBay Browse API</p>
+  </div>
+
+  <div class="filters-panel">
+    <h2>Filters & Search</h2>
+    <form id="catalog-form">
+      <div class="filter-group">
+        <label for="search-query">Search Keywords</label>
+        <input type="text" id="search-query" name="q" placeholder="e.g., iPhone, laptop, headphones">
+      </div>
+
+      <div class="filter-group">
+        <label>Search by Category</label>
+        <button type="button" class="category-browser-toggle" id="category-browser-toggle" onclick="toggleCategoryBrowser()">
+          <i class="fas fa-folder"></i> Browse Categories
+        </button>
+        <input type="text" id="category-id" name="category_id" placeholder="e.g., 58058" style="margin-top: 0.5rem;">
+        <small style="color: var(--text-muted); font-size: 0.85rem;">Select a category below or enter ID manually. eBay allows searching by one category at a time.</small>
+        <div id="selected-category-display" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px; display: none;">
+          <strong>Selected Category:</strong> <span id="selected-category-name"></span>
+          <button type="button" onclick="clearCategory()" style="margin-left: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.85rem;">Clear</button>
+        </div>
+        <div id="category-browser" class="category-browser" style="display: none; margin-top: 1rem;">
+          <div class="category-browser-header">
+            <input type="text" id="category-search" placeholder="Search categories..." oninput="filterCategories(this.value)">
+          </div>
+          <div id="category-tree" class="category-tree"></div>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="price-min">Minimum Price ($)</label>
+          <input type="number" id="price-min" name="price_min" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="filter-group">
+          <label for="price-max">Maximum Price ($)</label>
+          <input type="number" id="price-max" name="price_max" step="0.01" min="0" placeholder="9999.99">
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="condition">Product Condition</label>
+          <select id="condition" name="condition">
+            <option value="">All Conditions</option>
+            <option value="NEW">New</option>
+            <option value="NEW_OTHER">New Other (Open Box)</option>
+            <option value="NEW_WITH_DEFECTS">New With Defects</option>
+            <option value="MANUFACTURER_REFURBISHED">Manufacturer Refurbished</option>
+            <option value="SELLER_REFURBISHED">Seller Refurbished</option>
+            <option value="USED_EXCELLENT">Used - Excellent</option>
+            <option value="USED_VERY_GOOD">Used - Very Good</option>
+            <option value="USED_GOOD">Used - Good</option>
+            <option value="USED_ACCEPTABLE">Used - Acceptable</option>
+            <option value="FOR_PARTS_OR_NOT_WORKING">For Parts or Not Working</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="purchase-type">Purchase Type</label>
+          <select id="purchase-type" name="purchase_type">
+            <option value="">All Types</option>
+            <option value="FIXED_PRICE">Buy It Now</option>
+            <option value="AUCTION">Auction</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-checkbox">
+          <input type="checkbox" id="free-shipping" name="free_shipping">
+          <label for="free-shipping">Free Shipping Only</label>
+        </div>
+      </div>
+
+      <div class="sort-controls">
+        <div class="sort-select">
+          <label for="sort-order">Sort By:</label>
+          <select id="sort-order" name="sort">
+            <option value="best_match">Best Match (Relevance)</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="newest">Newest First</option>
+          </select>
+        </div>
+        <button type="submit" class="search-button" id="search-btn">
+          <i class="fas fa-search"></i> Search
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="results-container">
+    <div id="active-categories" class="active-categories" style="display: none;">
+      <span class="active-categories-label">Active Categories:</span>
+      <div id="category-badges"></div>
+    </div>
+    <div id="results-info" class="results-info" style="display: none;"></div>
+    <div id="error-message" class="error" style="display: none;"></div>
+    <div id="loading" class="loading" style="display: none;">
+      <i class="fas fa-spinner fa-spin"></i> Loading items...
+    </div>
+    <div id="items-grid" class="items-grid">
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <i class="fas fa-search"></i>
+        <h3>Ready to Search</h3>
+        <p>Enter a search term or category IDs above and click "Search" to explore eBay's catalog</p>
+      </div>
+    </div>
+    <div id="pagination" class="pagination" style="display: none;"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const form = document.getElementById('catalog-form');
+  const searchBtn = document.getElementById('search-btn');
+  const itemsGrid = document.getElementById('items-grid');
+  const loadingDiv = document.getElementById('loading');
+  const errorDiv = document.getElementById('error-message');
+  const resultsInfo = document.getElementById('results-info');
+  const paginationDiv = document.getElementById('pagination');
+  const activeCategoriesDiv = document.getElementById('active-categories');
+  const categoryBadgesDiv = document.getElementById('category-badges');
+
+  let currentPage = 1;
+  let hasMore = false;
+  let isLoading = false;
+
+  // Format price
+  function formatPrice(price, currency = 'USD') {
+    if (price === null || price === undefined) return 'Price not available';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD'
+    }).format(price);
+  }
+
+  // Format shipping cost
+  function formatShipping(shipping) {
+    if (shipping === null || shipping === undefined) return 'Shipping varies';
+    if (shipping === 0) return 'Free shipping';
+    return `+${formatPrice(shipping)} shipping`;
+  }
+
+  // Render item card
+  function renderItem(item) {
+    const badges = [];
+    if (item.shipping === 0 || item.shipping === null) {
+      badges.push('<span class="item-badge badge-free-shipping">Free Shipping</span>');
+    }
+    const buyingOptions = item.buyingOptions || [];
+    if (buyingOptions.includes('FIXED_PRICE')) {
+      badges.push('<span class="item-badge badge-buy-it-now">Buy It Now</span>');
+    }
+    if (buyingOptions.includes('AUCTION')) {
+      badges.push('<span class="item-badge badge-auction">Auction</span>');
+    }
+    if (item.condition_display || item.condition) {
+      // Use display name if available, otherwise use raw condition
+      const conditionText = item.condition_display || item.condition;
+      badges.push(`<span class="item-badge badge-condition">${conditionText}</span>`);
+    }
+
+    const meta = [];
+    if (item.brand) meta.push(`Brand: ${item.brand}`);
+    if (item.category_name) {
+      meta.push(`Category: ${item.category_name}`);
+    } else if (item.category_id) {
+      meta.push(`Cat: ${item.category_id}`);
+    }
+    if (item.estimated_quantity !== null && item.estimated_quantity !== undefined) {
+      meta.push(`Stock: ${item.estimated_quantity}`);
+    }
+
+    return `
+      <div class="item-card" onclick="window.open('${item.url || '#'}', '_blank')">
+        ${badges.join('')}
+        <img src="${item.image || '/static/img/default_avatar.svg'}" 
+             alt="${item.title}" 
+             class="item-image"
+             onerror="this.src='/static/img/default_avatar.svg'">
+        <div class="item-details">
+          <div class="item-title">${item.title || 'No title'}</div>
+          ${item.subtitle ? `<div class="item-subtitle">${item.subtitle}</div>` : ''}
+          <div class="item-price">${formatPrice(item.price, item.currency)}</div>
+          <div class="item-meta">
+            ${meta.map(m => `<span>${m}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render pagination
+  function renderPagination(page, hasMore, totalPages = null) {
+    const buttons = [];
+    
+    // Only show Previous if not on first page
+    if (page > 1) {
+      buttons.push(`<button onclick="loadPage(${page - 1})">Previous</button>`);
+    }
+    
+    buttons.push(`<span class="page-info">Page ${page}${totalPages ? ` of ${totalPages}` : ''}</span>`);
+    
+    // Only show Next if:
+    // 1. hasMore is true AND
+    // 2. If totalPages is known, we're not on the last page
+    const canGoNext = hasMore && (totalPages === null || page < totalPages);
+    if (canGoNext) {
+      buttons.push(`<button onclick="loadPage(${page + 1})">Next</button>`);
+    }
+    
+    paginationDiv.innerHTML = buttons.join('');
+    paginationDiv.style.display = buttons.length > 1 ? 'flex' : 'none';
+  }
+
+  // Load items
+  async function loadItems(page = 1) {
+    if (isLoading) return;
+    
+    isLoading = true;
+    currentPage = page;
+    
+    // Show loading
+    loadingDiv.style.display = 'block';
+    errorDiv.style.display = 'none';
+    itemsGrid.innerHTML = '';
+    paginationDiv.style.display = 'none';
+    resultsInfo.style.display = 'none';
+    searchBtn.disabled = true;
+
+    try {
+      // Build query string
+      const formData = new FormData(form);
+      const params = new URLSearchParams();
+      
+      params.append('page', page);
+      params.append('page_size', '72'); // Request more from API to account for post-filtering
+      
+      if (formData.get('q')) params.append('q', formData.get('q'));
+      if (formData.get('category_id')) params.append('category_id', formData.get('category_id'));
+      if (formData.get('price_min')) params.append('price_min', formData.get('price_min'));
+      if (formData.get('price_max')) params.append('price_max', formData.get('price_max'));
+      if (formData.get('sort')) params.append('sort', formData.get('sort'));
+      
+      if (formData.get('free_shipping')) params.append('free_shipping', 'true');
+      if (formData.get('condition')) params.append('condition', formData.get('condition'));
+      if (formData.get('purchase_type')) params.append('purchase_type', formData.get('purchase_type'));
+
+      // Log search parameters to console
+      const searchParams = {
+        page: page,
+        page_size: '72',
+        q: formData.get('q') || null,
+        category_id: formData.get('category_id') || null,
+        price_min: formData.get('price_min') || null,
+        price_max: formData.get('price_max') || null,
+        sort: formData.get('sort') || null,
+        free_shipping: formData.get('free_shipping') ? 'true' : null,
+        condition: formData.get('condition') || null,
+        purchase_type: formData.get('purchase_type') || null
+      };
+      
+      console.log('🔍 eBay API Search Request:', searchParams);
+      console.log('📡 Full API URL:', `/testCatalog/api/search?${params.toString()}`);
+
+      // Fetch data
+      const response = await fetch(`/testCatalog/api/search?${params.toString()}`);
+      const data = await response.json();
+      
+      // Log response summary with detailed debugging
+      console.log('✅ eBay API Response:', {
+        items_count: data.items?.length || 0,
+        total: data.total,
+        total_type: typeof data.total,
+        total_is_null: data.total === null,
+        total_is_undefined: data.total === undefined,
+        has_more: data.has_more,
+        page: data.page,
+        category_name: data.category_name || null,
+        full_data_keys: Object.keys(data)
+      });
+      
+      // Additional debugging for total value
+      console.log('🔍 Total Value Debug:', {
+        'data.total': data.total,
+        'typeof data.total': typeof data.total,
+        'data.total === null': data.total === null,
+        'data.total === undefined': data.total === undefined,
+        'Number(data.total)': Number(data.total),
+        'parseInt(data.total)': parseInt(data.total),
+        'Boolean(data.total)': Boolean(data.total)
+      });
+      
+      // Price and Sort Debugging
+      const priceMin = formData.get('price_min') || null;
+      const priceMax = formData.get('price_max') || null;
+      const sortOrder = formData.get('sort') || 'best_match';
+      // Convert prices to numbers for proper comparison
+      const itemPrices = (data.items || [])
+        .map(item => {
+          const p = item.price;
+          if (p === null || p === undefined) return null;
+          const num = typeof p === 'string' ? parseFloat(p) : p;
+          return isNaN(num) ? null : num;
+        })
+        .filter(p => p !== null && p !== undefined);
+      
+      console.log('💰 PRICE & SORT DEBUG:');
+      console.log('  Price Filter:', { min: priceMin, max: priceMax });
+      console.log('  Sort Order:', sortOrder);
+      console.log('  Number of items:', data.items?.length || 0);
+      console.log('  Prices in order (all items):', itemPrices);
+      console.log('  Prices in order (first 10):', itemPrices.slice(0, 10));
+      if (itemPrices.length > 0) {
+        const sum = itemPrices.reduce((a, b) => a + b, 0);
+        console.log('  Price range:', {
+          min: Math.min(...itemPrices),
+          max: Math.max(...itemPrices),
+          avg: (sum / itemPrices.length).toFixed(2)
+        });
+      }
+      
+      // Check if prices are sorted correctly (using numeric comparison)
+      if (sortOrder === 'price_asc') {
+        const isSortedAsc = itemPrices.every((price, i) => i === 0 || itemPrices[i - 1] <= price);
+        console.log('  ✅ Prices sorted ascending:', isSortedAsc);
+        if (!isSortedAsc) {
+          console.warn('  ⚠️ Prices NOT sorted ascending!');
+          // Show where it breaks
+          for (let i = 1; i < itemPrices.length; i++) {
+            if (itemPrices[i - 1] > itemPrices[i]) {
+              console.warn(`    Break at index ${i}: ${itemPrices[i - 1]} > ${itemPrices[i]}`);
+            }
+          }
+        }
+      } else if (sortOrder === 'price_desc') {
+        const isSortedDesc = itemPrices.every((price, i) => i === 0 || itemPrices[i - 1] >= price);
+        console.log('  ✅ Prices sorted descending:', isSortedDesc);
+        if (!isSortedDesc) {
+          console.warn('  ⚠️ Prices NOT sorted descending!');
+          // Show where it breaks
+          for (let i = 1; i < itemPrices.length; i++) {
+            if (itemPrices[i - 1] < itemPrices[i]) {
+              console.warn(`    Break at index ${i}: ${itemPrices[i - 1]} < ${itemPrices[i]}`);
+            }
+          }
+        }
+      }
+      
+      // Check if prices are filtered correctly (using numeric comparison)
+      if (priceMin !== null && priceMin !== '') {
+        const minVal = parseFloat(priceMin);
+        const allAboveMin = itemPrices.every(p => p >= minVal);
+        console.log('  ✅ All prices >= min:', allAboveMin);
+        if (!allAboveMin) {
+          const belowMin = itemPrices.filter(p => p < minVal);
+          console.warn('  ⚠️ Some prices below minimum!', belowMin);
+        }
+      }
+      if (priceMax !== null && priceMax !== '') {
+        const maxVal = parseFloat(priceMax);
+        const allBelowMax = itemPrices.every(p => p <= maxVal);
+        console.log('  ✅ All prices <= max:', allBelowMax);
+        if (!allBelowMax) {
+          const aboveMax = itemPrices.filter(p => p > maxVal);
+          console.warn('  ⚠️ Some prices above maximum!', aboveMax);
+        }
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Render results
+      if (data.items && data.items.length > 0) {
+        itemsGrid.innerHTML = data.items.map(renderItem).join('');
+        hasMore = data.has_more || false;
+        
+        // Show active category
+        if (data.category_name) {
+          categoryBadgesDiv.innerHTML = `<span class="category-badge">${data.category_name}</span>`;
+          activeCategoriesDiv.style.display = 'flex';
+        } else {
+          activeCategoriesDiv.style.display = 'none';
+        }
+        
+        // Show results info with total items and pages
+        const itemsPerPage = 24;
+        const currentPage = data.page || page;
+        const totalItems = data.total;
+        
+        // Debug logging for total calculation
+        console.log('📊 Results Info Debug:', {
+          'data.total': data.total,
+          'totalItems': totalItems,
+          'typeof totalItems': typeof totalItems,
+          'totalItems === null': totalItems === null,
+          'totalItems === undefined': totalItems === undefined,
+          'Number(totalItems)': Number(totalItems),
+          'Boolean(totalItems)': Boolean(totalItems),
+          'totalItems > 0': totalItems > 0
+        });
+        
+        const totalPages = totalItems ? Math.ceil(totalItems / itemsPerPage) : null;
+        
+        console.log('📄 Page Calculation:', {
+          totalItems,
+          itemsPerPage,
+          totalPages,
+          'Math.ceil(totalItems / itemsPerPage)': totalItems ? Math.ceil(totalItems / itemsPerPage) : 'N/A'
+        });
+        
+        let resultsText = `Showing ${data.items.length}`;
+        if (totalItems) {
+          resultsText += ` of ${totalItems.toLocaleString()} items`;
+        } else {
+          resultsText += ' items';
+          console.warn('⚠️ Total items is falsy:', totalItems);
+        }
+        
+        if (totalPages) {
+          resultsText += ` | Page ${currentPage} of ${totalPages}`;
+        } else if (data.has_more) {
+          resultsText += ` | Page ${currentPage}+`;
+        }
+        
+        console.log('📝 Final Results Text:', resultsText);
+        resultsInfo.textContent = resultsText;
+        resultsInfo.style.display = 'block';
+        
+        // Render pagination with total pages info (totalPages already calculated above)
+        renderPagination(page, hasMore, totalPages);
+      } else {
+        activeCategoriesDiv.style.display = 'none';
+        itemsGrid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="fas fa-search"></i>
+            <h3>No items found</h3>
+            <p>Try adjusting your filters or search terms</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading items:', error);
+      errorDiv.textContent = `Error: ${error.message}`;
+      errorDiv.style.display = 'block';
+      itemsGrid.innerHTML = '';
+      activeCategoriesDiv.style.display = 'none';
+    } finally {
+      loadingDiv.style.display = 'none';
+      searchBtn.disabled = false;
+      isLoading = false;
+    }
+  }
+
+  // Form submit handler
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    loadItems(1);
+  });
+
+  // Global function for pagination
+  window.loadPage = function(page) {
+    loadItems(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Category browser functionality
+  const categoryData = {
+  "eBay Motors": {
+    "Parts & Accessories": {
+      "Auto Parts & Accessories": {"6030": "Car & Truck Parts & Accessories", "33615": "Performance & Racing Parts", "10063": "Motorcycle & Scooter Parts & Accessories", "156955": "In-Car Technology, GPS & Security Devices"},
+      "Automotive Tools & Supplies": {"34998": "Automotive Tools & Supplies"}
+    },
+    "Motorcycles": {"10063": "Motorcycles"},
+    "Other Vehicles & Trailers": {"180103": "Other Vehicles & Trailers"},
+    "Safety & Security Accessories": {"41": "Safety & Security Accessories"},
+    "Boats": {"262321": "Boats"},
+    "Powersports": {"101179": "Powersports"}
+  },
+  "Electronics": {
+    "Computers/Tablets & Networking": {"58058": "Computers, Tablets & Networking"},
+    "Cell Phones & Accessories": {"9355": "Cell Phones & Smartphones"},
+    "Video Games & Consoles": {"1249": "Video Games & Consoles"},
+    "Cameras & Photo": {"625": "Cameras & Photo"},
+    "TV, Video & Home Audio": {"293": "TV, Video & Home Audio"},
+    "Portable Audio & Headphones": {"15052": "Portable Audio & Headphones"},
+    "Vehicle Electronics & GPS": {"3270": "Car Electronics", "156955": "Car GPS Units"},
+    "Surveillance & Smart Home Electronics": {"175673": "Smart Home & Surveillance"},
+    "Major Appliances": {"20710": "Major Appliances"},
+    "Virtual Reality": {"183067": "Virtual Reality"}
+  },
+  "Collectibles & Art": {
+    "Sports Mem, Cards & Fan Shop": {"64482": "Sports Mem, Cards & Fan Shop"},
+    "Collectibles": {"1": "Collectibles"},
+    "Dolls & Bears": {"237": "Dolls & Bears"},
+    "Vintage & Antique Jewelry": {"262024": "Vintage & Antique Jewelry"},
+    "Pottery & Glass": {"870": "Pottery & Glass"},
+    "Art": {"550": "Art"},
+    "Crafts": {"160636": "Arts & Crafts"},
+    "Antiques": {"20081": "Antiques"},
+    "Coins & Paper Money": {"11116": "Coins & Paper Money"},
+    "Stamps": {"31740": "Stamps"},
+    "Entertainment Memorabilia": {"45100": "Entertainment Memorabilia"}
+  },
+  "Home & Garden": {
+    "Home Décor": {"10033": "Home Decor"},
+    "Kitchen, Dining & Bar": {"20625": "Kitchen, Dining & Bar"},
+    "Yard, Garden & Outdoor Living": {"159912": "Garden & Outdoor Living"},
+    "Home Improvement": {"20594": "Home Improvement"},
+    "Furniture": {"3197": "Furniture"},
+    "Tools & Workshop Equipment": {"631": "Tools & Workshop Equipment"},
+    "Bedding": {"20444": "Bedding"},
+    "Lamps, Lighting & Ceiling Fans": {"20706": "Lamps, Lighting & Ceiling Fans"},
+    "Household Supplies & Cleaning": {"299": "Household Supplies & Cleaning"},
+    "Surveillance & Smart Home Electronics": {"175673": "Smart Home & Surveillance"},
+    "Bath": {"20452": "Bath"},
+    "Rugs & Carpets": {"20571": "Rugs & Carpets"},
+    "Major Appliances": {"20710": "Major Appliances"},
+    "Candles & Home Fragrance": {"262975": "Candles & Home Fragrance"},
+    "Holiday & Seasonal Décor": {"170090": "Holiday & Seasonal Décor"},
+    "Food & Beverages": {"14308": "Food & Beverages"},
+    "Window Treatments & Hardware": {"63514": "Window Treatments & Hardware"},
+    "Pillows": {"83902": "Pillows"},
+    "Greeting Cards & Party Supply": {"16086": "Greeting Cards & Party Supply"},
+    "Kitchen Fixtures": {"177073": "Kitchen Fixtures"}
+  },
+  "Clothing, Shoes & Accessories": {
+    "Women": {"15724": "Women's Clothing", "3034": "Women's Shoes", "169291": "Women's Handbags & Bags", "4250": "Women's Accessories"},
+    "Men": {"1059": "Men's Clothing", "93427": "Men's Shoes", "4251": "Men's Accessories"},
+    "Kids": {"147": "Kids & Baby Clothing"},
+    "Baby": {"260018": "Baby"},
+    "Specialty": {"260033": "Specialty"},
+    "Luggage": {"16080": "Luggage"}
+  },
+  "Toys & Hobbies": {
+    "Collectible Card Games": {"2536": "Collectible Card Games"},
+    "Action Figures & Accessories": {"246": "Action Figures"},
+    "Video Games": {"1249": "Video Games & Consoles"},
+    "Building Toys": {"18991": "Building Toys"},
+    "Diecast & Toy Vehicles": {"222": "Diecast & Toy Vehicles"},
+    "Model Railroads & Trains": {"19107": "Model Trains & Railroads"},
+    "Games": {"233": "Games"},
+    "Radio Control & Control Line": {"2562": "Radio Control & RC"},
+    "Models & Kits": {"1188": "Models & Kits"},
+    "Slot Cars": {"19149": "Slot Cars"},
+    "Preschool Toys & Pretend Play": {"2617": "Preschool Toys & Pretend Play"},
+    "Stuffed Animals": {"436": "Stuffed Animals"},
+    "Vintage & Antique Toys": {"717": "Vintage & Antique Toys"},
+    "Robots, Monsters & Space Toys": {"19192": "Robots, Monsters & Space Toys"},
+    "Puzzles": {"1247": "Puzzles"},
+    "Electronic, Battery & Wind-Up": {"19071": "Electronic, Battery & Wind-Up"},
+    "Outdoor Toys & Structures": {"11743": "Outdoor Toys & Structures"},
+    "Toy Soldiers": {"2631": "Toy Soldiers"},
+    "Fast Food & Cereal Premiums": {"19077": "Fast Food & Cereal Premiums"},
+    "Beanbag Plush": {"49019": "Beanbag Plush"}
+  },
+  "Sporting Goods": {
+    "Sports Mem, Cards & Fan Shop": {"64482": "Sports Mem, Cards & Fan Shop"},
+    "Hunting": {"7301": "Hunting"},
+    "Golf": {"1513": "Golf"},
+    "Cycling": {"7294": "Cycling"},
+    "Fishing": {"1492": "Fishing"},
+    "Outdoor Sports": {"159043": "Outdoor Sports"},
+    "Team Sports": {"64482": "Team Sports"},
+    "Camping & Hiking": {"16034": "Camping & Hiking"},
+    "Fitness, Running & Yoga": {"15273": "Exercise & Fitness", "15277": "Yoga & Pilates", "15272": "Running & Jogging"},
+    "Winter Sports": {"16058": "Winter Sports"},
+    "Indoor Games": {"36274": "Indoor Games"},
+    "Tactical & Duty Gear": {"177890": "Tactical & Duty Gear"},
+    "Boxing, Martial Arts & MMA": {"179767": "Boxing, Martial Arts & MMA"},
+    "Water Sports": {"1497": "Water Sports"},
+    "Tennis & Racquet Sports": {"159134": "Tennis & Racquet Sports"},
+    "Other Sporting Goods": {"310": "Other Sporting Goods"},
+    "Wholesale Lots": {"56080": "Wholesale Lots"}
+  },
+  "Books, Movies & Music": {
+    "Books & Magazines": {"134448": "Books & Magazines"},
+    "Music": {"104417": "Music"},
+    "Musical Instruments & Gear": {"619": "Musical Instruments & Gear"},
+    "Movies & TV": {"11232": "Movies & TV"}
+  },
+  "Health & Beauty": {
+    "Fragrances": {"31411": "Fragrances"},
+    "Vitamins & Lifestyle Supplements": {"180959": "Vitamins & Dietary Supplements"},
+    "Skin Care": {"11854": "Skin Care"},
+    "Hair Care & Styling": {"11854": "Hair Care & Styling"},
+    "Makeup": {"31786": "Makeup"},
+    "Vision Care": {"31414": "Vision Care"},
+    "Medical & Mobility": {"11778": "Medical & Mobility"},
+    "Shaving & Hair Removal": {"11855": "Shaving & Hair Removal"},
+    "Health Care": {"6197": "Health Care"},
+    "Natural & Alternative Remedies": {"67659": "Natural & Alternative Remedies"},
+    "Bath & Body": {"51006": "Bath & Body"},
+    "Massage": {"36447": "Massage"},
+    "Oral Care": {"11338": "Oral Care"},
+    "Nail Care, Manicure & Pedicure": {"47945": "Nail Care, Manicure & Pedicure"},
+    "Sun Protection & Tanning": {"31772": "Sun Protection & Tanning"},
+    "Tattoos & Body Art": {"33914": "Tattoos & Body Art"},
+    "Salon & Spa Equipment": {"177731": "Salon & Spa Equipment"},
+    "Baby Safety & Health": {"20433": "Baby Safety & Health"},
+    "Wholesale Lots": {"56080": "Wholesale Lots"},
+    "Other Health & Beauty": {"1277": "Other Health & Beauty"}
+  },
+  "Business & Industrial": {
+    "Healthcare, Lab & Dental": {"11815": "Healthcare, Lab & Dental"},
+    "CNC, Metalworking & Manufacturing": {"11804": "CNC, Metalworking & Manufacturing"},
+    "Test, Measurement & Inspection": {"181939": "Test, Measurement & Inspection"},
+    "Electrical Equipment & Supplies": {"92074": "Electrical Equipment & Supplies"},
+    "Office": {"25298": "Office"},
+    "Light Equipment & Tools": {"61573": "Light Equipment & Tools"},
+    "Industrial Automation & Motion Controls": {"42892": "Industrial Automation & Motion Controls"},
+    "Restaurant & Food Service": {"11874": "Restaurant & Food Service"},
+    "Heavy Equipment, Parts & Attachments": {"257887": "Heavy Equipment, Parts & Attachments"},
+    "Facility Maintenance & Safety": {"11897": "Facility Maintenance & Safety"},
+    "HVAC & Refrigeration": {"42909": "HVAC & Refrigeration"},
+    "Agriculture & Forestry": {"11748": "Agriculture & Forestry"},
+    "Hydraulics, Pneumatics, Pumps & Plumbing": {"183978": "Hydraulics, Pneumatics, Pumps & Plumbing"},
+    "Retail & Services": {"11890": "Retail & Services"},
+    "Printing & Graphic Arts": {"26238": "Printing & Graphic Arts"},
+    "Material Handling": {"26221": "Material Handling"},
+    "Building Materials & Supplies": {"41498": "Building Materials & Supplies"},
+    "Fasteners & Hardware": {"183900": "Fasteners & Hardware"},
+    "Modular & Prefabricated Buildings": {"55805": "Modular & Prefabricated Buildings"},
+    "Adhesives, Sealants & Tapes": {"109471": "Adhesives, Sealants & Tapes"}
+  },
+  "Jewelry & Watches": {
+    "Watches, Parts & Accessories": {"281": "Jewelry & Watches"},
+    "Fine Jewelry": {"4196": "Fine Jewelry"},
+    "Vintage & Antique Jewelry": {"262024": "Vintage & Antique Jewelry"},
+    "Fashion Jewelry": {"10968": "Fashion Jewelry"},
+    "Ethnic, Regional & Tribal": {"262025": "Ethnic, Regional & Tribal"},
+    "Men's Jewelry": {"10290": "Men's Jewelry"},
+    "Engagement & Wedding": {"91427": "Engagement & Wedding"},
+    "Jewelry Care, Design & Repair": {"164352": "Jewelry Care, Design & Repair"},
+    "Jewelry Mixed Lots": {"262022": "Jewelry Mixed Lots"},
+    "Handcrafted & Artisan Jewelry": {"110633": "Handcrafted & Artisan Jewelry"},
+    "Loose Diamonds & Gemstones": {"491": "Loose Diamonds & Gemstones"},
+    "Body Jewelry": {"261986": "Body Jewelry"},
+    "Loose Beads": {"261997": "Loose Beads"},
+    "Children's Jewelry": {"84605": "Children's Jewelry"},
+    "Other Jewelry": {"262023": "Other Jewelry"}
+  },
+  "Baby Essentials": {
+    "Baby": {"260018": "Baby"},
+    "Feeding": {"20400": "Feeding"},
+    "Diapering": {"45455": "Diapering"},
+    "Strollers & Accessories": {"66698": "Strollers & Accessories"},
+    "Nursery Bedding": {"20416": "Nursery Bedding"},
+    "Toys for Baby": {"19068": "Toys for Baby"},
+    "Baby Gear": {"100223": "Baby Gear"},
+    "Carriers, Slings & Backpacks": {"100982": "Carriers, Slings & Backpacks"},
+    "Car Safety Seats": {"66692": "Car Safety Seats"},
+    "Baby Safety & Health": {"20433": "Baby Safety & Health"},
+    "Nursery Furniture": {"20422": "Nursery Furniture"},
+    "Nursery Décor": {"66697": "Nursery Décor"},
+    "Bathing & Grooming": {"20394": "Bathing & Grooming"},
+    "Children's Jewelry": {"84605": "Children's Jewelry"},
+    "Potty Training": {"37631": "Potty Training"},
+    "Keepsakes & Baby Announcements": {"117388": "Keepsakes & Baby Announcements"},
+    "Other Baby": {"1261": "Other Baby"},
+    "Wholesale Lots": {"56080": "Wholesale Lots"}
+  },
+  "Pet Supplies": {
+    "Dog Supplies": {"20737": "Dog Supplies"},
+    "Fish & Aquariums": {"20754": "Fish & Aquarium"},
+    "Cat Supplies": {"20738": "Cat Supplies"},
+    "Small Animal Supplies": {"3756": "Small Animal Supplies"},
+    "Bird Supplies": {"20748": "Bird Supplies"},
+    "Reptile Supplies": {"157692": "Reptile & Amphibian Supplies"},
+    "Backyard Poultry Supplies": {"177801": "Backyard Poultry Supplies"},
+    "Pet Memorials & Urns": {"116391": "Pet Memorials & Urns"},
+    "Trackers": {"259319": "Trackers"},
+    "Cameras": {"259068": "Cameras"},
+    "Wholesale Lots": {"56080": "Wholesale Lots"},
+    "Other Pet Supplies": {"301": "Other Pet Supplies"}
+  },
+  "Tickets & Travel": {
+    "Travel": {"3252": "Travel"},
+    "Tickets & Experiences": {"1305": "Tickets & Experiences"}
+  },
+  "Everything Else": {
+    "Personal Security": {"102535": "Personal Security"},
+    "Metaphysical": {"19266": "Metaphysical"},
+    "Religious Products & Supplies": {"102545": "Religious Products & Supplies"},
+    "Funeral & Cemetery": {"88739": "Funeral & Cemetery"},
+    "Genealogy": {"20925": "Genealogy"},
+    "Information Products": {"102480": "Information Products"},
+    "Career Development & Education": {"3143": "Career Development & Education"},
+    "Personal Development": {"102329": "Personal Development"},
+    "eBay Special Offers": {"177600": "eBay Special Offers"},
+    "Weird Stuff": {"1466": "Weird Stuff"},
+    "Every Other Thing": {"88433": "Every Other Thing"},
+    "eBay User Tools": {"20924": "eBay User Tools"}
+  },
+  "Gift Cards & Coupons": {
+    "Gift Cards": {"172009": "Gift Cards"},
+    "Coupons": {"172010": "Coupons"},
+    "Gift Certificates": {"31411": "Gift Certificates"},
+    "Digital Gifts": {"176950": "Digital Gifts"},
+    "eBay Gift Cards": {"172036": "eBay Gift Cards"}
+  },
+  "Real Estate": {
+    "Land": {"15841": "Land"},
+    "Timeshares for Sale": {"15897": "Timeshares for Sale"},
+    "Manufactured Homes": {"94825": "Manufactured Homes"},
+    "Residential": {"12605": "Residential"},
+    "Commercial": {"15825": "Commercial"},
+    "Other Real Estate": {"1607": "Other Real Estate"}
+  },
+  "Specialty Services": {
+    "eBay Auction Services": {"50349": "eBay Auction Services"},
+    "Web & Computer Services": {"47104": "Web & Computer Services"},
+    "Other Specialty Services": {"317": "Other Specialty Services"},
+    "Printing & Personalization": {"20943": "Printing & Personalization"},
+    "Home Improvement Services": {"170048": "Home Improvement Services"},
+    "Restoration & Repair": {"47119": "Restoration & Repair"},
+    "Custom Clothing & Jewelry": {"50343": "Custom Clothing & Jewelry"},
+    "Artistic Services": {"47126": "Artistic Services"},
+    "Item Based Services": {"175814": "Item Based Services"},
+    "Media Editing & Duplication": {"50355": "Media Editing & Duplication"},
+    "Graphic & Logo Design": {"47131": "Graphic & Logo Design"}
+  }
+};
+
+  function renderCategoryTree(data, container, level = 0) {
+    let html = '';
+    for (const [categoryName, subcategories] of Object.entries(data)) {
+      if (typeof subcategories === 'object' && subcategories !== null) {
+        const keys = Object.keys(subcategories);
+        const values = Object.values(subcategories);
+        
+        // Check if this is a leaf node (all values are strings = IDs are keys, names are values)
+        const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+        const hasNestedObjects = values.some(v => typeof v === 'object' && v !== null);
+        
+        if (hasNestedObjects) {
+          // Parent category with nested subcategories
+          html += `
+            <details class="category-section">
+              <summary class="category-header">
+                <span>${categoryName}</span>
+              </summary>
+              <div class="subcategory-list">
+                ${renderCategoryTree(subcategories, null, level + 1)}
+              </div>
+            </details>
+          `;
+        } else if (allValuesAreStrings && keys.length > 0) {
+          // Leaf categories: keys are IDs, values are names
+          for (const [catId, catName] of Object.entries(subcategories)) {
+            html += `
+              <div class="subcategory-item">
+                <label>
+                  <input type="radio" name="category-select" class="cat-radio" value="${catId}" data-category="${catName}" onchange="window.selectCategory('${catId}', '${catName}')">
+                  <span>${catName}</span>
+                </label>
+              </div>
+            `;
+          }
+        } else if (keys.length === 0) {
+          // Empty category (no ID yet)
+          html += `
+            <div class="subcategory-item">
+              <label>
+                <input type="radio" name="category-select" class="cat-radio" value="" data-category="${categoryName}" disabled title="Category ID not available">
+                <span>${categoryName} <small style="color: var(--text-muted);">(ID needed)</small></span>
+              </label>
+            </div>
+          `;
+        }
+      }
+    }
+    if (container) {
+      container.innerHTML = html;
+    }
+    return html;
+  }
+
+  // Make functions globally accessible
+  window.toggleCategoryBrowser = function() {
+    const browser = document.getElementById('category-browser');
+    browser.style.display = browser.style.display === 'none' ? 'block' : 'none';
+    
+    if (browser.style.display === 'block' && !browser.dataset.rendered) {
+      const tree = document.getElementById('category-tree');
+      renderCategoryTree(categoryData, tree);
+      browser.dataset.rendered = 'true';
+    }
+  };
+
+  window.filterCategories = function(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    const items = document.querySelectorAll('.category-section, .subcategory-item');
+    
+    // If search is empty, show all
+    if (!term) {
+      items.forEach(item => item.classList.remove('category-hidden'));
+      return;
+    }
+    
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      if (text.includes(term)) {
+        item.classList.remove('category-hidden');
+        // Expand parent details if match found
+        const details = item.closest('details');
+        if (details) details.open = true;
+      } else {
+        item.classList.add('category-hidden');
+      }
+    });
+  };
+
+  window.selectCategory = function(categoryId, categoryName) {
+    document.getElementById('category-id').value = categoryId;
+    document.getElementById('selected-category-name').textContent = categoryName;
+    document.getElementById('selected-category-display').style.display = 'block';
+    // Automatically search when category is selected
+    loadItems(1);
+  };
+
+  window.clearCategory = function() {
+    document.getElementById('category-id').value = '';
+    document.getElementById('selected-category-display').style.display = 'none';
+    // Uncheck all radio buttons
+    document.querySelectorAll('.cat-radio').forEach(radio => radio.checked = false);
+  };
+
+  // Handle manual category ID input
+  const categoryIdInput = document.getElementById('category-id');
+  if (categoryIdInput) {
+    categoryIdInput.addEventListener('blur', function() {
+      const categoryId = this.value.trim();
+      if (categoryId) {
+        // Try to find and select the matching radio button
+        const radio = document.querySelector(`.cat-radio[value="${categoryId}"]`);
+        if (radio) {
+          radio.checked = true;
+          const categoryName = radio.getAttribute('data-category');
+          if (categoryName) {
+            document.getElementById('selected-category-name').textContent = categoryName;
+            document.getElementById('selected-category-display').style.display = 'block';
+          }
+        } else {
+          // Category ID not found in browser, but still allow it
+          document.getElementById('selected-category-display').style.display = 'none';
+        }
+      } else {
+        document.getElementById('selected-category-display').style.display = 'none';
+        document.querySelectorAll('.cat-radio').forEach(radio => radio.checked = false);
+      }
+    });
+  }
+
+  // Load initial items (optional - can start empty)
+  // loadItems(1);
+})();
+</script>
+{% endblock %}
+

@@ -1,0 +1,1317 @@
+{% extends "base.html" %}
+{% block title %}Browse Catalog{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-bar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog-cards.css') }}">
+{% endblock %}
+
+{% block content %}
+<style>
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* Ensure app-content doesn't overflow */
+  #app-content {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .page-wrap {
+    min-height: calc(100vh - 60px - 60px); /* Account for navbar and bottom action bar */
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    padding: 0;
+    padding-top: max(clamp(24px, 6vw, 60px), 70px); /* Ensure space for navbar */
+    padding-bottom: max(clamp(24px, 6vw, 60px), 70px); /* Ensure space for bottom action bar */
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    position: relative;
+  }
+
+  .catalog-sidebar {
+    width: 360px;
+    min-width: 360px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 0;
+    position: fixed;
+    top: 82.625px; /* Exact position from top */
+    left: 0;
+    bottom: 0px; /* Exact position from bottom */
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: transform 0.3s ease-out;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  }
+
+  [data-theme="dark"] .catalog-sidebar {
+    background: var(--bg-secondary);
+    border-right-color: var(--border);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .catalog-sidebar.hidden {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  [data-theme="dark"] .sidebar-header {
+    background: var(--bg-secondary);
+  }
+
+  .sidebar-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sidebar-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+  }
+
+  .sidebar-toggle-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+  }
+
+  .sidebar-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .sidebar-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sidebar-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .sidebar-section input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+  }
+
+  .sidebar-section input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .sidebar-sort-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  [data-theme="dark"] .sidebar-sort-select {
+    background: var(--bg-input, var(--bg-secondary));
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+
+  .sidebar-sort-select:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .sidebar-sort-select:hover {
+    border-color: var(--accent-border);
+  }
+
+  /* Prevent category text from wrapping - allow horizontal scroll */
+  .sidebar-section .categories-grid,
+  .sidebar-section #categories-grid {
+    overflow-x: auto;
+    overflow-y: visible;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar,
+  .sidebar-section #categories-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-track,
+  .sidebar-section #categories-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-thumb,
+  .sidebar-section #categories-grid::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .sidebar-section .categories-grid::-webkit-scrollbar-thumb:hover,
+  .sidebar-section #categories-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  /* Ensure category labels don't wrap */
+  .sidebar-section label span,
+  .sidebar-section .category-header,
+  .sidebar-section .cat-check + span {
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  .recommended-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  [data-theme="dark"] .recommended-btn {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent-border);
+  }
+
+  .recommended-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  [data-theme="dark"] .recommended-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+
+  .recommended-btn.active {
+    background: var(--success-strong);
+    border-color: var(--success-strong);
+  }
+
+  [data-theme="dark"] .recommended-btn.active {
+    background: var(--success-strong);
+    border-color: var(--success-strong);
+  }
+
+  /* Apply filter button - match recommended button styling */
+  .sidebar-section .btn-primary {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border: 1px solid var(--accent-border);
+    font-weight: 600;
+  }
+
+  [data-theme="dark"] .sidebar-section .btn-primary {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent-border);
+  }
+
+  .sidebar-section .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  [data-theme="dark"] .sidebar-section .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+
+  .catalog-main {
+    flex: 1;
+    min-width: 0;
+    margin-left: 360px; /* Space for sidebar when open */
+    transition: margin-left 0.3s ease-out;
+    display: flex;
+    justify-content: center;
+    padding-left: clamp(24px, 6vw, 60px);
+    padding-right: clamp(24px, 6vw, 60px);
+    box-sizing: border-box;
+  }
+
+  .catalog-sidebar.hidden ~ .catalog-main {
+    margin-left: 0;
+  }
+
+  /* Expand button - only visible on larger screens when sidebar is hidden */
+  .sidebar-expand-btn {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    z-index: 499;
+    transition: all 0.2s ease;
+    display: none; /* Hidden by default, shown via media query */
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="dark"] .sidebar-expand-btn {
+    background: var(--bg-secondary);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-expand-btn:hover {
+    background: var(--bg-hover);
+    padding-left: 12px;
+  }
+
+  .catalog-sidebar.hidden ~ .catalog-main .sidebar-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Mobile-specific adjustments */
+  @media (max-width: 768px) {
+    .page-wrap {
+      min-height: calc(100vh - 56px - 64px); /* Smaller navbar and action bar on mobile */
+      padding-top: max(16px, 64px); /* Space for mobile navbar */
+      padding-bottom: max(16px, 72px); /* Space for mobile bottom action bar */
+    }
+
+    .catalog-sidebar {
+      width: 100%;
+      min-width: 100%;
+      position: fixed;
+      top: 82.625px; /* Match desktop position */
+      left: 0;
+      right: 0;
+      bottom: 0px; /* Match desktop position */
+      z-index: 1000;
+      border-right: none;
+      border-radius: 0;
+      transform: translateX(-100%);
+    }
+
+    .catalog-sidebar:not(.hidden) {
+      transform: translateX(0);
+    }
+
+    .catalog-main {
+      margin-left: 0 !important;
+      width: 100%;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .sidebar-expand-btn {
+      display: none !important; /* Never show expand button on mobile */
+    }
+
+    .catalog-shell {
+      width: 100%;
+      max-width: 100%;
+      padding: 16px;
+      border-radius: 0;
+    }
+  }
+
+  /* Hide expand button on smaller desktop screens */
+  @media (max-width: 1024px) {
+    .sidebar-expand-btn {
+      display: none !important;
+    }
+  }
+
+  .catalog-shell {
+    width: 100%;
+    max-width: 1280px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 28px);
+    margin: 0 auto; /* Center the catalog content */
+    background: linear-gradient(145deg, rgba(41, 51, 73, 0.12), rgba(17, 24, 39, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 22px;
+    padding: clamp(22px, 3vw, 34px);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  [data-theme="dark"] .catalog-shell {
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
+  }
+
+  .catalog-shell .catalog-header,
+  .catalog-shell .pager-wrapper,
+  .catalog-shell #grid,
+  .catalog-shell #status {
+    width: 100%;
+  }
+
+  /* Catalog bar styles moved to catalog-bar.css */
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-height: 36px;
+    box-sizing: border-box;
+  }
+
+  .btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  /* Grid and card styles moved to catalog-cards.css */
+
+  /* Loading state for View button */
+  .btn.loading {
+    opacity: 0.6;
+    cursor: wait;
+    position: relative;
+  }
+
+  .btn.loading::after {
+    content: "Loading...";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .btn.loading span {
+    opacity: 0;
+  }
+
+  /* Disabled state during loading */
+  .pager .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pager.loading .btn {
+    opacity: 0.6;
+  }
+
+  /* Card, badge, and list view styles moved to catalog-cards.css */
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 8px;
+    background: var(--bg-card);
+  }
+
+  /* Pagination styles moved to catalog-cards.css */
+</style>
+
+<div id="catalog-root"
+     class="page-wrap"
+     data-mode="catalog"
+     data-data-endpoint="{{ url_for('driver_points_catalog.data') }}"
+     data-toggle-endpoint="/driver-catalog/favorites">
+  
+  <!-- Sidebar -->
+  <aside id="catalog-sidebar" class="catalog-sidebar">
+    <div class="sidebar-header">
+      <h2>Browse & Filter</h2>
+      <button type="button" class="sidebar-toggle-btn" id="sidebar-collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+    </div>
+    <div class="sidebar-content">
+      <div class="sidebar-section">
+        <h3>Sort By</h3>
+        <select id="sidebar-sort" class="sidebar-sort-select">
+          <option value="best_match">Best Match</option>
+          <option value="points_asc">Points: Low to High</option>
+          <option value="points_desc">Points: High to Low</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Point Range</h3>
+        <label for="sidebar-min-points">Min points</label>
+        <input id="sidebar-min-points" type="number" min="0" step="1" placeholder="Min pts">
+        <label for="sidebar-max-points">Max points</label>
+        <input id="sidebar-max-points" type="number" min="0" step="1" placeholder="Max pts">
+        <button type="button" class="btn btn-primary" id="apply-points-filter" style="width: 100%; margin-top: 8px;">Apply Filter</button>
+      </div>
+
+      {% if has_recommended or not has_categories %}
+      <div class="sidebar-section">
+        <h3>Browse Options</h3>
+        {% if has_recommended %}
+        <button type="button" class="recommended-btn" id="sidebar-recommended-btn" data-mode="recommended">
+          ⭐ Recommended Products
+        </button>
+        {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+          No recommended products available. Please select a category below.
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if has_categories %}
+      <div class="sidebar-section">
+        <h3>Categories</h3>
+        {% include "driver_points_catalog/_category_browser.html" %}
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Expand button (shown when sidebar is hidden on larger screens) -->
+  <button type="button" class="sidebar-expand-btn" id="sidebar-expand-btn" aria-label="Expand sidebar" title="Expand sidebar">
+    <i class="fas fa-arrow-right"></i>
+  </button>
+
+  <!-- Main Content -->
+  <div class="catalog-main">
+  <div class="catalog-shell">
+  <div class="catalog-header">
+      <div class="catalog-title-area">
+        <div>
+          <div class="catalog-title">Driver Catalog</div>
+          <div id="browsing-indicator" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+            {% if selected_category_name %}
+            Browsing: <strong style="color: var(--text-primary);" id="browsing-category-name">{{ selected_category_name }}</strong>
+            {% else %}
+            <span id="browsing-text" style="display: none;">Browsing: <strong style="color: var(--text-primary);" id="browsing-category-name"></strong></span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="catalog-title-actions">
+          <button type="button"
+                  class="catalog-action-btn catalog-history-btn"
+                  id="open-driver-recent-products"
+                  aria-label="View recently viewed products"
+                  title="Recently viewed products">
+            <span class="catalog-action-icon" aria-hidden="true">
+              <i class="fas fa-history"></i>
+            </span>
+            <span class="catalog-action-label">Recently Viewed</span>
+          </button>
+        <a href="{{ url_for('driver_points_catalog.favorites_page') }}"
+           class="catalog-action-btn favorites-link"
+           title="Go to favorites">
+          <span class="catalog-action-icon" aria-hidden="true">
+            <i class="fas fa-heart"></i>
+          </span>
+          <span class="catalog-action-label">My Favorites</span>
+        </a>
+        <button type="button"
+                class="catalog-action-btn catalog-filter-toggle"
+                id="catalog-filter-toggle"
+                aria-controls="catalog-sidebar"
+                aria-expanded="false"
+                title="Browse categories and filter products">
+          <span class="catalog-action-icon" aria-hidden="true">
+            <i class="fas fa-folder-open"></i>
+          </span>
+          <span class="catalog-action-label">Browse & Filter</span>
+        </button>
+      </div>
+      <div class="catalog-view-toggle">
+        <button id="view-toggle-btn"
+                type="button"
+                class="catalog-view-btn active"
+                aria-pressed="true"
+                title="Switch to list view"
+                aria-label="Switch to list view">
+          ⊞
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="catalog-search-row">
+    <form id="search-form" onsubmit="return false;" class="catalog-search-group">
+      <input id="q" type="search" placeholder="Search items…" value="{{ request.args.get('q','') }}">
+      <button id="search-btn" class="catalog-search-btn" type="button">Search</button>
+    </form>
+  </div>
+
+
+    <!-- Top Pagination Controls -->
+    <div class="pager-wrapper">
+      <div class="pager pager-top">
+        <button id="prev-top" class="btn" disabled>Prev</button>
+        <div class="page-info" id="page-info-top">Page 1</div>
+        <button id="next-top" class="btn btn-primary">Next</button>
+      </div>
+    </div>
+
+    <ul id="grid" class="grid" aria-live="polite" aria-busy="false"></ul>
+    <div id="status" class="status" style="display:none;">No items found.</div>
+
+    <!-- Bottom Pagination Controls -->
+    <div class="pager-wrapper">
+      <div class="pager pager-bottom">
+        <button id="prev" class="btn" disabled>Prev</button>
+        <div class="page-info" id="page-info">Page 1</div>
+        <button id="next" class="btn btn-primary">Next</button>
+      </div>
+    </div>
+  </div> <!-- end catalog-shell -->
+  </div> <!-- end catalog-main -->
+</div> <!-- end page-wrap -->
+
+{% include "driver_points_catalog/_recent_products_modal.html" %}
+
+<template id="card">
+  <li class="card" tabindex="0" role="link" aria-label="">
+    <div class="card-image-wrapper">
+      <img src="" alt="" class="card-image">
+      <span class="badge low" data-low-stock="1" style="display:none;">Low stock</span>
+      <span class="badge out-of-stock" data-no-stock="1" style="display:none;">Out of stock</span>
+      <button type="button" class="favorite-btn filled" data-favorite="1" style="display:none;" title="Remove from favorites">❤</button>
+      <button type="button" class="favorite-btn unfavorite" data-unfavorite="1" title="Add to favorites">❤</button>
+    </div>
+    <div class="card-body">
+      <div class="title"></div>
+      <div class="meta">
+        <span class="points"><span class="number"></span><span class="label"> pts</span></span>
+        <div class="action-buttons">
+          <button type="button"
+                  class="add-to-cart-btn icon-only btn-primary"
+                  style="display:none;"
+                  aria-label="Add to cart">
+            <svg class="icon cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3h2l.4 2M7 13h10l1.5-7H5.21M7 13l-2 9m12-9l2 9M9 21h6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <svg class="icon check-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 13l4 4L19 7"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </li>
+</template>
+
+<!-- Item Modal -->
+<div id="item-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <img id="modal-img" alt="" />
+    <h3 id="modal-title"></h3>
+    <div id="modal-cost" class="muted" style="color:var(--text-muted);"></div>
+    <p id="modal-desc" class="desc"></p>
+    <div class="modal-actions">
+      <button id="modal-add-to-cart" class="btn btn-primary" style="display:none;">Add to Cart</button>
+      <a id="modal-link" class="btn" target="_blank" rel="noopener" style="display:none;">Open on eBay</a>
+      <button id="modal-report-btn" class="btn secondary" style="display:none;">Report Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+  <div class="modal-overlay" data-close="1"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+    <h3 id="report-modal-title">Report Item</h3>
+    <form id="report-form">
+      <div class="form-group">
+        <label for="report-reason">Reason for reporting:</label>
+        <select id="report-reason" required>
+          <option value="">Select a reason</option>
+          <option value="inappropriate">Inappropriate content</option>
+          <option value="broken_link">Broken or invalid link</option>
+          <option value="wrong_category">Wrong category</option>
+          <option value="spam">Spam or misleading</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="report-description">Additional details (optional):</label>
+        <textarea id="report-description" rows="3" placeholder="Please provide any additional information..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close="1">Cancel</button>
+        <button type="submit" class="btn secondary">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .modal-dialog {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    width: calc(100% - 32px);
+    margin: 6vh auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 14px;
+  }
+
+  [data-theme="dark"] .modal-dialog {
+    border-color: var(--accent-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .modal-dialog img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--bg-hover);
+  }
+
+  .modal-dialog h3 {
+    margin: .25rem 0 .25rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .modal-dialog .desc {
+    margin: .5rem 0 1rem;
+    white-space: pre-wrap;
+    color: var(--text-secondary);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .btn.secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .btn.secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-input);
+    color: var(--text-primary);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .modal-close:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width:640px) {
+    .modal-dialog {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script src="{{ url_for('static', filename='js/driver_catalog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/driver_recent_products.js') }}" defer></script>
+<script>
+// Sidebar toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('catalog-sidebar');
+  const toggleBtn = document.getElementById('catalog-filter-toggle');
+  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  const expandBtn = document.getElementById('sidebar-expand-btn');
+  const recommendedBtn = document.getElementById('sidebar-recommended-btn');
+  const applyPointsBtn = document.getElementById('apply-points-filter');
+  let currentMode = 'category'; // 'category' or 'recommended'
+  let currentCategoryId = '{{ selected_category_id or "" }}';
+
+  // Function to toggle sidebar
+  function toggleSidebar(show) {
+    if (show === undefined) {
+      show = sidebar.classList.contains('hidden');
+    }
+    
+    if (show) {
+      sidebar.classList.remove('hidden');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+    } else {
+      sidebar.classList.add('hidden');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  // Toggle sidebar from header button (mobile)
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener('click', function() {
+      toggleSidebar();
+    });
+
+    // Close sidebar when clicking outside on mobile
+    if (window.innerWidth <= 768) {
+      document.addEventListener('click', function(e) {
+        if (!sidebar.contains(e.target) && 
+            !toggleBtn.contains(e.target) && 
+            collapseBtn && !collapseBtn.contains(e.target) &&
+            !sidebar.classList.contains('hidden')) {
+          toggleSidebar(false);
+        }
+      });
+    }
+  }
+
+  // Collapse sidebar button (inside sidebar)
+  if (collapseBtn && sidebar) {
+    collapseBtn.addEventListener('click', function() {
+      toggleSidebar(false);
+    });
+  }
+
+  // Expand sidebar button (when hidden on desktop)
+  if (expandBtn && sidebar) {
+    expandBtn.addEventListener('click', function() {
+      toggleSidebar(true);
+    });
+  }
+
+  // Function to update browsing indicator
+  function updateBrowsingIndicator(name, mode) {
+    const indicator = document.getElementById('browsing-indicator');
+    const categoryNameEl = document.getElementById('browsing-category-name');
+    const browsingText = document.getElementById('browsing-text');
+    
+    if (!indicator) return;
+    
+    if (mode === 'recommended') {
+      if (categoryNameEl) {
+        categoryNameEl.textContent = 'Recommended Products';
+      } else if (browsingText) {
+        browsingText.style.display = '';
+        const nameEl = browsingText.querySelector('#browsing-category-name');
+        if (nameEl) nameEl.textContent = 'Recommended Products';
+      } else {
+        indicator.innerHTML = 'Browsing: <strong style="color: var(--text-primary);">Recommended Products</strong>';
+      }
+    } else if (name) {
+      if (categoryNameEl) {
+        categoryNameEl.textContent = name;
+      } else if (browsingText) {
+        browsingText.style.display = '';
+        const nameEl = browsingText.querySelector('#browsing-category-name');
+        if (nameEl) nameEl.textContent = name;
+      } else {
+        indicator.innerHTML = `Browsing: <strong style="color: var(--text-primary);">${name}</strong>`;
+      }
+    }
+  }
+
+  // Recommended products button
+  if (recommendedBtn) {
+    recommendedBtn.addEventListener('click', function() {
+      currentMode = 'recommended';
+      recommendedBtn.classList.add('active');
+      
+      // Update browsing indicator
+      updateBrowsingIndicator('Recommended Products', 'recommended');
+      
+      // Clear category selection
+      sessionStorage.removeItem('selectedCategory');
+      
+      // Load recommended products
+      loadRecommendedProducts();
+    });
+  }
+
+  // Sort dropdown handler
+  const sidebarSort = document.getElementById('sidebar-sort');
+  if (sidebarSort) {
+    // Set initial value from state
+    if (window.driverCatalogState && window.driverCatalogState.sort) {
+      sidebarSort.value = window.driverCatalogState.sort;
+    }
+    
+    sidebarSort.addEventListener('change', async function() {
+      const sortValue = sidebarSort.value;
+      
+      // Update sort in session and reload
+      if (window.setSortInSession) {
+        await window.setSortInSession(sortValue);
+      } else {
+        // Fallback: update state and reload
+        if (window.driverCatalogState) {
+          window.driverCatalogState.sort = sortValue;
+          window.driverCatalogState.page = 1;
+          if (window.driverCatalogLoad) {
+            window.driverCatalogLoad();
+          }
+        }
+      }
+    });
+  }
+
+  // Apply points filter
+  if (applyPointsBtn) {
+    applyPointsBtn.addEventListener('click', function() {
+      const minPoints = document.getElementById('sidebar-min-points').value;
+      const maxPoints = document.getElementById('sidebar-max-points').value;
+      
+      // Update URL params and reload
+      const url = new URL(window.location.href);
+      if (minPoints) url.searchParams.set('min_points', minPoints);
+      else url.searchParams.delete('min_points');
+      if (maxPoints) url.searchParams.set('max_points', maxPoints);
+      else url.searchParams.delete('max_points');
+      
+      // Reload products with new filter
+      if (currentMode === 'recommended') {
+        loadRecommendedProducts();
+      } else {
+        loadCategoryProducts();
+      }
+    });
+  }
+
+  // Override selectDriverCategory to work with sidebar (called from category browser)
+  // Wait a bit for category browser to initialize, then override
+  function setupCategorySelectionOverride() {
+    const originalSelectDriverCategory = window.selectDriverCategory;
+    
+    window.selectDriverCategory = function(categoryId, categoryName) {
+      // Show loading indicator
+      const grid = document.getElementById('grid');
+      const status = document.getElementById('status');
+      if (grid) {
+        grid.setAttribute('aria-busy', 'true');
+        grid.innerHTML = '<li class="skeleton" style="padding: 20px; text-align: center;">Loading products...</li>';
+      }
+      if (status) {
+        status.textContent = 'Loading products...';
+        status.style.display = '';
+      }
+      
+      currentMode = 'category';
+      currentCategoryId = categoryId;
+      
+      // Update browsing indicator
+      updateBrowsingIndicator(categoryName, 'category');
+      
+      // Update recommended button state
+      if (recommendedBtn) {
+        recommendedBtn.classList.remove('active');
+      }
+      
+      // Update global state
+      if (window.catalogSidebarState) {
+        window.catalogSidebarState.currentMode = 'category';
+        window.catalogSidebarState.currentCategoryId = categoryId;
+      }
+      
+      // Get CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      
+      // Set category in session and reload products
+      fetch('/driver-catalog/set-category', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ category_id: categoryId })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to set category: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.ok) {
+          // Update currentCategoryId before loading
+          currentCategoryId = categoryId;
+          loadCategoryProducts();
+        } else {
+          throw new Error(data.error || 'Failed to set category');
+        }
+      })
+      .catch(err => {
+        alert('Failed to select category: ' + err.message);
+        // Fallback to original behavior if available
+        if (originalSelectDriverCategory && typeof originalSelectDriverCategory === 'function') {
+          originalSelectDriverCategory(categoryId, categoryName);
+        }
+      });
+    };
+  }
+  
+  // Try to set up override immediately, and also after a delay to catch late-loading category browser
+  setupCategorySelectionOverride();
+  setTimeout(() => {
+    setupCategorySelectionOverride();
+  }, 500);
+  setTimeout(() => {
+    setupCategorySelectionOverride();
+  }, 1000);
+
+  function loadRecommendedProducts() {
+    const minPoints = document.getElementById('sidebar-min-points')?.value || '';
+    const maxPoints = document.getElementById('sidebar-max-points')?.value || '';
+    
+    // Update browsing indicator
+    updateBrowsingIndicator('Recommended Products', 'recommended');
+    
+    // Update root element data-endpoint
+    const rootEl = document.getElementById('catalog-root');
+    if (rootEl && window.driverCatalogConfig) {
+      const params = new URLSearchParams();
+      if (minPoints) params.set('min_points', minPoints);
+      if (maxPoints) params.set('max_points', maxPoints);
+      
+      window.driverCatalogConfig.dataEndpoint = '/driver-catalog/recommended-data?' + params.toString();
+      rootEl.dataset.dataEndpoint = window.driverCatalogConfig.dataEndpoint;
+      
+      // Update state
+      if (window.driverCatalogState) {
+        window.driverCatalogState.page = 1;
+        window.driverCatalogState.min_points = minPoints ? parseFloat(minPoints) : null;
+        window.driverCatalogState.max_points = maxPoints ? parseFloat(maxPoints) : null;
+        window.driverCatalogState.q = '';
+      }
+      
+        // Trigger load
+      if (window.driverCatalogLoad) {
+        window.driverCatalogLoad();
+      } else {
+        window.location.reload();
+      }
+    } else {
+      window.location.reload();
+    }
+  }
+
+  function loadCategoryProducts() {
+    if (!currentCategoryId) {
+      return;
+    }
+    
+    const minPoints = document.getElementById('sidebar-min-points')?.value || '';
+    const maxPoints = document.getElementById('sidebar-max-points')?.value || '';
+    const q = document.getElementById('q')?.value || '';
+    
+    // Update root element data-endpoint
+    const rootEl = document.getElementById('catalog-root');
+    
+    if (rootEl && window.driverCatalogConfig) {
+      const params = new URLSearchParams();
+      params.set('page', '1');
+      params.set('page_size', '24');
+      if (minPoints) params.set('min_points', minPoints);
+      if (maxPoints) params.set('max_points', maxPoints);
+      if (q) params.set('q', q);
+      
+      const endpoint = '/driver-catalog/data?' + params.toString();
+      
+      window.driverCatalogConfig.dataEndpoint = endpoint;
+      rootEl.dataset.dataEndpoint = endpoint;
+      
+      // Update state
+      if (window.driverCatalogState) {
+        window.driverCatalogState.page = 1;
+        window.driverCatalogState.min_points = minPoints ? parseFloat(minPoints) : null;
+        window.driverCatalogState.max_points = maxPoints ? parseFloat(maxPoints) : null;
+        window.driverCatalogState.q = q || '';
+      }
+      
+      // Trigger load
+      if (window.driverCatalogLoad) {
+        try {
+          window.driverCatalogLoad();
+        } catch (err) {
+          window.location.reload();
+        }
+      } else {
+        window.location.reload();
+      }
+    } else {
+      window.location.reload();
+    }
+  }
+  
+  // Store state globally for category browser to access
+  window.catalogSidebarState = {
+    currentMode: currentMode,
+    currentCategoryId: currentCategoryId,
+    loadRecommendedProducts: loadRecommendedProducts,
+    loadCategoryProducts: loadCategoryProducts
+  };
+
+  // Initialize: Load recommended products by default if available, BUT only if no category is selected
+  {% if has_recommended %}
+  // Wait for catalog instance to be available, then load recommended products
+  function initializeCatalog() {
+    if (window.driverCatalogLoad && window.driverCatalogConfig && window.driverCatalogState) {
+      // Check if a category is already selected - if so, load that instead
+      const selectedCategoryId = '{{ selected_category_id or "" }}';
+      const selectedCategoryName = '{{ selected_category_name or "" }}';
+      
+      if (selectedCategoryId) {
+        currentMode = 'category';
+        currentCategoryId = selectedCategoryId;
+        if (selectedCategoryName) {
+          updateBrowsingIndicator(selectedCategoryName, 'category');
+        }
+        loadCategoryProducts();
+        return;
+      }
+      // Load recommended products by default only if no category is selected
+      if (recommendedBtn) {
+        recommendedBtn.classList.add('active');
+      }
+      currentMode = 'recommended';
+      
+      // Update browsing indicator
+      updateBrowsingIndicator('Recommended Products', 'recommended');
+      
+      // Update config to use recommended endpoint
+      const rootEl = document.getElementById('catalog-root');
+      if (rootEl) {
+        window.driverCatalogConfig.dataEndpoint = '{{ url_for("driver_points_catalog.recommended_data") }}';
+        rootEl.dataset.dataEndpoint = window.driverCatalogConfig.dataEndpoint;
+      }
+      
+      // Clear search query
+      if (window.driverCatalogState) {
+        window.driverCatalogState.q = '';
+        window.driverCatalogState.page = 1;
+      }
+      
+      // Trigger load
+      window.driverCatalogLoad();
+    } else {
+      // Retry after a short delay
+      setTimeout(initializeCatalog, 100);
+    }
+  }
+  
+  // Start initialization after DOM is ready
+  setTimeout(initializeCatalog, 300);
+  {% elif has_categories and selected_category_id %}
+  // If no recommended products but category is selected, load category products
+  function initializeCatalog() {
+    if (window.driverCatalogLoad && window.driverCatalogConfig) {
+      // Update browsing indicator with current category name
+      const categoryName = '{{ selected_category_name or "" }}';
+      if (categoryName) {
+        updateBrowsingIndicator(categoryName, 'category');
+      }
+      loadCategoryProducts();
+    } else {
+      setTimeout(initializeCatalog, 100);
+    }
+  }
+  setTimeout(initializeCatalog, 300);
+  {% else %}
+  // No recommended products and no category selected - show empty state
+  function initializeCatalog() {
+    const grid = document.getElementById('grid');
+    const status = document.getElementById('status');
+    if (grid && status) {
+      grid.innerHTML = '';
+      status.textContent = '{% if has_categories %}Please select a category from the sidebar to browse products.{% else %}No products available.{% endif %}';
+      status.style.display = '';
+    }
+  }
+  setTimeout(initializeCatalog, 300);
+  {% endif %}
+});
+</script>
+<script>
+// Category data loaded (debug logging removed)
+
+</script>
+{% endblock %}

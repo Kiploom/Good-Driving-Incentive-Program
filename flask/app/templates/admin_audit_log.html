@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>{% if selected_sponsor %}{{ selected_sponsor.Company }} Audit Logs{% else %}Audit Logs{% endif %}</h1>
+      <p>{% if selected_sponsor %}Choose the log you would like to review for {{ selected_sponsor.Company }}.{% else %}Choose an audit log to review. Filters allow you to scope results to a single sponsor.{% endif %}</p>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form method="get" class="admin-form">
+      <div class="form-grid">
+        <div>
+          <label for="sponsor-filter">Filter by Sponsor</label>
+          <select id="sponsor-filter" name="company_filter" onchange="this.form.submit()">
+            <option value="">All sponsors</option>
+            {% for sponsor in sponsors %}
+              <option value="{{ sponsor.Company }}" {% if selected_sponsor and selected_sponsor.Company == sponsor.Company %}selected{% endif %}>{{ sponsor.Company }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% if selected_sponsor %}
+      <div class="form-actions">
+        <a href="{{ url_for('admin.audit_log') }}" class="btn btn-secondary">
+          <i class="fas fa-undo"></i>
+          <span>Clear Filter</span>
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="admin-tile-group">
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-id-badge"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Driver Applications{% else %}Driver Applications{% endif %}</h3>
+      <p>{% if selected_sponsor %}View driver applications for {{ selected_sponsor.Company }}, with status, reviewer, and decision notes.{% else %}Review driver applications across sponsors with decision history and reviewer notes.{% endif %}</p>
+      <a class="btn btn-primary" id="applications-link" href="{{ url_for('admin.audit_applications') }}">Open Applications Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-coins"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Points Changes{% else %}Points Changes{% endif %}</h3>
+      <p>{% if selected_sponsor %}Track point adjustments issued by {{ selected_sponsor.Company }} to drivers.{% else %}Track sponsor-issued point adjustments across drivers.{% endif %}</p>
+      <a class="btn btn-primary" id="points-link" href="{{ url_for('admin.audit_point_changes') }}">Open Points Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-sign-in-alt"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Login Activity{% else %}Login Activity{% endif %}</h3>
+      <p>{% if selected_sponsor %}Review login attempts for {{ selected_sponsor.Company }} drivers.{% else %}Review successful and failed login attempts across accounts.{% endif %}</p>
+      <a class="btn btn-primary" id="login-link" href="{{ url_for('admin.audit_login_activity') }}">Open Login Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-user-edit"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Driver Profile Changes{% else %}Driver Profile Changes{% endif %}</h3>
+      <p>{% if selected_sponsor %}Track profile changes made to {{ selected_sponsor.Company }} drivers.{% else %}Track profile changes made to drivers across the platform.{% endif %}</p>
+      <a class="btn btn-primary" href="{{ url_for('admin.audit_driver_profile_changes') }}">Open Driver Profile Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-building"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Profile Changes{% else %}Sponsor Profile Changes{% endif %}</h3>
+      <p>{% if selected_sponsor %}Track profile updates made by {{ selected_sponsor.Company }}.{% else %}Track sponsor profile updates across the platform.{% endif %}</p>
+      <a class="btn btn-primary" href="{{ url_for('admin.audit_sponsor_profile_changes') }}">Open Sponsor Profile Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-sliders-h"></i></div>
+      <h3>{% if selected_sponsor %}{{ selected_sponsor.Company }} Point Settings Changes{% else %}Point Settings Changes{% endif %}</h3>
+      <p>{% if selected_sponsor %}Track conversion rate and limit changes made by {{ selected_sponsor.Company }}.{% else %}Monitor point conversion and limit changes across sponsors.{% endif %}</p>
+      <a class="btn btn-primary" href="{{ url_for('admin.audit_point_settings_changes') }}">Open Point Settings Log</a>
+    </div>
+
+    {% if not selected_sponsor %}
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-user-shield"></i></div>
+      <h3>Admin Profile Changes</h3>
+      <p>Track profile updates made by administrators.</p>
+      <a class="btn btn-primary" href="{{ url_for('admin.audit_admin_profile_changes') }}">Open Admin Profile Log</a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon"><i class="fas fa-file-upload"></i></div>
+      <h3>Bulk Import Logs</h3>
+      <p>View bulk import sessions, successes, and errors across all companies.</p>
+      <a class="btn btn-primary" href="{{ url_for('admin.bulk_import_audit_log') }}">Open Bulk Import Log</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    updateAuditLogLinks();
+});
+
+function updateAuditLogLinks() {
+    const sponsorFilter = document.getElementById('sponsor-filter');
+    const selectedCompany = sponsorFilter?.value;
+    const applicationsUrl = "{{ url_for('admin.audit_applications') }}";
+    const pointsUrl = "{{ url_for('admin.audit_point_changes') }}";
+    const loginUrl = "{{ url_for('admin.audit_login_activity') }}";
+    const driverProfileUrl = "{{ url_for('admin.audit_driver_profile_changes') }}";
+    const sponsorProfileUrl = "{{ url_for('admin.audit_sponsor_profile_changes') }}";
+    const pointSettingsUrl = "{{ url_for('admin.audit_point_settings_changes') }}";
+
+    const applicationsLink = document.getElementById('applications-link');
+    const pointsLink = document.getElementById('points-link');
+    const loginLink = document.getElementById('login-link');
+
+    function withFilter(url) {
+      return selectedCompany ? `${url}?company_filter=${encodeURIComponent(selectedCompany)}` : url;
+    }
+
+    if (applicationsLink) applicationsLink.href = withFilter(applicationsUrl);
+    if (pointsLink) pointsLink.href = withFilter(pointsUrl);
+    if (loginLink) loginLink.href = withFilter(loginUrl);
+
+    document.querySelectorAll('a[href*="audit_driver_profile_changes"]').forEach(link => link.href = withFilter(driverProfileUrl));
+    document.querySelectorAll('a[href*="audit_sponsor_profile_changes"]').forEach(link => link.href = withFilter(sponsorProfileUrl));
+    document.querySelectorAll('a[href*="audit_point_settings_changes"]').forEach(link => link.href = withFilter(pointSettingsUrl));
+}
+</script>
+{% endblock %}

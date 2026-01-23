@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Recovery Codes{% endblock %}
+
+{% block head %}
+<style>
+  .mfa-shell {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .mfa-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 12px 32px var(--shadow-lg);
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  [data-theme="dark"] .mfa-card {
+    background: var(--glass-bg);
+    border-color: var(--accent-border);
+    backdrop-filter: blur(12px);
+  }
+
+  .mfa-card h2 {
+    margin: 0;
+    text-align: center;
+    color: var(--text-primary);
+  }
+
+  .mfa-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .mfa-code-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .mfa-code {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--accent-border);
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.08em;
+  }
+
+  .mfa-download-btn {
+    width: 100%;
+    padding: 0.9rem;
+  }
+
+  @media (max-width: 640px) {
+    .mfa-shell {
+      padding: 2rem 1rem;
+    }
+
+    .mfa-card {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mfa-shell">
+  <div class="mfa-card card">
+    <h2>Save Your Recovery Codes</h2>
+    <p>Download or copy these codes now. They are the only way back in if you lose access to your MFA device.</p>
+
+    <div class="mfa-code-grid">
+      {% for c in codes %}
+        <div class="mfa-code">{{ c }}</div>
+      {% endfor %}
+    </div>
+
+    <button class="btn mfa-download-btn" id="download-codes">
+      <span class="fas fa-download" aria-hidden="true"></span>
+      Download as text file
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const downloadBtn = document.getElementById('download-codes');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', function () {
+      const codes = {{ codes|tojson }};
+      const blob = new Blob([codes.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'recovery-codes.txt';
+      a.click();
+    });
+  }
+</script>
+{% endblock %}

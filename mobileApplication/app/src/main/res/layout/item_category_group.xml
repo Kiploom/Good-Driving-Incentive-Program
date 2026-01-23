@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/selectableItemBackground"
+    android:padding="8dp"
+    android:layout_marginBottom="4dp">
+
+    <!-- Parent Category Header -->
+    <LinearLayout
+        android:id="@+id/category_header_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <TextView
+            android:id="@+id/category_expand_indicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:text="▶"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurface" />
+
+        <TextView
+            android:id="@+id/category_parent_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/category_select_parent_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select"
+            android:textSize="12sp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:minWidth="0dp"
+            android:backgroundTint="?attr/colorPrimaryVariant"
+            android:layout_marginEnd="8dp" />
+
+    </LinearLayout>
+
+    <!-- Subcategories Container -->
+    <LinearLayout
+        android:id="@+id/category_subcategories_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_marginStart="8dp" />
+
+</LinearLayout>
+

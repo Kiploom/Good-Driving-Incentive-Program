@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Settings{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 30px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
+            <i class="fas fa-bell" style="font-size: 24px; color: #3b82f6; margin-right: 12px;"></i>
+            <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 600;">Notification Settings</h1>
+        </div>
+
+        <p style="color: #6b7280; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
+            Choose which notifications you'd like to receive for {{ sponsor.Company }}. 
+            You can customize your preferences for different types of updates.
+        </p>
+
+        <form method="POST" id="notification-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <!-- Notification Types Section -->
+            <div style="margin-bottom: 40px;">
+                <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center;">
+                    <i class="fas fa-cog" style="margin-right: 8px; color: #6b7280;"></i>
+                    Notification Types
+                </h2>
+                <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+                    Select which types of notifications you want to receive:
+                </p>
+
+                <div style="display: grid; gap: 16px;">
+                    <!-- Order Confirmations -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">Order Confirmations</div>
+                            <div style="font-size: 14px; color: #6b7280;">Get notified when drivers place new orders</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                            <input type="checkbox" name="order_confirmations" class="notification-toggle" 
+                                   {{ 'checked' if prefs.OrderConfirmations else '' }}
+                                   style="opacity: 0; width: 0; height: 0;">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Large Driver Points Changes -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">Large Driver Points Changes</div>
+                            <div style="font-size: 14px; color: #6b7280;">Email alerts when a driver has a points change of 1000 or more</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                            <input type="checkbox" name="driver_points_changes" class="notification-toggle" 
+                                   {{ 'checked' if prefs.DriverPointsChanges else '' }}
+                                   style="opacity: 0; width: 0; height: 0;">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- New Applications -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">New Applications</div>
+                            <div style="font-size: 14px; color: #6b7280;">Notifications when drivers apply to join your company</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                            <input type="checkbox" name="new_applications" class="notification-toggle" 
+                                   {{ 'checked' if prefs.NewApplications else '' }}
+                                   style="opacity: 0; width: 0; height: 0;">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Save Button -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <a href="{{ url_for('sponsor.sponsor_account') }}" 
+                   style="padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 8px; background: white; color: #374151; text-decoration: none; font-weight: 500;">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        style="padding: 10px 20px; border: none; border-radius: 8px; background: #3b82f6; color: white; font-weight: 500; cursor: pointer;">
+                    Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Toggle Switch Styles */
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.notification-toggle:checked + .toggle-slider {
+    background-color: #3b82f6;
+}
+
+.notification-toggle:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* Hover effects */
+.notification-toggle:hover + .toggle-slider {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Form styling */
+#notification-form {
+    width: 100%;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .notification-toggle + .toggle-slider:before {
+        height: 16px;
+        width: 16px;
+    }
+    
+    .notification-toggle:checked + .toggle-slider:before {
+        transform: translateX(22px);
+    }
+}
+</style>
+
+<script>
+// Add real-time toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.notification-toggle');
+    
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            // Optional: Add visual feedback or auto-save functionality here
+            console.log(`${this.name} is now ${this.checked ? 'enabled' : 'disabled'}`);
+        });
+    });
+});
+</script>
+{% endblock %}

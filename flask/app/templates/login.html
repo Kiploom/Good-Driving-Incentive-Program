@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Log In · Team10{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card" role="dialog" aria-labelledby="authTitle">
+    <header class="auth-header">
+      <h1 id="authTitle">Log In</h1>
+    </header>
+
+    <form method="post" action="{{ url_for('auth.login_api') }}" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="next" value="{{ request.args.get('next','') }}">
+
+      <label class="auth-label" for="username">Email or Username</label>
+      <input id="username" name="username" type="text" autocomplete="username"
+             value="{{ request.form.username or request.form.email or email or '' }}" class="auth-input" placeholder="you@example.com" required>
+
+      <label class="auth-label" for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password"
+             class="auth-input" placeholder="••••••••" required>
+
+      {% if error %}
+        <p class="auth-error" role="alert">{{ error }}</p>
+      {% endif %}
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <p class="auth-error" role="alert">{{ msg|e }}</p>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <button type="submit" class="auth-submit">Log In</button>
+
+      <div class="auth-links">
+        <a class="auth-link auth-link--muted" href="{{ url_for('auth.register_driver') }}">New driver? Register here.</a>
+        <button type="button" class="auth-link" data-modal-open="forgotModal">Forgot your password?</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<div
+  id="mfaModal"
+  class="auth-modal auth-modal--mfa{% if show_mfa_modal %} is-open{% endif %}"
+  data-open="{{ 'true' if show_mfa_modal else 'false' }}"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="{{ 'false' if show_mfa_modal else 'true' }}"
+  aria-labelledby="mfaTitle"
+>
+  <div class="auth-modal__backdrop" data-modal-close></div>
+  <div class="auth-modal__dialog" role="document">
+    <button type="button" class="auth-modal__close" data-modal-close aria-label="Close MFA prompt">×</button>
+    <header class="auth-modal__header">
+      <h2 id="mfaTitle">Multi-factor Authentication</h2>
+      <p>Enter the 6-digit code from your authenticator app or a recovery code.</p>
+    </header>
+
+    {% if mfa_error %}
+      <p class="auth-modal__error" role="alert">{{ mfa_error }}</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('auth.mfa_challenge_post') }}" class="auth-modal__form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label for="mfaToken" class="auth-modal__label">Authentication code</label>
+      <input
+        id="mfaToken"
+        name="token"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]{6}"
+        maxlength="10"
+        autocomplete="one-time-code"
+        placeholder="000000 or recovery code"
+        class="auth-modal__input"
+        required
+        data-modal-focus
+      >
+      <div class="auth-modal__actions">
+        <button type="submit" class="auth-modal__submit">Verify &amp; Continue</button>
+        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div
+  id="forgotModal"
+  class="auth-modal auth-modal--forgot{% if show_forgot_modal %} is-open{% endif %}"
+  data-open="{{ 'true' if show_forgot_modal else 'false' }}"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="{{ 'false' if show_forgot_modal else 'true' }}"
+  aria-labelledby="forgotTitle"
+>
+  <div class="auth-modal__backdrop" data-modal-close></div>
+  <div class="auth-modal__dialog" role="document">
+    <button type="button" class="auth-modal__close" data-modal-close aria-label="Close forgot password prompt">×</button>
+    <header class="auth-modal__header">
+      <h2 id="forgotTitle">Forgot your password?</h2>
+      <p>Enter your email address and we'll send you a reset link.</p>
+    </header>
+
+    {% if forgot_messages %}
+      <div class="auth-modal__messages" role="alert">
+        {% for message in forgot_messages %}
+          <p class="auth-modal__message auth-modal__message--{{ message.category }}">{{ message.message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('auth_reset.forgot_password') }}" class="auth-modal__form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label for="forgotEmail" class="auth-modal__label">Email address</label>
+      <input
+        id="forgotEmail"
+        name="email"
+        type="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        class="auth-modal__input auth-modal__input--plain"
+        required
+        data-modal-focus
+      >
+      <div class="auth-modal__actions">
+        <button type="submit" class="auth-modal__submit">Send reset link</button>
+        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    (function () {
+      const focusTrapSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+      const openModal = (modal) => {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.dataset.open = 'true';
+        document.body.classList.add('modal-open');
+
+        const focusTarget = modal.querySelector('[data-modal-focus]') || modal.querySelector(focusTrapSelector);
+        if (focusTarget) {
+          setTimeout(() => focusTarget.focus({ preventScroll: true }), 50);
+        }
+      };
+
+      const closeModal = (modal) => {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.dataset.open = 'false';
+        if (!document.querySelector('.auth-modal.is-open')) {
+          document.body.classList.remove('modal-open');
+        }
+      };
+
+      const handleKeyDown = (event, modal) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeModal(modal);
+        }
+
+        if (event.key === 'Tab') {
+          const focusable = modal.querySelectorAll(focusTrapSelector);
+          const elements = Array.prototype.slice.call(focusable);
+          if (!elements.length) return;
+          const first = elements[0];
+          const last = elements[elements.length - 1];
+
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
+      document.querySelectorAll('.auth-modal').forEach((modal) => {
+        const closeButtons = modal.querySelectorAll('[data-modal-close]');
+        closeButtons.forEach((btn) => btn.addEventListener('click', () => closeModal(modal)));
+        modal.addEventListener('keydown', (event) => handleKeyDown(event, modal));
+
+        if (modal.dataset.open === 'true') {
+          openModal(modal);
+        }
+      });
+
+      document.querySelectorAll('[data-modal-open]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const targetId = trigger.getAttribute('data-modal-open');
+          const modal = document.getElementById(targetId);
+          if (modal) {
+            openModal(modal);
+          }
+        });
+      });
+
+      // CSRF token error handling
+      // If there's a CSRF error message, automatically refresh the page to get a fresh token
+      const errorMessages = document.querySelectorAll('.auth-error');
+      errorMessages.forEach(function(msg) {
+        const errorText = msg.textContent || '';
+        if (errorText.includes('CSRF token') || errorText.includes('CSRF')) {
+          // Show a brief message, then auto-refresh to get a fresh token
+          msg.textContent = 'Session expired. Refreshing page...';
+          msg.style.color = 'var(--accent, #f59e0b)';
+          setTimeout(function() {
+            window.location.reload();
+          }, 1500);
+        }
+      });
+
+      // Prevent form submission if CSRF token is missing
+      const loginForm = document.querySelector('.auth-form');
+      if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+          const csrfInput = this.querySelector('input[name="csrf_token"]');
+          if (!csrfInput || !csrfInput.value) {
+            e.preventDefault();
+            alert('Session expired. Please refresh the page and try again.');
+            window.location.reload();
+            return false;
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

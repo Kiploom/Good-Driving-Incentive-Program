@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<style>
+.sponsor-points-page .settings-container {
+  gap: 32px;
+}
+
+.sponsor-points-page .sponsor-points-card {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.sponsor-points-page .form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.sponsor-points-page .field-group,
+.sponsor-points-page .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  flex: 1 1 220px;
+}
+
+.sponsor-points-page .ratio-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sponsor-points-page .input-prefix,
+.sponsor-points-page .input-unit {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sponsor-points-page .input-field,
+.sponsor-points-page input[type="number"],
+.sponsor-points-page input[type="text"],
+.sponsor-points-page select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.sponsor-points-page input[type="number"]:focus,
+.sponsor-points-page input[type="text"]:focus,
+.sponsor-points-page select:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.sponsor-points-page .actions-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sponsor-points-page .actions-inline .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sponsor-points-page .modify-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sponsor-points-page .action-group {
+  align-self: flex-end;
+  display: flex;
+}
+
+.sponsor-points-page .action-group .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.sponsor-points-page .table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: 0 12px 28px var(--shadow-sm);
+}
+
+[data-theme="dark"] .sponsor-points-page .table-wrap {
+  background: var(--glass-bg);
+  border-color: var(--accent-border);
+}
+
+.sponsor-points-page table.driver-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sponsor-points-page table.driver-table thead th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.sponsor-points-page table.driver-table tbody td {
+  border-top: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.sponsor-points-page table.driver-table tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+.sponsor-points-page table.driver-table tbody tr td:last-child {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sponsor-points-page .muted {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.sponsor-points-page .quick-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 0.95rem;
+}
+
+[data-theme="dark"] .sponsor-points-page .quick-wrap {
+  background: rgba(15, 23, 42, 0.32);
+  border-color: var(--accent-border);
+}
+
+.sponsor-points-page .quick-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sponsor-points-page .quick-wrap th,
+.sponsor-points-page .quick-wrap td {
+  border-top: 1px solid var(--border-light);
+  padding: 6px 8px;
+  color: var(--text-secondary);
+}
+
+.sponsor-points-page .quick-wrap th {
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.sponsor-points-page .quick-wrap td:first-child {
+  text-align: left;
+}
+
+.sponsor-points-page .quick-wrap td:last-child {
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.sponsor-points-page .delta-cell {
+  text-align: right;
+}
+
+.sponsor-points-page .delta-positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.sponsor-points-page .delta-negative {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.sponsor-points-page .quick-history {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sponsor-points-page .quick-history:hover {
+  color: var(--accent-hover);
+}
+
+.sponsor-points-page .quick-error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.sponsor-points-page .hidden {
+  display: none !important;
+}
+
+.sponsor-points-page .text-right {
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .sponsor-points-page .form-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sponsor-points-page .field-group,
+  .sponsor-points-page .form-group {
+    min-width: 100%;
+  }
+
+  .sponsor-points-page .ratio-row {
+    width: 100%;
+  }
+
+  .sponsor-points-page .action-group {
+    width: 100%;
+  }
+
+  .sponsor-points-page .actions-inline .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page sponsor-points-page">
+  <div class="settings-container">
+    <header class="settings-header" aria-labelledby="points-settings-title">
+      <div class="settings-header-icon">
+        <i class="fas fa-coins" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1 id="points-settings-title">Points Settings</h1>
+        <p>Adjust your sponsor environment's point conversion, transaction limits, and driver balances.</p>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <section class="settings-card" aria-live="polite">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+      {% endfor %}
+    </section>
+    {% endif %}
+    {% endwith %}
+
+    <section class="settings-card sponsor-points-card" aria-labelledby="ratio-heading">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+          <div>
+            <h2 id="ratio-heading">Point-to-Dollar Ratio</h2>
+            <p class="settings-section-description">Set how many dollars each reward point is worth.</p>
+          </div>
+        </div>
+        <form method="POST" class="form-inline" aria-label="Update point to dollar ratio">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="action" value="update_ratio">
+          <div class="field-group">
+            <label for="ratio">Conversion rate</label>
+            <div class="ratio-row">
+              <span class="input-prefix">1 pt =</span>
+              <input type="number" step="0.01" min="0.01" name="ratio" id="ratio" class="input-field" value="{{ '%.2f'|format(sponsor.PointToDollarRate) }}">
+              <span class="input-unit">USD</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="submit">Update ratio</button>
+        </form>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-arrows-up-down" aria-hidden="true"></i>
+          <div>
+            <h2>Per-Transaction Limits</h2>
+            <p class="settings-section-description">Control the minimum and maximum points that can be applied in one update.</p>
+          </div>
+        </div>
+        <form method="POST" class="form-inline" aria-label="Update per-transaction limits">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="action" value="update_limits">
+          <div class="field-group">
+            <label for="min_points">Minimum points per transaction</label>
+            <input type="number" min="1" step="1" name="min_points" id="min_points" class="input-field" value="{{ sponsor.MinPointsPerTxn }}">
+          </div>
+          <div class="field-group">
+            <label for="max_points">Maximum points per transaction</label>
+            <input type="number" min="1" step="1" name="max_points" id="max_points" class="input-field" value="{{ sponsor.MaxPointsPerTxn }}">
+          </div>
+          <button class="btn btn-primary" type="submit">Save limits</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="settings-card sponsor-points-card" aria-labelledby="modify-heading">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-user-edit" aria-hidden="true"></i>
+          <div>
+            <h2 id="modify-heading">Modify Driver Points</h2>
+            <p class="settings-section-description">Add or deduct points for a driver with an auditable reason.</p>
+          </div>
+        </div>
+        <form method="POST" id="modify-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="action" value="modify_points">
+          <div class="modify-grid">
+            <div class="form-group">
+              <label for="driver_id">Driver</label>
+              <select name="driver_id" id="driver_id">
+                {% for d in drivers %}
+                <option value="{{ d.DriverID }}">
+                  {{ d.Account.FirstName }} {{ d.Account.LastName }} ({{ d.PointsBalance }} pts)
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="points">Points</label>
+              <input type="number" name="points" id="points" min="{{ sponsor.MinPointsPerTxn }}" max="{{ sponsor.MaxPointsPerTxn }}" step="1" placeholder="{{ sponsor.MinPointsPerTxn }}–{{ sponsor.MaxPointsPerTxn }}">
+            </div>
+            <div class="form-group">
+              <label for="operation">Action</label>
+              <select name="operation" id="operation">
+                <option value="add">Add</option>
+                <option value="deduct">Deduct</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="reason_choice">Reason (pick one)</label>
+              <select name="reason_choice" id="reason_choice"></select>
+            </div>
+            <div class="form-group">
+              <label for="reason_other">Other (optional)</label>
+              <input type="text" name="reason_other" id="reason_other" class="input-field hidden" placeholder="Type a custom reason">
+            </div>
+            <div class="form-group action-group">
+              <button class="btn btn-success" type="submit">Apply changes</button>
+            </div>
+          </div>
+        </form>
+        <div class="actions-inline">
+          <a href="{{ url_for('sponsor.multi_points') }}" class="btn btn-secondary">
+            <i class="fas fa-users" aria-hidden="true"></i>
+            <span>Apply points to multiple drivers</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card sponsor-points-card" aria-labelledby="balances-heading">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-list-ol" aria-hidden="true"></i>
+          <div>
+            <h2 id="balances-heading">Current Driver Balances</h2>
+            <p class="settings-section-description">Review balances and quickly inspect recent activity.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="driver-table" aria-describedby="balances-heading">
+            <thead>
+              <tr>
+                <th scope="col">Driver</th>
+                <th scope="col">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in drivers %}
+              <tr>
+                <td>
+                  {{ d.Account.FirstName }} {{ d.Account.LastName }}
+                  <div class="muted">
+                    <a href="#" data-driver="{{ d.DriverID }}" class="quick-history">Quick view</a>
+                    &nbsp;·&nbsp;
+                    <a href="{{ url_for('sponsor.driver_history_page', driver_id=d.DriverID) }}">View full history</a>
+                  </div>
+                </td>
+                <td>{{ d.PointsBalance }}</td>
+              </tr>
+              <tr class="hidden" id="qh-{{ d.DriverID }}">
+                <td colspan="2">
+                  <div class="quick-wrap"></div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="2">No drivers found for your company.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const ADD_REASONS = [
+  "Safety bonus (no incidents)",
+  "On-time delivery streak",
+  "Positive customer feedback",
+  "Monthly performance bonus",
+  "Training completed",
+  "Referral bonus (driver hired)",
+  "Holiday bonus",
+  "Extra shift / route coverage",
+  "Fuel efficiency target met",
+  "Special project completion",
+  "Attendance milestone",
+  "Manual adjustment (correction)"
+];
+
+const DEDUCT_REASONS = [
+  "Late delivery",
+  "Missed pickup",
+  "Customer complaint",
+  "Safety violation (minor)",
+  "Safety violation (major)",
+  "Equipment misuse / damage",
+  "Policy non-compliance",
+  "No-show / unapproved absence",
+  "Excessive idling / fuel waste",
+  "Paperwork error / missing docs",
+  "Uniform/branding issue",
+  "Manual adjustment (correction)"
+];
+
+const opEl = document.getElementById('operation');
+const reasonSelect = document.getElementById('reason_choice');
+const reasonOther = document.getElementById('reason_other');
+
+function populateReasons() {
+  if (!opEl || !reasonSelect) {
+    return;
+  }
+  const list = opEl.value === 'add' ? ADD_REASONS : DEDUCT_REASONS;
+  reasonSelect.innerHTML = "";
+
+  const placeholder = document.createElement('option');
+  placeholder.value = "";
+  placeholder.textContent = "Select a reason…";
+  reasonSelect.appendChild(placeholder);
+
+  list.forEach((txt) => {
+    const opt = document.createElement('option');
+    opt.value = txt;
+    opt.textContent = txt;
+    reasonSelect.appendChild(opt);
+  });
+
+  const other = document.createElement('option');
+  other.value = "__other__";
+  other.textContent = "Other (specify)";
+  reasonSelect.appendChild(other);
+
+  if (reasonOther) {
+    reasonOther.value = "";
+    reasonOther.classList.add("hidden");
+  }
+}
+
+if (opEl) {
+  opEl.addEventListener('change', populateReasons);
+}
+
+if (reasonSelect) {
+  reasonSelect.addEventListener('change', () => {
+    if (!reasonOther) {
+      return;
+    }
+    if (reasonSelect.value === "__other__") {
+      reasonOther.classList.remove("hidden");
+    } else {
+      reasonOther.classList.add("hidden");
+      reasonOther.value = "";
+    }
+  });
+}
+
+populateReasons();
+
+document.querySelectorAll('.quick-history').forEach((link) => {
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const driverId = link.dataset.driver;
+    const row = document.getElementById('qh-' + driverId);
+    if (!row) return;
+    const wrap = row.querySelector('.quick-wrap');
+    if (!wrap) return;
+
+    if (!row.classList.contains('hidden')) {
+      row.classList.add('hidden');
+      wrap.innerHTML = '';
+      return;
+    }
+
+    wrap.innerHTML = '<span class="muted">Loading…</span>';
+    row.classList.remove('hidden');
+
+    try {
+      const res = await fetch('{{ url_for("sponsor.driver_history_api", driver_id="__ID__") }}'.replace('__ID__', driverId));
+      const data = await res.json();
+      if (!data.items || data.items.length === 0) {
+        wrap.innerHTML = '<span class="muted"><em>No recent changes.</em></span>';
+        return;
+      }
+      const html = `
+      <table class="quick-history-table">
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col" class="text-right">Δ Points</th>
+            <th scope="col">Reason</th>
+            <th scope="col" class="text-right">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.items.map(it => `
+            <tr>
+              <td>${it.created_at}</td>
+              <td class="delta-cell ${it.delta >= 0 ? 'delta-positive' : 'delta-negative'}">
+                ${it.delta >= 0 ? '+' : ''}${it.delta}
+              </td>
+              <td>${(it.reason || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+              <td class="text-right">${it.balance_after}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+      wrap.innerHTML = html;
+    } catch (err) {
+      wrap.innerHTML = '<span class="quick-error">Failed to load history.</span>';
+    }
+  });
+});
+</script>
+{% endblock %}

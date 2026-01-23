@@ -1,0 +1,841 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:background="?attr/colorPrimary">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Points Details"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+                    android:textColor="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/current_balance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0"
+                    android:textAppearance="@style/TextAppearance.Material3.DisplayLarge"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="pts"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                    android:textColor="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/dollar_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="≈ $0.00"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:textColor="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/conversion_rate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="1 point = $0.01"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@android:color/white" />
+
+            </LinearLayout>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="80dp">
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tab_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSurface"
+                app:tabMode="fixed"
+                app:tabGravity="fill">
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="History" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stats" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Info" />
+
+            </com.google.android.material.tabs.TabLayout>
+
+            <!-- History Tab Content -->
+            <LinearLayout
+                android:id="@+id/history_tab"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <!-- Filter Controls -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/refresh_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Refresh"
+                        android:textSize="16sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/history_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <TextView
+                    android:id="@+id/empty_history"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="32dp"
+                    android:gravity="center"
+                    android:text="No transaction history available"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Graph Tab Content -->
+            <LinearLayout
+                android:id="@+id/graph_tab"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:padding="16dp">
+
+                <!-- Period Selector -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/period_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/period_7d"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="7d"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/period_30d"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="30d"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/period_90d"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="90d"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/period_1y"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="1y"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/period_all"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="All"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Graph Type Selector -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/graph_type_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_balance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Balance"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_earned_spent"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Earned/Spent"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_reason"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Reason"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_frequency"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Frequency"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_cumulative"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Cumulative"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/graph_type_combined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Combined"
+                        android:textSize="11sp"
+                        android:minHeight="48dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Reason Chart Type Selector (shown only for reason chart) -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/reason_type_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reason_type_all"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="All"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reason_type_positive"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="+Reasons"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reason_type_negative"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="-Reasons"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reason_type_orders"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Orders"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Date Range Selector -->
+                <LinearLayout
+                    android:id="@+id/date_range_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Date Range"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/date_range_display"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:text="Auto"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?android:attr/textColorSecondary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/custom_date_range_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Select Custom Date Range"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                </LinearLayout>
+
+                <!-- Granularity Selector (shown only for applicable chart types) -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/granularity_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/granularity_day"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Day"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/granularity_week"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Week"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/granularity_month"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Month"
+                        android:textSize="12sp"
+                        android:minHeight="48dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton.DarkGray" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Chart Title -->
+                <TextView
+                    android:id="@+id/chart_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Points Balance Over Time"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                    android:textAlignment="center"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <!-- Chart Container - Swaps between different chart types -->
+                <FrameLayout
+                    android:id="@+id/chart_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp">
+
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/points_chart_line"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="visible" />
+
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/points_chart_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <com.github.mikephil.charting.charts.PieChart
+                        android:id="@+id/points_chart_pie"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/points_chart_area"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <com.github.mikephil.charting.charts.CombinedChart
+                        android:id="@+id/points_chart_combined"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/empty_graph"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="No graph data available"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
+                <!-- Legend Label (shown only for pie charts) -->
+                <TextView
+                    android:id="@+id/legend_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Legend"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textAlignment="center"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:visibility="gone" />
+
+                <!-- Settings Panel -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/settings_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:id="@+id/settings_header"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:paddingVertical="8dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Chart Settings"
+                                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                                android:textColor="?android:attr/textColorPrimary" />
+
+                            <ImageView
+                                android:id="@+id/settings_expand_icon"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@android:drawable/arrow_down_float"
+                                android:contentDescription="Expand settings" />
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/settings_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <!-- Display Settings -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="Display Settings"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?android:attr/textColorPrimary" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/show_grid_lines"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Show Grid Lines"
+                                android:checked="true" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/show_data_points"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Show Data Points"
+                                android:checked="false" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/show_legend"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Show Legend"
+                                android:checked="false" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/enable_animation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Chart Animation"
+                                android:checked="true" />
+
+                            <!-- Smoothing Toggle -->
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/smooth_lines"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:text="Smooth Line Graphs"
+                                android:checked="true" />
+
+                            <!-- Y-axis Range -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="Y-Axis Range"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?android:attr/textColorPrimary" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/auto_y_axis"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Auto Adjust"
+                                android:checked="true" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Min Value"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?android:attr/textColorSecondary" />
+
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/y_axis_min_slider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:valueFrom="0"
+                                android:valueTo="10000"
+                                android:value="0"
+                                android:stepSize="100"
+                                android:enabled="false" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Max Value"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?android:attr/textColorSecondary" />
+
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/y_axis_max_slider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:valueFrom="0"
+                                android:valueTo="100000"
+                                android:value="10000"
+                                android:stepSize="1000"
+                                android:enabled="false" />
+
+                            <!-- Data Filters -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="Data Filters"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?android:attr/textColorPrimary" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/filter_earned_only"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Show Only Earned Transactions"
+                                android:checked="false" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/filter_spent_only"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Show Only Spent Transactions"
+                                android:checked="false" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Minimum Transaction Size"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?android:attr/textColorSecondary" />
+
+                            <TextView
+                                android:id="@+id/min_delta_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end"
+                                android:text="0 pts"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?android:attr/textColorSecondary" />
+
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/min_delta_slider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:valueFrom="0"
+                                android:valueTo="10000"
+                                android:value="0"
+                                android:stepSize="100" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Info Tab Content -->
+            <LinearLayout
+                android:id="@+id/info_tab"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:padding="16dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="How to Earn Points"
+                            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                            android:textColor="?android:attr/textColorPrimary" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="• Safety bonus (no incidents)\n• On-time delivery streak\n• Positive customer feedback\n• Monthly performance bonus\n• Training completed\n• Referral bonus (driver hired)\n• Holiday bonus\n• Extra shift / route coverage\n• Fuel efficiency target met\n• Special project completion\n• Attendance milestone"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?android:attr/textColorSecondary" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="How Points Are Deducted"
+                            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                            android:textColor="?android:attr/textColorPrimary" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="• Order purchases from the catalog\n• Shipping costs\n• Late delivery\n• Missed pickup\n• Customer complaint\n• Safety violation (minor)\n• Safety violation (major)\n• Equipment misuse / damage\n• Policy non-compliance\n• No-show / unapproved absence\n• Excessive idling / fuel waste\n• Paperwork error / missing docs\n• Uniform/branding issue"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?android:attr/textColorSecondary" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="About Conversion Rates"
+                            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                            android:textColor="?android:attr/textColorPrimary" />
+
+                        <TextView
+                            android:id="@+id/conversion_info"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Conversion rates may vary by sponsor. Check your current rate above."
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?android:attr/textColorSecondary" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+

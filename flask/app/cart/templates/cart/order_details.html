@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Order Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('orders.view_orders') }}">Order History</a></li>
+                    <li class="breadcrumb-item active">Order Details</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-receipt"></i> Order Details</h2>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Order Number:</strong> {{ order.OrderNumber }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Order Date:</strong> {{ order.CreatedAt.strftime('%B %d, %Y at %I:%M %p') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Status:</strong> 
+                            {% if order.Status == 'PENDING' %}
+                            <span class="badge bg-warning">{{ order.Status }}</span>
+                            {% elif order.Status == 'PROCESSING' %}
+                            <span class="badge bg-info">{{ order.Status }}</span>
+                            {% elif order.Status == 'SHIPPED' %}
+                            <span class="badge bg-primary">{{ order.Status }}</span>
+                            {% elif order.Status == 'DELIVERED' %}
+                            <span class="badge bg-success">{{ order.Status }}</span>
+                            {% elif order.Status == 'CANCELLED' %}
+                            <span class="badge bg-danger">{{ order.Status }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ order.Status }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Total Points:</strong> {{ order.TotalPoints }} pts
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Order Information:</h6>
+                    <p>This order was placed using your driver points balance.</p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in order_items %}
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-2">
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                 style="height: 60px; width: 100%;">
+                                <i class="fas fa-box text-muted"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-1">{{ item.Title }}</h6>
+                            <small class="text-muted">Product ID: {{ item.ProductID }}</small>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-secondary">{{ item.Quantity }}</span>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <strong>{{ item.UnitPoints }} pts</strong>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <strong class="text-primary">{{ item.LineTotalPoints }} pts</strong>
+                        </div>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items ({{ order_items|length }}):</span>
+                        <span>{{ order.TotalPoints }} pts</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong class="text-primary">{{ order.TotalPoints }} pts</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Current Points Balance:</span>
+                        <span class="text-success">{{ driver_points }} pts</span>
+                    </div>
+                    
+                    <a href="{{ url_for('orders.view_orders') }}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-arrow-left"></i> Back to Order History
+                    </a>
+                    
+                    <a href="{{ url_for('driver_points_catalog.browse') }}" class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-shopping-bag"></i> Continue Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

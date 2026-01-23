@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Verify Your Email{% endblock %}
+{% block head %}
+<style>
+  body {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: var(--bg-primary);
+  }
+  
+  .verify-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+  
+  [data-theme="dark"] .verify-container {
+    border-color: var(--accent-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  h2 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+  
+  .msg {
+    margin-bottom: 1.5rem;
+  }
+  
+  .msg p {
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+  }
+  
+  .msg strong {
+    color: var(--accent);
+  }
+  
+  form {
+    display: inline;
+  }
+  
+  button {
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    border: 1px solid var(--accent-border);
+    color: var(--text-inverse);
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  button:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+  
+  .alert {
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+  
+  .alert.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    border: 1px solid var(--error);
+  }
+  
+  .alert.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+  
+  .verify-container > p {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+  }
+  
+  .verify-container a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .verify-container a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="verify-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category,msg in messages %}
+        <div class="alert {{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="msg">
+    <h2>Verify Your Email</h2>
+    <p>We've sent a verification link to <strong>{{ email }}</strong>. Please check your inbox.</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="email" value="{{ email }}">
+    <button type="submit">Resend Verification Email</button>
+  </form>
+
+  <p>Already verified? <a href="{{ url_for('auth.login_page') }}">Log in</a></p>
+</div>
+{% endblock %}

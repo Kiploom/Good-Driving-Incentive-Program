@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import Audit Log{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">{{ company_name }} Bulk Import Audit Log</h1>
+      <p class="page-description">Inspect bulk import sessions, track row counts, and review any error details.</p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search by uploader, filename…">
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn btn-secondary" type="submit">Apply Filters</button>
+      <a href="{{ url_for('sponsor.bulk_import_audit_log') }}" class="btn btn-ghost">Reset</a>
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Imported At</th>
+          <th>Uploaded By</th>
+          <th>File Name</th>
+          <th>Total Rows</th>
+          <th>Success</th>
+          <th>Errors</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bulk_log, account in logs %}
+        <tr>
+          <td class="text-muted">
+            {{ bulk_log.ImportedAt.strftime('%Y-%m-%d %H:%M') }}
+          </td>
+          <td>
+            <div class="table-strong">{{ account.FirstName }} {{ account.LastName }}</div>
+            <div class="table-meta">{{ account.Email }}</div>
+          </td>
+          <td>
+            <div class="table-strong">{{ bulk_log.FileName }}</div>
+          </td>
+          <td class="text-right">
+            {{ bulk_log.TotalRows }}
+          </td>
+          <td class="text-right">
+            <span class="chip chip-success">{{ bulk_log.SuccessCount }}</span>
+          </td>
+          <td class="text-right">
+            {% if bulk_log.ErrorCount > 0 %}
+              <span class="chip chip-error">{{ bulk_log.ErrorCount }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if bulk_log.ErrorCount > 0 %}
+              <a href="{{ url_for('sponsor.bulk_import_error_details', log_id=bulk_log.BulkImportLogID) }}" class="btn btn-secondary">View Errors</a>
+            {% else %}
+              <span class="text-muted">No errors</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="table-empty text-center">
+            No bulk import logs found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

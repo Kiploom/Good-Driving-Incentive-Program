@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Loading Skeleton Placeholders -->
+        <com.example.driverrewards.ui.catalog.ShimmerView
+            android:id="@+id/skeleton_image"
+            android:layout_width="match_parent"
+            android:layout_height="450dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/shimmer_placeholder"
+            android:visibility="gone" />
+
+        <!-- Detail Skeleton Boxes Row 1 -->
+        <LinearLayout
+            android:id="@+id/skeleton_details_row1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+            
+            <com.example.driverrewards.ui.catalog.ShimmerView
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/shimmer_placeholder" />
+            
+            <com.example.driverrewards.ui.catalog.ShimmerView
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/shimmer_placeholder" />
+        </LinearLayout>
+
+        <!-- Detail Skeleton Boxes Row 2 -->
+        <LinearLayout
+            android:id="@+id/skeleton_details_row2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+            
+            <com.example.driverrewards.ui.catalog.ShimmerView
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/shimmer_placeholder" />
+            
+            <com.example.driverrewards.ui.catalog.ShimmerView
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/shimmer_placeholder" />
+        </LinearLayout>
+
+        <!-- Detail Skeleton Boxes Row 3 (single wide box) -->
+        <com.example.driverrewards.ui.catalog.ShimmerView
+            android:id="@+id/skeleton_details_row3"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/shimmer_placeholder"
+            android:visibility="gone" />
+
+        <!-- Main Product Image -->
+        <ImageView
+            android:id="@+id/main_product_image"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginBottom="16dp"
+            android:scaleType="centerInside"
+            android:background="@color/card_background_placeholder"
+            android:visibility="gone"
+            tools:src="@drawable/ic_catalog" />
+
+        <!-- Thumbnail Gallery (Horizontal RecyclerView) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/thumbnail_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal"
+            tools:listitem="@layout/item_thumbnail"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:visibility="gone" />
+
+        <!-- Product Title -->
+        <TextView
+            android:id="@+id/product_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"
+            tools:text="Sample Product Title" />
+
+        <!-- Product Subtitle -->
+        <TextView
+            android:id="@+id/product_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:visibility="gone"
+            tools:text="Product subtitle" />
+
+        <!-- Points and Availability Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/product_points"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="?colorPrimary"
+                tools:text="100 pts" />
+
+            <!-- Availability Badges -->
+            <TextView
+                android:id="@+id/low_stock_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:padding="6dp"
+                android:text="Low stock"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:background="@color/badge_warning_bg"
+                android:textColor="@color/badge_warning_text"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/out_of_stock_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:padding="6dp"
+                android:text="Out of stock"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:background="@color/badge_error_bg"
+                android:textColor="@color/badge_error_text"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/available_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:padding="6dp"
+                android:text="Available"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:background="@color/badge_success_bg"
+                android:textColor="@color/badge_success_text"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Brand -->
+        <TextView
+            android:id="@+id/product_brand"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:visibility="gone"
+            tools:text="Brand: Sample Brand" />
+
+        <!-- Condition -->
+        <TextView
+            android:id="@+id/product_condition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:visibility="gone"
+            tools:text="Condition: New" />
+
+        <!-- Variants Section -->
+        <LinearLayout
+            android:id="@+id/variants_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/spec_row_background"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Available Options"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select options below. Prices may vary by selection."
+                android:textSize="12sp"
+                android:textColor="?android:attr/textColorSecondary"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Variant dropdowns will be added dynamically here -->
+
+        </LinearLayout>
+
+        <!-- Description Section -->
+        <TextView
+            android:id="@+id/description_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="About This Item"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <TextView
+            android:id="@+id/product_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:visibility="gone"
+            tools:text="Product description goes here" />
+
+        <!-- Item Specifics Section -->
+        <TextView
+            android:id="@+id/item_specifics_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Product Details"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/item_specifics_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            tools:listitem="@layout/item_spec_row" />
+
+        <!-- Action Buttons -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/share_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/share_product_button"
+            android:textSize="16sp"
+            android:visibility="gone"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            app:icon="@android:drawable/ic_menu_share"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/add_to_cart_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Add to Cart"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:icon="@android:drawable/ic_menu_recent_history"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/favorite_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Add to Favorites"
+            android:textSize="16sp"
+            android:visibility="gone"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            app:icon="@drawable/ic_favorite_border"
+            app:iconGravity="textStart" />
+
+        <!-- Related Products Section -->
+        <TextView
+            android:id="@+id/related_products_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Related Items"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/related_products_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            tools:listitem="@layout/item_product_card"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

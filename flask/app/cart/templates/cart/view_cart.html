@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart{% endblock %}
+
+{% block head %}
+<style>
+    .cart-page {
+        display: flex;
+        justify-content: center;
+        padding: clamp(24px, 6vw, 56px);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    .cart-shell {
+        width: min(100%, 60vw);
+        max-width: 1120px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        margin: 0 auto;
+    }
+
+    .cart-panel,
+    .summary-card {
+        background: linear-gradient(145deg, rgba(41, 51, 73, 0.16), rgba(17, 24, 39, 0.12));
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        border-radius: 18px;
+        padding: clamp(20px, 3vw, 28px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+        backdrop-filter: blur(18px);
+    }
+
+    [data-theme="dark"] .cart-panel,
+    [data-theme="dark"] .summary-card {
+        background: linear-gradient(155deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+        border-color: rgba(245, 158, 11, 0.42);
+        box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
+    }
+
+    .cart-page h1 i {
+        margin-right: 10px;
+    }
+
+    .cart-actions .muted i {
+        margin-right: 8px;
+    }
+
+    .cart-page .btn:not(.icon-remove) i {
+        margin-right: 8px;
+    }
+
+    .cart-header h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 2.6vw, 2.25rem);
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .cart-header p {
+        margin: 8px 0 0;
+        color: var(--text-secondary);
+    }
+
+    .cart-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        padding-bottom: 16px;
+        margin-bottom: 12px;
+    }
+
+    .btn-clear {
+        background: transparent;
+        border: 1px solid rgba(239, 68, 68, 0.55);
+        color: rgba(239, 68, 68, 0.9);
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 600;
+    }
+
+    .btn-clear:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: rgba(239, 68, 68, 1);
+    }
+
+    .cart-item {
+        display: grid;
+        grid-template-columns: auto minmax(84px, 112px) minmax(0, 1fr) auto;
+        gap: clamp(14px, 2vw, 24px);
+        padding: clamp(16px, 2.4vw, 22px) 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        align-items: center;
+    }
+
+    .cart-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .item-thumb {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 12px;
+        background: rgba(148, 163, 184, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .item-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: var(--bg-secondary);
+    }
+
+    .item-info h6 {
+        margin: 0 0 8px;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.45;
+    }
+
+    .item-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.14);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .item-info .points-chip {
+        margin-top: 10px;
+        justify-content: center;
+    }
+
+    .quantity-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.2);
+        padding: 6px 14px;
+        min-width: 96px;
+    }
+
+    .quantity-controls:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    .quantity-btn {
+        border: none;
+        background: transparent;
+        color: var(--accent);
+        width: auto;
+        height: auto;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 600;
+        line-height: 1;
+        padding: 2px 6px;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .quantity-btn:hover {
+        background: rgba(245, 158, 11, 0.18);
+        transform: translateY(-1px);
+    }
+
+    .quantity-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    .quantity-value {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+        min-width: 1.5ch;
+        text-align: center;
+    }
+
+    .muted {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .points-chip {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-weight: 600;
+        color: var(--accent);
+        white-space: nowrap;
+    }
+
+    .item-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 14px;
+        grid-column: 4;
+    }
+
+    .icon-remove {
+        justify-self: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(145deg, rgba(239, 68, 68, 0.92), rgba(190, 18, 60, 0.9));
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        padding: 0;
+    }
+
+    .icon-remove i {
+        font-size: 1rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1em;
+        height: 1em;
+    }
+
+    .icon-remove:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 26px rgba(239, 68, 68, 0.3);
+    }
+
+    .summary-grid {
+        display: grid;
+        gap: 18px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    .summary-row strong {
+        color: var(--text-primary);
+    }
+
+    .insufficient-banner {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: var(--warning);
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .cta-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .cta-stack .btn {
+        width: 100%;
+        max-width: 340px;
+        border-radius: 999px;
+        font-weight: 600;
+        padding: 12px;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: clamp(48px, 6vw, 64px) 24px;
+    }
+
+    .empty-cart-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+        opacity: 0.7;
+    }
+
+    @media (max-width: 1400px) {
+        .cart-shell {
+            width: min(100%, 70vw);
+        }
+
+        .cart-item {
+            grid-template-columns: auto minmax(76px, 96px) minmax(0, 1fr) auto;
+        }
+    }
+
+    @media (max-width: 1100px) {
+        .cart-shell {
+            width: min(100%, 80vw);
+        }
+
+        .cart-item {
+            grid-template-columns: auto minmax(72px, 88px) minmax(0, 1fr);
+        }
+
+        .item-actions {
+            grid-column: 2 / -1;
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .cart-page {
+            padding: clamp(20px, 5vw, 32px);
+        }
+
+        .cart-shell {
+            width: 100%;
+        }
+
+        .cart-panel,
+        .summary-card {
+            padding: clamp(18px, 4vw, 24px);
+        }
+
+        .cart-item {
+            grid-template-columns: auto minmax(64px, 80px) minmax(0, 1fr);
+        }
+
+        .item-actions {
+            grid-column: 1 / -1;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .cart-item {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .item-actions {
+            grid-column: 1 / -1;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-page">
+    <div class="container cart-shell">
+        <div class="cart-panel cart-header">
+            <h1><i class="fas fa-shopping-cart me-2"></i>Shopping Cart</h1>
+            <p>Review your selections and confirm before checkout.</p>
+        </div>
+
+        {% set balance = driver_points if driver_points is defined else driver.PointsBalance %}
+        <div id="cart-items-panel" class="cart-panel" style="{{ '' if cart_items else 'display:none;' }}">
+            <div class="cart-actions justify-content-between mb-3">
+                <div class="muted" id="cart-item-count">
+                    <i class="fas fa-shopping-bag me-2"></i>{{ cart.item_count }} {{ 'item' if cart.item_count == 1 else 'items' }}
+                </div>
+                <button class="btn btn-clear" onclick="clearCart()">
+                    <i class="fas fa-trash me-1"></i>Clear cart
+                </button>
+            </div>
+            {% for item in cart_items %}
+            <div class="cart-item" data-cart-item-id="{{ item.CartItemID }}" data-points-per-unit="{{ item.PointsPerUnit }}">
+                <button class="icon-remove" onclick="removeCartItem('{{ item.CartItemID }}')" aria-label="Remove item">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <div class="item-thumb">
+                    {% if item.ItemImageURL %}
+                    <img src="{{ item.ItemImageURL }}" alt="{{ item.ItemTitle }}">
+                    {% else %}
+                    <i class="fas fa-image text-muted fa-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="item-info">
+                    <h6>{{ item.ItemTitle }}</h6>
+                    {% if item.ExternalItemID and '::' in item.ExternalItemID %}
+                    {% set variant_part = item.ExternalItemID.split('::', 1)[1] %}
+                    {% set variant_map = {} %}
+                    {% for pair in variant_part.split('|') %}
+                        {% set key_value = pair.split(':', 1) %}
+                        {% if key_value|length == 2 %}
+                            {% set _ = variant_map.update({key_value[0]: key_value[1]}) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if variant_map %}
+                    <div class="variant-info" style="margin-top: 6px; margin-bottom: 8px;">
+                        <span class="item-meta" style="font-size: 0.85rem;">
+                            {% for key, value in variant_map.items() %}
+                                <span style="margin-right: 8px;"><strong>{{ key }}:</strong> {{ value }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    <span class="item-meta">
+                        <i class="fas fa-hashtag"></i>
+                        {% if item.ExternalItemID and '::' in item.ExternalItemID %}
+                            {{ item.ExternalItemID.split('::', 1)[0] }}
+                        {% else %}
+                            {{ item.ExternalItemID }}
+                        {% endif %}
+                    </span>
+                    <span class="points-chip">{{ item.PointsPerUnit }} pts</span>
+                </div>
+                <div class="item-actions">
+                    <div class="quantity-controls"
+                         data-cart-item-id="{{ item.CartItemID }}"
+                         data-quantity="{{ item.Quantity }}"
+                         role="group"
+                         aria-label="Quantity selector for {{ item.ItemTitle }}">
+                        <button class="quantity-btn"
+                                type="button"
+                                onclick="adjustQuantity('{{ item.CartItemID }}', -1)"
+                                aria-label="Decrease quantity for {{ item.ItemTitle }}">
+                            <span aria-hidden="true">&minus;</span>
+                        </button>
+                        <span class="quantity-value" role="status" aria-live="polite" aria-atomic="true">{{ item.Quantity }}</span>
+                        <button class="quantity-btn"
+                                type="button"
+                                onclick="adjustQuantity('{{ item.CartItemID }}', 1)"
+                                aria-label="Increase quantity for {{ item.ItemTitle }}">
+                            <span aria-hidden="true">+</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="empty-cart-panel" class="cart-panel" style="{{ 'display:none;' if cart_items else '' }}">
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart empty-cart-icon"></i>
+                <h4>Your cart is empty</h4>
+                <p class="muted">Add items from the catalog to get started.</p>
+                <div class="cta-stack mt-4">
+                    <a href="{{ url_for('driver_points_catalog.browse') }}" class="btn btn-primary">
+                        <i class="fas fa-shopping-bag me-2"></i>Browse catalog
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary-wrapper" class="summary-grid" style="{{ '' if cart_items else 'display:none;' }}">
+            <div class="summary-card" data-balance="{{ balance }}">
+                <div class="summary-row">
+                    <span>Items:</span>
+                    <strong id="summary-item-count">{{ cart.item_count }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Cart total:</span>
+                    <strong id="summary-cart-total">{{ cart.total_points }} pts</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Your points:</span>
+                    <strong class="text-success">{{ balance }} pts</strong>
+                </div>
+                <div class="summary-row" id="summary-remaining-row" style="{{ 'display:flex;' if balance >= cart.total_points else 'display:none;' }}">
+                    <span>Remaining after purchase:</span>
+                    <strong id="summary-remaining">{{ balance - cart.total_points }} pts</strong>
+                </div>
+                <div class="insufficient-banner" id="insufficient-banner" style="{{ 'display:none;' if balance >= cart.total_points else '' }}">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    You need {{ cart.total_points - balance }} more points to complete this order.
+                </div>
+                <div class="cta-stack mt-3" id="actions-sufficient" style="{{ 'display:flex;' if balance >= cart.total_points else 'display:none;' }}">
+                    <a href="{{ url_for('checkout.checkout') }}" class="btn btn-primary">
+                        <i class="fas fa-credit-card me-2"></i>Proceed to checkout
+                    </a>
+                    <a href="{{ url_for('driver_points_catalog.browse') }}" class="btn btn-secondary">
+                        <i class="fas fa-shopping-bag me-2"></i>Keep browsing
+                    </a>
+                </div>
+                <div class="cta-stack mt-3" id="actions-insufficient" style="{{ 'display:none;' if balance >= cart.total_points else 'display:flex;' }}">
+                    <a href="{{ url_for('driver_points_catalog.browse') }}" class="btn btn-secondary">
+                        <i class="fas fa-shopping-bag me-2"></i>Browse catalog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
+                  document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1];
+
+function buildHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    return headers;
+}
+
+const itemsPanel = document.getElementById('cart-items-panel');
+const emptyPanel = document.getElementById('empty-cart-panel');
+const summaryWrapper = document.getElementById('summary-wrapper');
+const summaryCard = summaryWrapper ? summaryWrapper.querySelector('.summary-card') : null;
+const itemCountLabel = document.getElementById('cart-item-count');
+const balance = summaryCard ? Number(summaryCard.dataset.balance) || 0 : 0;
+
+function formatItemCount(count) {
+    return `${count} ${count === 1 ? 'item' : 'items'}`;
+}
+
+function setLoadingState(card, isLoading) {
+    const buttons = card.querySelectorAll('button');
+    buttons.forEach(btn => {
+        btn.disabled = isLoading;
+    });
+}
+
+function updateSummaryUI({ cart_total: total = 0, item_count: count = 0 }) {
+    total = Number(total) || 0;
+    count = Number(count) || 0;
+
+    if (itemCountLabel) {
+        itemCountLabel.innerHTML = `<i class="fas fa-shopping-bag me-2"></i>${formatItemCount(count)}`;
+    }
+
+    if (summaryWrapper) {
+        summaryWrapper.style.display = count ? '' : 'none';
+    }
+    if (itemsPanel) {
+        itemsPanel.style.display = count ? '' : 'none';
+    }
+    if (emptyPanel) {
+        emptyPanel.style.display = count ? 'none' : '';
+    }
+
+    if (summaryCard) {
+        const totalEl = document.getElementById('summary-cart-total');
+        const itemCountEl = document.getElementById('summary-item-count');
+        const remainingRow = document.getElementById('summary-remaining-row');
+        const remainingEl = document.getElementById('summary-remaining');
+        const insufficientBanner = document.getElementById('insufficient-banner');
+        const actionsSufficient = document.getElementById('actions-sufficient');
+        const actionsInsufficient = document.getElementById('actions-insufficient');
+
+        if (totalEl) totalEl.textContent = `${total} pts`;
+        if (itemCountEl) itemCountEl.textContent = count;
+
+        const hasEnough = balance >= total;
+        const remaining = balance - total;
+
+        if (remainingRow) {
+            remainingRow.style.display = hasEnough ? 'flex' : 'none';
+        }
+        if (remainingEl) {
+            remainingEl.textContent = `${remaining} pts`;
+        }
+        if (insufficientBanner) {
+            insufficientBanner.style.display = hasEnough ? 'none' : '';
+            insufficientBanner.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>You need ${Math.max(total - balance, 0)} more points to complete this order.`;
+        }
+        if (actionsSufficient) {
+            actionsSufficient.style.display = hasEnough ? 'flex' : 'none';
+        }
+        if (actionsInsufficient) {
+            actionsInsufficient.style.display = hasEnough ? 'none' : 'flex';
+        }
+    }
+
+    if (typeof updateCartCount === 'function') {
+        updateCartCount();
+    }
+}
+
+async function requestUpdate(cartItemId, quantity) {
+    const card = document.querySelector(`[data-cart-item-id="${cartItemId}"]`);
+    if (!card) return;
+
+    const control = card.querySelector('.quantity-controls');
+    if (!control) return;
+
+    const currentValue = Number(control.dataset.quantity) || 0;
+    const nextValue = Math.max(0, Math.min(99, Number(quantity) || 0));
+
+    if (nextValue === currentValue) {
+        return;
+    }
+
+    setLoadingState(card, true);
+
+    try {
+        const response = await fetch('{{ url_for("cart.update_cart_item") }}', {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify({
+                cart_item_id: cartItemId,
+                quantity: nextValue
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `Request failed (${response.status})`);
+        }
+
+        if (nextValue === 0) {
+            card.remove();
+        } else {
+            control.dataset.quantity = nextValue;
+            const valueEl = control.querySelector('.quantity-value');
+            if (valueEl) {
+                valueEl.textContent = nextValue;
+            }
+        }
+
+        updateSummaryUI(data);
+    } catch (error) {
+        console.error('Error updating cart item:', error);
+        alert('Unable to update cart item: ' + error.message);
+    } finally {
+        if (document.body.contains(card)) {
+            setLoadingState(card, false);
+        }
+    }
+}
+
+function adjustQuantity(cartItemId, delta) {
+    const control = document.querySelector(`.quantity-controls[data-cart-item-id="${cartItemId}"]`);
+    if (!control) return;
+    const current = Number(control.dataset.quantity) || 0;
+    const updated = current + delta;
+    if (updated < 0) return;
+    requestUpdate(cartItemId, updated);
+}
+
+function handleQuantityKeydown(event) {
+    const key = event.key;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
+        return;
+    }
+    const control = event.currentTarget.closest('.quantity-controls') || event.currentTarget;
+    if (!control) return;
+    const cartItemId = control.dataset.cartItemId;
+    if (!cartItemId) return;
+
+    event.preventDefault();
+    if (key === 'ArrowLeft' || key === 'ArrowDown') {
+        adjustQuantity(cartItemId, -1);
+    } else if (key === 'ArrowRight' || key === 'ArrowUp') {
+        adjustQuantity(cartItemId, 1);
+    }
+}
+
+async function removeCartItem(cartItemId) {
+    const card = document.querySelector(`[data-cart-item-id="${cartItemId}"]`);
+    if (!card) return;
+
+    if (!confirm('Remove this item from your cart?')) {
+        return;
+    }
+
+    setLoadingState(card, true);
+
+    try {
+        const response = await fetch('{{ url_for("cart.remove_from_cart") }}', {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify({ cart_item_id: cartItemId })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `Request failed (${response.status})`);
+        }
+
+        card.remove();
+        updateSummaryUI(data);
+    } catch (error) {
+        console.error('Error removing cart item:', error);
+        alert('Unable to remove this item: ' + error.message);
+        setLoadingState(card, false);
+    }
+}
+
+async function clearCart() {
+    if (!confirm('Clear all items from your cart?')) {
+        return;
+    }
+
+    if (itemsPanel) {
+        setLoadingState(itemsPanel, true);
+    }
+
+    try {
+        const response = await fetch('{{ url_for("cart.clear_cart") }}', {
+            method: 'POST',
+            headers: buildHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `Request failed (${response.status})`);
+        }
+
+        document.querySelectorAll('.cart-item').forEach(item => item.remove());
+        updateSummaryUI(data);
+    } catch (error) {
+        console.error('Error clearing cart:', error);
+        alert('Unable to clear cart: ' + error.message);
+        if (itemsPanel) {
+            setLoadingState(itemsPanel, false);
+        }
+    }
+}
+
+document.querySelectorAll('.quantity-controls').forEach(control => {
+    control.addEventListener('keydown', handleQuantityKeydown);
+    control.querySelectorAll('button').forEach(btn => btn.addEventListener('keydown', handleQuantityKeydown));
+});
+</script>
+{% endblock %}

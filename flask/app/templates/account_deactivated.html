@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Account Deactivated{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<style>
+  .account-status-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .account-status-card {
+    max-width: 600px;
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    box-shadow: 0 12px 32px var(--shadow-lg);
+    text-align: center;
+  }
+
+  [data-theme="dark"] .account-status-card {
+    background: var(--glass-bg);
+    border-color: var(--accent-border);
+    backdrop-filter: blur(12px);
+  }
+
+  .account-status-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .account-status-icon.deactivated {
+    background: rgba(239, 68, 68, 0.16);
+    color: var(--error);
+  }
+
+  .account-status-card h1 {
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .account-status-card p {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .account-status-card .alert {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    background: var(--warning-soft);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+  }
+
+  .account-status-card .btn {
+    padding: 12px 24px;
+    font-weight: 600;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="account-status-page">
+  <div class="account-status-card">
+    <div class="account-status-icon deactivated">
+      <i class="fas fa-ban" aria-hidden="true"></i>
+    </div>
+    <h1>Account Deactivated</h1>
+    <p>
+      Your account has been deactivated by an administrator.
+    </p>
+    {% if error %}
+    <div class="alert" role="alert">
+      <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+      {{ error }}
+    </div>
+    {% endif %}
+    <p>
+      If you believe this is an error, please contact support for assistance.
+    </p>
+    <a href="{{ url_for('auth.login_page') }}" class="btn btn-primary">
+      <i class="fas fa-home" aria-hidden="true"></i>
+      Return to Login
+    </a>
+  </div>
+</div>
+{% endblock %}
+

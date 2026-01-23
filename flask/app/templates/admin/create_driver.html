@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Create Driver Account{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Create Driver Account</h1>
+      <p>Issue driver credentials with verified contact information. Drivers will receive an email invitation to activate their account.</p>
+    </div>
+    <div class="admin-actions">
+      <a href="{{ url_for('admin.account_management') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        <span>Account Management</span>
+      </a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="admin-banner {% if category == 'error' %}admin-banner--error{% elif category == 'success' %}admin-banner--success{% else %}admin-banner--info{% endif %}">
+          <i class="fas {% if category == 'error' %}fa-circle-exclamation{% elif category == 'success' %}fa-check-circle{% else %}fa-circle-info{% endif %}"></i>
+          <div>{{ message }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="admin-card">
+    <form action="{{ url_for('admin.admin_create_driver') }}" method="POST" class="admin-form" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-grid">
+        <div>
+          {{ form.Username.label }}
+          {{ form.Username(autocomplete="username") }}
+        </div>
+        <div>
+          {{ form.Email.label }}
+          {{ form.Email(type="email", autocomplete="email") }}
+        </div>
+        <div>
+          {{ form.Phone.label }}
+          {{ form.Phone(autocomplete="tel") }}
+        </div>
+        <div>
+          {{ form.FirstName.label }}
+          {{ form.FirstName(autocomplete="given-name") }}
+        </div>
+        <div>
+          {{ form.LastName.label }}
+          {{ form.LastName(autocomplete="family-name") }}
+        </div>
+        <div>
+          {{ form.Password.label }}
+          {{ form.Password(id="password", autocomplete="new-password") }}
+          <ul class="password-rules">
+            <li id="rule-length" class="invalid" data-label="At least 8 characters">At least 8 characters</li>
+            <li id="rule-upper" class="invalid" data-label="Contains an uppercase letter">Contains an uppercase letter</li>
+            <li id="rule-lower" class="invalid" data-label="Contains a lowercase letter">Contains a lowercase letter</li>
+            <li id="rule-number" class="invalid" data-label="Contains a number">Contains a number</li>
+            <li id="rule-special" class="invalid" data-label="Contains a special character (!@#$%^&*)">Contains a special character (!@#$%^&*)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <i class="fas fa-user-plus"></i>
+          <span>Create Driver</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const passwordField = document.getElementById('password');
+    const submitBtn = document.getElementById('submit-btn');
+    if (!passwordField || !submitBtn) return;
+
+    const rules = {
+      length: document.getElementById('rule-length'),
+      upper: document.getElementById('rule-upper'),
+      lower: document.getElementById('rule-lower'),
+      number: document.getElementById('rule-number'),
+      special: document.getElementById('rule-special'),
+    };
+
+    const checks = {
+      length: value => value.length >= 8,
+      upper: value => /[A-Z]/.test(value),
+      lower: value => /[a-z]/.test(value),
+      number: value => /[0-9]/.test(value),
+      special: value => /[^A-Za-z0-9]/.test(value),
+    };
+
+    function updateRule(el, passed) {
+      if (!el) return;
+      const label = el.dataset.label || el.textContent.trim();
+      el.textContent = `${passed ? '✅' : '❌'} ${label}`;
+      el.classList.toggle('valid', passed);
+      el.classList.toggle('invalid', !passed);
+    }
+
+    function evaluate(value) {
+      let allValid = true;
+      Object.keys(checks).forEach(key => {
+        const passed = checks[key](value);
+        updateRule(rules[key], passed);
+        if (!passed) allValid = false;
+      });
+      submitBtn.disabled = !allValid;
+    }
+
+    evaluate(passwordField.value || '');
+    passwordField.addEventListener('input', function () {
+      evaluate(this.value || '');
+    });
+  })();
+</script>
+{% endblock %}

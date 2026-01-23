@@ -1,0 +1,883 @@
+<!-- Sponsor category selector - hierarchical dropdown showing categories from selected filter set -->
+<div class="sponsor-category-browser">
+    <div class="category-browser-header">
+        <p class="help-text">Select a category to browse products. Categories are based on your selected filter set.</p>
+        <div class="category-search-container">
+            <input type="text" id="category-search" placeholder="Search categories..." oninput="filterSponsorCategories(this.value)">
+            <button type="button" onclick="expandAllSponsorCategories()" class="btn-small">Expand All</button>
+            <button type="button" onclick="collapseAllSponsorCategories()" class="btn-small">Collapse All</button>
+        </div>
+    </div>
+    
+    <div id="category-loading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <i class="fas fa-spinner fa-spin"></i> Loading categories...
+    </div>
+    
+    <div id="categories-grid" class="categories-grid" style="display: none;"></div>
+</div>
+
+<style>
+.sponsor-category-browser {
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+}
+
+[data-theme="dark"] .sponsor-category-browser {
+    background: transparent;
+}
+
+.category-browser-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+[data-theme="dark"] .category-browser-header {
+    border-bottom-color: var(--border);
+}
+
+.help-text {
+    margin: 0 0 16px 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .help-text {
+    color: var(--text-secondary);
+}
+
+.category-search-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.category-search-container input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-input, var(--bg-secondary));
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .category-search-container input {
+    background: var(--bg-input, var(--bg-secondary));
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.category-search-container input:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.btn-small {
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .btn-small {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.btn-small:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.category-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    overflow: visible;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+[data-theme="dark"] .category-section {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+.category-section:hover {
+    border-color: var(--accent-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .category-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-header {
+    padding: 14px 8px 14px 10px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+[data-theme="dark"] .category-header {
+    background: transparent;
+}
+
+.category-header:hover {
+    background: var(--bg-hover);
+}
+
+.category-header::-webkit-details-marker {
+    display: none;
+}
+
+.category-header::after {
+    content: "▼";
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .category-header::after {
+    color: var(--text-muted);
+}
+
+.category-section[open] > .category-header::after {
+    transform: rotate(180deg);
+}
+
+.category-header label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+[data-theme="dark"] .category-header label {
+    color: var(--text-primary);
+}
+
+.category-header label:hover {
+    color: var(--accent);
+}
+
+.select-category-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    min-width: 44px;
+    height: 40px;
+}
+
+[data-theme="dark"] .select-category-btn {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+.select-category-btn:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--accent);
+}
+
+[data-theme="dark"] .select-category-btn:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: var(--accent);
+}
+
+.select-category-btn:active {
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.select-category-btn input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.category-header .category-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 0 8px 0 0;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+[data-theme="dark"] .category-header .category-name {
+    color: var(--text-primary);
+}
+
+.category-header .category-name:hover {
+    color: var(--accent);
+}
+
+.subcategory-list {
+    padding: 4px 8px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-card);
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] .subcategory-list {
+    background: var(--bg-card);
+}
+
+.subcategory-list label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px 10px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    min-width: max-content;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .subcategory-list label {
+    color: var(--text-primary);
+}
+
+.subcategory-list label:hover {
+    background: var(--bg-hover);
+    transform: translateX(2px);
+}
+
+[data-theme="dark"] .subcategory-list label:hover {
+    background: var(--bg-hover);
+}
+
+.subcategory-list input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+}
+
+.subcategory-list input[type="radio"]:checked + span {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.subcategory-list span {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: visible;
+    min-width: max-content;
+    padding-right: 8px;
+}
+
+/* Single subcategory button style - no dropdown */
+.single-subcategory-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    padding: 10px 8px 10px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .single-subcategory-btn {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+.single-subcategory-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+[data-theme="dark"] .single-subcategory-btn:hover {
+    background: var(--bg-hover);
+}
+
+.single-subcategory-btn input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+}
+
+.single-subcategory-btn span {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
+}
+
+[data-theme="dark"] .single-subcategory-btn span {
+    color: var(--text-primary);
+}
+
+.single-subcategory-btn input[type="radio"]:checked + span {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+[data-theme="dark"] .subcategory-list span {
+    color: var(--text-primary);
+}
+
+.category-hidden {
+    display: none !important;
+}
+</style>
+
+<script>
+let sponsorCategoryData = {};
+let sponsorAllowedCategoryIds = new Set();
+let sponsorCategoryIdToNameMap = {};
+
+// Helper function to filter category tree to only show categories from filter set
+function filterCategoryTreeForSponsor(data, allowedIds, map = {}) {
+    function processNode(nodeData) {
+        const result = {};
+        
+        for (const [categoryName, subcategories] of Object.entries(nodeData)) {
+            if (typeof subcategories === 'object' && subcategories !== null) {
+                const values = Object.values(subcategories);
+                const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+                
+                if (allValuesAreStrings) {
+                    // Leaf categories: keys are IDs, values are names
+                    const filtered = {};
+                    for (const [catId, catName] of Object.entries(subcategories)) {
+                        if (allowedIds.has(catId)) {
+                            filtered[catId] = catName;
+                            map[catId] = catName;
+                        }
+                    }
+                    if (Object.keys(filtered).length > 0) {
+                        result[categoryName] = filtered;
+                    }
+                } else {
+                    // Nested structure, recurse
+                    const nestedResult = processNode(subcategories);
+                    if (Object.keys(nestedResult).length > 0) {
+                        result[categoryName] = nestedResult;
+                    }
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    const filtered = processNode(data);
+    return { filtered, map };
+}
+
+// Helper function to count total leaf options in a category tree
+function countLeafOptions(subcategories) {
+    if (typeof subcategories !== 'object' || subcategories === null) {
+        return 0;
+    }
+    
+    const values = Object.values(subcategories);
+    const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+    
+    if (allValuesAreStrings) {
+        // Leaf level - return count of options
+        return Object.keys(subcategories).length;
+    } else {
+        // Nested - recursively count
+        let total = 0;
+        for (const subcat of Object.values(subcategories)) {
+            total += countLeafOptions(subcat);
+        }
+        return total;
+    }
+}
+
+// Helper function to find the single leaf option in a category tree
+function findSingleLeafOption(subcategories) {
+    if (typeof subcategories !== 'object' || subcategories === null) {
+        return null;
+    }
+    
+    const values = Object.values(subcategories);
+    const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+    
+    if (allValuesAreStrings) {
+        // Leaf level - check if only one option
+        const entries = Object.entries(subcategories);
+        if (entries.length === 1) {
+            return entries[0]; // [catId, catName]
+        }
+        return null;
+    } else {
+        // Nested - recurse into first subcategory
+        for (const subcat of Object.values(subcategories)) {
+            const result = findSingleLeafOption(subcat);
+            if (result) return result;
+        }
+    }
+    return null;
+}
+
+// Render category tree with radio buttons
+function renderSponsorCategoryTree(data, container, level = 0) {
+    let html = '';
+    for (const [categoryName, subcategories] of Object.entries(data)) {
+        if (typeof subcategories === 'object' && subcategories !== null) {
+            const keys = Object.keys(subcategories);
+            const values = Object.values(subcategories);
+            
+            const allValuesAreStrings = values.length > 0 && values.every(v => typeof v === 'string');
+            const hasNestedObjects = values.some(v => typeof v === 'object' && v !== null);
+            
+            if (hasNestedObjects) {
+                // Check total leaf options - if only one, render as button
+                const totalLeafOptions = countLeafOptions(subcategories);
+                if (totalLeafOptions === 1) {
+                    // Find the single leaf option and render as button
+                    const singleLeaf = findSingleLeafOption(subcategories);
+                    if (singleLeaf) {
+                        const [catId, catName] = singleLeaf;
+                        const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        html += `
+                            <button type="button" class="single-subcategory-btn" onclick="selectSponsorCategory('${catId}', '${escapedName}')">
+                                <input type="radio" name="sponsor-category" value="${catId}" data-category="${escapedName}" data-parent="${categoryName}">
+                                <span>${catName}</span>
+                            </button>
+                        `;
+                    } else {
+                        // Fallback to dropdown if we can't find the single leaf
+                        const uniqueId = `sponsor-cat-${categoryName.replace(/\s+/g, '-').toLowerCase()}-${level}`;
+                        html += `
+                            <details class="category-section" id="${uniqueId}">
+                                <summary class="category-header">
+                                    <span class="category-name">${categoryName}</span>
+                                </summary>
+                                <div class="subcategory-list" onclick="event.stopPropagation();">
+                                    ${renderSponsorCategoryTree(subcategories, null, level + 1)}
+                                </div>
+                            </details>
+                        `;
+                    }
+                } else {
+                    // Multiple options - render as dropdown
+                    const uniqueId = `sponsor-cat-${categoryName.replace(/\s+/g, '-').toLowerCase()}-${level}`;
+                    html += `
+                        <details class="category-section" id="${uniqueId}">
+                            <summary class="category-header">
+                                <span class="category-name">${categoryName}</span>
+                            </summary>
+                            <div class="subcategory-list" onclick="event.stopPropagation();">
+                                ${renderSponsorCategoryTree(subcategories, null, level + 1)}
+                            </div>
+                        </details>
+                    `;
+                }
+            } else if (allValuesAreStrings && keys.length > 0) {
+                // Leaf categories - check if only one, render as button
+                if (keys.length === 1) {
+                    // Single leaf category - render as button
+                    const [catId, catName] = Object.entries(subcategories)[0];
+                    const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    html += `
+                        <button type="button" class="single-subcategory-btn" onclick="selectSponsorCategory('${catId}', '${escapedName}')">
+                            <input type="radio" name="sponsor-category" value="${catId}" data-category="${escapedName}" data-parent="${categoryName}">
+                            <span>${catName}</span>
+                        </button>
+                    `;
+                } else {
+                    // Multiple leaf categories - render as radio buttons in a list
+                    for (const [catId, catName] of Object.entries(subcategories)) {
+                        const escapedName = catName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        html += `
+                            <label onclick="selectSponsorCategory('${catId}', '${escapedName}')">
+                                <input type="radio" name="sponsor-category" value="${catId}" data-category="${escapedName}" data-parent="${categoryName}">
+                                <span>${catName}</span>
+                            </label>
+                        `;
+                    }
+                }
+            }
+        }
+    }
+    if (container) {
+        container.innerHTML = html;
+    }
+    return html;
+}
+
+// Load categories for sponsor based on selected filter set
+async function loadSponsorCategories(filterSetId) {
+    console.log('[CATEGORY BROWSER] ========== loadSponsorCategories() CALLED ==========');
+    console.log('[CATEGORY BROWSER] filterSetId:', filterSetId);
+    
+    try {
+        const loadingEl = document.getElementById('category-loading');
+        const gridEl = document.getElementById('categories-grid');
+        
+        if (!loadingEl || !gridEl) {
+            console.error('[CATEGORY BROWSER] Category browser elements not found!');
+            return;
+        }
+        
+        // Skip if recommended_only mode
+        if (filterSetId === '__recommended_only__') {
+            console.log('[CATEGORY BROWSER] Skipping category load (recommended_only mode)');
+            loadingEl.style.display = 'none';
+            gridEl.style.display = 'none';
+            return;
+        }
+        
+        loadingEl.style.display = 'block';
+        gridEl.style.display = 'none';
+        console.log('[CATEGORY BROWSER] Showing loading indicator');
+        
+        // Load full category tree
+        const excludeExplicit = true; // Default to excluding explicit content
+        const categoriesUrl = `{{ url_for('sponsor_catalog.get_categories') }}?exclude_explicit=true${filterSetId && filterSetId !== '__no_filter__' ? '&filter_set_id=' + filterSetId : ''}`;
+        console.log('[CATEGORY BROWSER] Fetching categories from:', categoriesUrl);
+        const fullTreeResponse = await fetch(categoriesUrl);
+        const fullTreeData = await fullTreeResponse.json();
+        console.log('[CATEGORY BROWSER] Received category tree data:', {
+            hasCategories: !!fullTreeData.categories,
+            categoryKeys: fullTreeData.categories ? Object.keys(fullTreeData.categories) : []
+        });
+        
+        if (!fullTreeData.categories) {
+            console.warn('[CATEGORY BROWSER] No categories in response');
+            loadingEl.innerHTML = '<p style="color: var(--text-muted);">No categories available. Select a filter set to see categories.</p>';
+            return;
+        }
+        
+        // Get allowed category IDs from filter set
+        let allowedCategoryIds = new Set();
+        if (filterSetId && filterSetId !== '__no_filter__' && filterSetId !== '__recommended_only__') {
+            console.log('[CATEGORY BROWSER] Fetching filter set details to get allowed categories:', filterSetId);
+            // Fetch filter set to get categories
+            try {
+                const filterSetResponse = await fetch(`/sponsor-catalog/filter-sets/${filterSetId}`, { credentials: 'same-origin' });
+                if (filterSetResponse.ok) {
+                    const filterSet = await filterSetResponse.json();
+                    console.log('[CATEGORY BROWSER] Filter set data received:', {
+                        id: filterSet.id,
+                        name: filterSet.name,
+                        hasRulesJson: !!filterSet.rules_json
+                    });
+                    
+                    const rules = filterSet.rules_json || {};
+                    const categories = rules.categories || {};
+                    const includeCategories = categories.include || [];
+                    console.log('[CATEGORY BROWSER] Categories from filter set:', {
+                        includeCategoriesCount: includeCategories.length,
+                        includeCategories: includeCategories
+                    });
+                    
+                    includeCategories.forEach(id => allowedCategoryIds.add(String(id)));
+                    console.log('[CATEGORY BROWSER] Allowed category IDs set:', Array.from(allowedCategoryIds));
+                } else {
+                    console.warn('[CATEGORY BROWSER] Failed to fetch filter set:', filterSetResponse.status);
+                }
+            } catch (e) {
+                console.error('[CATEGORY BROWSER] Error loading filter set categories:', e);
+            }
+        } else {
+            console.log('[CATEGORY BROWSER] No filter set specified or __no_filter__, will show all categories');
+        }
+        
+        // If no filter set selected or no categories in filter set, show all categories
+        if (allowedCategoryIds.size === 0) {
+            console.log('[CATEGORY BROWSER] No specific categories in filter set, extracting all categories from tree');
+            // Extract all category IDs from the tree
+            function extractAllIds(node, ids = new Set()) {
+                for (const [key, value] of Object.entries(node)) {
+                    if (typeof value === 'object' && value !== null) {
+                        const values = Object.values(value);
+                        if (values.length > 0 && values.every(v => typeof v === 'string')) {
+                            // Leaf categories
+                            Object.keys(value).forEach(id => ids.add(id));
+                        } else {
+                            // Nested structure
+                            extractAllIds(value, ids);
+                        }
+                    }
+                }
+                return ids;
+            }
+            allowedCategoryIds = extractAllIds(fullTreeData.categories);
+            console.log('[CATEGORY BROWSER] Extracted all category IDs. Total:', allowedCategoryIds.size);
+        }
+        
+        sponsorAllowedCategoryIds = allowedCategoryIds;
+        
+        if (sponsorAllowedCategoryIds.size === 0) {
+            console.warn('[CATEGORY BROWSER] No allowed categories found');
+            loadingEl.innerHTML = '<p style="color: var(--text-muted);">No categories available. Your filter set doesn\'t have any categories configured.</p>';
+            return;
+        }
+        
+        console.log('[CATEGORY BROWSER] Filtering category tree with', sponsorAllowedCategoryIds.size, 'allowed categories');
+        // Filter category tree to only show allowed categories
+        const { filtered, map } = filterCategoryTreeForSponsor(fullTreeData.categories, sponsorAllowedCategoryIds);
+        sponsorCategoryData = filtered;
+        sponsorCategoryIdToNameMap = map;
+        
+        console.log('[CATEGORY BROWSER] Filtered category tree:', {
+            filteredKeys: filtered ? Object.keys(filtered) : [],
+            mapSize: map ? Object.keys(map).length : 0
+        });
+        
+        renderSponsorCategoryTree(sponsorCategoryData, gridEl);
+        loadingEl.style.display = 'none';
+        gridEl.style.display = 'block';
+        console.log('[CATEGORY BROWSER] Categories rendered and displayed');
+        console.log('[CATEGORY BROWSER] ========== loadSponsorCategories() COMPLETE ==========');
+    } catch (error) {
+        console.error('[CATEGORY BROWSER] ========== ERROR IN loadSponsorCategories() ==========');
+        console.error('[CATEGORY BROWSER] Error:', error);
+        console.error('[CATEGORY BROWSER] Stack:', error.stack);
+        console.error('[CATEGORY BROWSER] ====================================================');
+        const loadingEl = document.getElementById('category-loading');
+        if (loadingEl) {
+            loadingEl.innerHTML = '<p style="color: #ef4444;">Error loading categories: ' + error.message + '</p>';
+        }
+    }
+}
+
+// Select category function
+function selectSponsorCategory(categoryId, categoryName) {
+    // Update browsing indicator
+    const indicator = document.getElementById('browsing-indicator');
+    const categoryNameEl = document.getElementById('browsing-category-name');
+    const browsingText = document.getElementById('browsing-text');
+    
+    if (indicator) {
+        if (categoryNameEl) {
+            categoryNameEl.textContent = categoryName;
+        } else if (browsingText) {
+            browsingText.style.display = '';
+            const nameEl = browsingText.querySelector('#browsing-category-name');
+            if (nameEl) nameEl.textContent = categoryName;
+        }
+    }
+    
+    // Update recommended button state
+    const recommendedBtn = document.getElementById('sidebar-recommended-btn');
+    if (recommendedBtn) {
+        recommendedBtn.classList.remove('active');
+    }
+    
+    // Load products for this category
+    if (window.sponsorCatalogLoad) {
+        // Update state with category
+        if (window.sponsorCatalogState) {
+            window.sponsorCatalogState.category_id = categoryId;
+            window.sponsorCatalogState.page = 1;
+        }
+        window.sponsorCatalogLoad();
+    }
+}
+
+// Filter categories based on search
+function filterSponsorCategories(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const browser = document.querySelector('.sponsor-category-browser');
+    if (!browser) return;
+    
+    // Handle both radio button structure (for catalog browsing) and checkbox structure (for filter sets)
+    const categorySections = browser.querySelectorAll('.category-section');
+    const categoryLabels = browser.querySelectorAll('.subcategory-list label, .category-checkbox-label');
+    const categoryHeaders = browser.querySelectorAll('.category-header, .category-section summary');
+
+    if (!term) {
+        categorySections.forEach(section => {
+            section.classList.remove('category-hidden');
+            if (section.tagName === 'DETAILS') {
+                section.open = false;
+            }
+        });
+        categoryLabels.forEach(label => {
+            label.classList.remove('category-hidden');
+        });
+        categoryHeaders.forEach(header => {
+            header.classList.remove('category-hidden');
+        });
+        return;
+    }
+
+    // Hide all initially
+    categorySections.forEach(section => {
+        section.classList.add('category-hidden');
+    });
+    categoryLabels.forEach(label => {
+        label.classList.add('category-hidden');
+    });
+    categoryHeaders.forEach(header => {
+        header.classList.add('category-hidden');
+    });
+
+    // Find matching labels (both radio and checkbox structures)
+    const matchingLabels = [];
+    categoryLabels.forEach(label => {
+        const labelText = label.textContent.toLowerCase();
+        if (labelText.includes(term)) {
+            matchingLabels.push(label);
+        }
+    });
+
+    // Show matching labels and their parents
+    matchingLabels.forEach(label => {
+        label.classList.remove('category-hidden');
+        let parent = label.closest('.category-section');
+        while (parent) {
+            parent.classList.remove('category-hidden');
+            if (parent.tagName === 'DETAILS') {
+                parent.open = true;
+            }
+            const header = parent.querySelector('.category-header, summary');
+            if (header) {
+                header.classList.remove('category-hidden');
+            }
+            parent = parent.parentElement?.closest('.category-section');
+        }
+    });
+
+    // Check category section headers and show if they match
+    categorySections.forEach(section => {
+        const header = section.querySelector('.category-header, summary');
+        if (header) {
+            const headerText = header.textContent.toLowerCase();
+            if (headerText.includes(term)) {
+                section.classList.remove('category-hidden');
+                if (section.tagName === 'DETAILS') {
+                    section.open = true;
+                }
+                header.classList.remove('category-hidden');
+                // Show all children in this section
+                section.querySelectorAll('.subcategory-list label, .category-checkbox-label').forEach(label => {
+                    label.classList.remove('category-hidden');
+                });
+            }
+        }
+        // Show section if it has visible children
+        const visibleChildren = section.querySelectorAll('.subcategory-list label:not(.category-hidden), .category-checkbox-label:not(.category-hidden)');
+        if (visibleChildren.length > 0) {
+            section.classList.remove('category-hidden');
+            if (section.tagName === 'DETAILS') {
+                section.open = true;
+            }
+            const header = section.querySelector('.category-header, summary');
+            if (header) {
+                header.classList.remove('category-hidden');
+            }
+        }
+    });
+}
+
+function expandAllSponsorCategories() {
+    document.querySelectorAll('.sponsor-category-browser .category-section').forEach(section => {
+        section.open = true;
+    });
+}
+
+function collapseAllSponsorCategories() {
+    document.querySelectorAll('.sponsor-category-browser .category-section').forEach(section => {
+        section.open = false;
+    });
+}
+
+// Make functions globally accessible
+window.selectSponsorCategory = selectSponsorCategory;
+window.filterSponsorCategories = filterSponsorCategories;
+window.expandAllSponsorCategories = expandAllSponsorCategories;
+window.collapseAllSponsorCategories = collapseAllSponsorCategories;
+window.loadSponsorCategories = loadSponsorCategories;
+
+// Initial load when filter set changes
+document.addEventListener('DOMContentLoaded', function() {
+    const filterSetSelect = document.getElementById('sidebar-filter-set');
+    if (filterSetSelect) {
+        filterSetSelect.addEventListener('change', function() {
+            loadSponsorCategories(this.value);
+        });
+    }
+    
+    // Load categories on initial page load
+    const initialFilterSet = filterSetSelect ? filterSetSelect.value : '__no_filter__';
+    loadSponsorCategories(initialFilterSet);
+});
+</script>

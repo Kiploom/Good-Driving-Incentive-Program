@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Settings{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Notification Settings</h1>
+      <p>Choose which alerts you want to receive as an administrator. Update your preferences at any time to stay informed about important account activity.</p>
+    </div>
+    <div class="admin-actions">
+      <a href="{{ url_for('admin.admin_account') }}" class="btn btn-secondary">
+        <i class="fas fa-user-cog"></i>
+        <span>Account Settings</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form method="POST" id="notification-form" class="admin-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <section class="admin-section">
+        <h2><i class="fas fa-cog"></i> Notification Types</h2>
+        <p class="admin-muted">Toggle the events that should trigger email notifications.</p>
+        <div class="admin-grid">
+          <div class="admin-notification-card">
+            <div class="admin-notification-copy">
+              <strong>Login Suspicious Activity</strong>
+              <p class="admin-muted">Alerts for unusual login attempts or security events.</p>
+            </div>
+            <label class="toggle-control">
+              <input type="checkbox" name="login_suspicious_activity" class="notification-toggle" {{ 'checked' if prefs.LoginSuspiciousActivity else '' }}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <a href="{{ url_for('admin.admin_account') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const toggles = document.querySelectorAll('.notification-toggle');
+  toggles.forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      console.log(`${this.name} is now ${this.checked ? 'enabled' : 'disabled'}`);
+    });
+  });
+});
+</script>
+{% endblock %}

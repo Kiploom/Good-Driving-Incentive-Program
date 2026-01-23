@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Account Management{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Account Management</h1>
+      <p>Provision platform access for drivers, sponsors, and administrators. Start with a guided workflow or bulk import multiple records in one upload.</p>
+    </div>
+    <div class="admin-actions">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+      <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary">
+        <i class="fas fa-users"></i>
+        <span>Manage Existing Users</span>
+      </a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="admin-banner {% if category == 'error' %}admin-banner--error{% elif category == 'success' %}admin-banner--success{% else %}admin-banner--info{% endif %}">
+          <i class="fas {% if category == 'error' %}fa-circle-exclamation{% elif category == 'success' %}fa-check-circle{% else %}fa-circle-info{% endif %}"></i>
+          <div>{{ message }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="admin-tile-group">
+    <div class="admin-tile">
+      <div class="icon">
+        <i class="fas fa-id-card"></i>
+      </div>
+      <h3>Create Driver</h3>
+      <p>Set up a new driver account and assign them to a sponsor environment with starter points or onboarding tasks.</p>
+      <a href="{{ url_for('admin.admin_create_driver') }}" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i>
+        <span>Create Driver</span>
+      </a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon">
+        <i class="fas fa-building"></i>
+      </div>
+      <h3>Create Sponsor</h3>
+      <p>Register a sponsor organization, configure its catalog access, and invite sponsor administrators.</p>
+      <a href="{{ url_for('admin.admin_create_sponsor') }}" class="btn btn-primary">
+        <i class="fas fa-briefcase"></i>
+        <span>Create Sponsor</span>
+      </a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <h3>Create Admin</h3>
+      <p>Issue a new administrator login with verified contact details and enforced password security.</p>
+      <a href="{{ url_for('admin.admin_create_admin') }}" class="btn btn-primary">
+        <i class="fas fa-user-shield"></i>
+        <span>Create Admin</span>
+      </a>
+    </div>
+
+    <div class="admin-tile">
+      <div class="icon">
+        <i class="fas fa-file-upload"></i>
+      </div>
+      <h3>Bulk Import</h3>
+      <p>Upload a CSV to create sponsors and user accounts in bulk. Perfect for onboarding large fleets.</p>
+      <a href="{{ url_for('admin.bulk_import_users') }}" class="btn btn-secondary">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <span>Import CSV</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-banner admin-banner--info">
+    <i class="fas fa-circle-info"></i>
+    <div>
+      <strong>Need help?</strong>
+      <p class="admin-muted">Visit the <a href="{{ url_for('support_ui.admin_support_hub') }}" class="admin-link">Admin Support Hub</a> for onboarding checklists, CSV samples, and policy templates.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

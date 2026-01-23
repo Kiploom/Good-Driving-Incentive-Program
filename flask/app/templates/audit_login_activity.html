@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Login Activity Audit Log{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">Login Activity Audit Log</h1>
+      <p class="page-description">
+        Investigate successful and failed login attempts across all accounts, with filters for status, IP, and timeframe.
+      </p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search name, email, username…">
+    <select name="success" onchange="this.form.submit()">
+      <option value="">All attempts</option>
+      <option value="true" {% if success_filter=='true' %}selected{% endif %}>Successful</option>
+      <option value="false" {% if success_filter=='false' %}selected{% endif %}>Failed</option>
+    </select>
+    <input type="text" name="ip" value="{{ ip_filter or '' }}" placeholder="IP address…">
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      <a href="{{ url_for('admin.audit_login_activity') }}" class="btn btn-ghost">Reset</a>
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Attempted At</th>
+          <th>User</th>
+          <th>Email</th>
+          <th>Username</th>
+          <th>Status</th>
+          <th>IP Address</th>
+          <th>Attempt ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for login_attempt, account in rows %}
+            {% set user_name = (account.WholeName
+                             or ((account.FirstName or '') ~ (' ' if (account.FirstName or account.LastName) else '') ~ (account.LastName or ''))).strip() %}
+
+            <tr>
+              <td class="text-muted">
+                {{ login_attempt.AttemptedAt.strftime('%Y-%m-%d %H:%M:%S') if login_attempt.AttemptedAt else '—' }}
+              </td>
+
+              <td>
+                <div class="table-strong">
+                  {{ user_name if user_name else ('User #' ~ account.AccountID) }}
+                </div>
+                <div class="table-meta">AccountID: {{ account.AccountID }}</div>
+              </td>
+
+              <td class="text-muted">{{ account.Email or '—' }}</td>
+              <td class="text-muted">{{ account.Username or '—' }}</td>
+
+              <td>
+                {% if login_attempt.WasSuccessful %}
+                  <span class="chip chip-success">Success</span>
+                {% else %}
+                  <span class="chip chip-error">Failed</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if login_attempt.IPAddress %}
+                  <span class="mono-chip mono-chip--neutral">{{ login_attempt.IPAddress }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="table-meta">
+                {{ login_attempt.LoginAttemptID }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="table-empty">No login attempts found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

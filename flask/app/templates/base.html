@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Team10{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Per-page extra CSS -->
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full {% block body_class %}{% endblock %}" data-driver-role="{{ nav_role or '' }}" data-driver-env-pending="{{ 'true' if driver_env_pending and (nav_role or '') == 'driver' else 'false' }}">
+    {% if session.get('impersonating') %}
+    <div class="alert alert-danger impersonation-banner" role="status">
+        <div class="impersonation-banner__message">
+            <i class="fas fa-user-secret" aria-hidden="true"></i>
+            {% if session.get('original_admin_account_id') %}
+                Admin impersonation active. You are acting as another user.
+            {% elif session.get('original_sponsor_account_id') %}
+                Sponsor impersonation active. You are acting as a driver.
+            {% else %}
+                Impersonation active. You are acting as another account.
+            {% endif %}
+        </div>
+        <div class="impersonation-banner__hint">
+            To end impersonation, please <strong>log out</strong> and sign back in with your own account.
+        </div>
+    </div>
+    {% endif %}
+    {% include "_navbar.html" %}
+
+    <main id="app-content" class="app-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if driver_env_pending and (nav_role or '') == 'driver' %}
+    <div id="driverEnvModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="driverEnvModalTitle">
+        <div class="auth-modal__backdrop"></div>
+        <div class="auth-modal__dialog driver-env-modal" role="document">
+            <header class="auth-modal__header">
+                <h2 id="driverEnvModalTitle">Choose your sponsor environment</h2>
+                <p>Select which sponsor environment you want to use for this session.</p>
+            </header>
+            <div id="driverEnvError" class="auth-modal__error" style="display:none;"></div>
+            <div id="driverEnvStatus" class="driver-modal-feedback" data-state="info">Loading available environments…</div>
+            <div id="driverEnvOptions" class="driver-env-options" role="listbox" aria-labelledby="driverEnvModalTitle"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Global JavaScript -->
+    <script>
+        // Theme Management
+        (function() {
+            const themeKey = 'theme-preference';
+            const html = document.documentElement;
+            
+            // Get saved theme or detect system preference
+            function getInitialTheme() {
+                const saved = localStorage.getItem(themeKey);
+                if (saved) return saved;
+                
+                // Detect system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+            
+            // Apply theme
+            function setTheme(theme) {
+                html.setAttribute('data-theme', theme);
+                localStorage.setItem(themeKey, theme);
+                
+                // Update toggle icon if it exists
+                const toggle = document.getElementById('theme-toggle');
+                if (toggle) {
+                    const icon = toggle.querySelector('i');
+                    if (icon) {
+                        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                    }
+                }
+            }
+            
+            // Initialize theme
+            setTheme(getInitialTheme());
+            
+            // Listen for system theme changes
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    if (!localStorage.getItem(themeKey)) {
+                        setTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+            
+            // Expose toggle function globally
+            window.toggleTheme = function() {
+                const current = html.getAttribute('data-theme') || 'light';
+                setTheme(current === 'light' ? 'dark' : 'light');
+            };
+        })();
+        
+        // Update cart count for drivers
+        function updateCartCount() {
+            const cartCountEl = document.getElementById('cart-count');
+            if (cartCountEl) {
+                fetch('/cart/api/summary')
+                    .then(response => response.json())
+                    .then(data => {
+                        cartCountEl.textContent = data.item_count || 0;
+                        cartCountEl.style.display = data.item_count > 0 ? 'flex' : 'none';
+                        // Also update drawer count
+                        const cartCountDrawer = document.getElementById('cart-count-drawer');
+                        if (cartCountDrawer) {
+                            cartCountDrawer.textContent = data.item_count || 0;
+                            cartCountDrawer.style.display = data.item_count > 0 ? 'flex' : 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error updating cart count:', error));
+            }
+        }
+
+        // Update cart count on page load
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+        
+        // Also update drawer cart count
+        function updateCartCountDrawer() {
+            const cartCountDrawer = document.getElementById('cart-count-drawer');
+            if (cartCountDrawer) {
+                fetch('/cart/api/summary')
+                    .then(response => response.json())
+                    .then(data => {
+                        cartCountDrawer.textContent = data.item_count || 0;
+                        cartCountDrawer.style.display = data.item_count > 0 ? 'flex' : 'none';
+                    })
+                    .catch(error => console.error('Error updating cart count:', error));
+            }
+        }
+        document.addEventListener('DOMContentLoaded', updateCartCountDrawer);
+    </script>
+
+    <!-- Navbar JavaScript -->
+    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+
+    {% if driver_env_pending and (nav_role or '') == 'driver' %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('driverEnvModal');
+            if (!modal) return;
+
+            const body = document.body;
+            const backdrop = modal.querySelector('.auth-modal__backdrop');
+            const optionsEl = document.getElementById('driverEnvOptions');
+            const statusEl = document.getElementById('driverEnvStatus');
+            const errorEl = document.getElementById('driverEnvError');
+
+            function setBodyLocked(locked) {
+                if (locked) {
+                    body.classList.add('modal-open');
+                } else {
+                    body.classList.remove('modal-open');
+                }
+            }
+
+            function csrfToken() {
+                const match = document.cookie.split(';').map(part => part.trim()).find(part => part.startsWith('csrf_token='));
+                if (!match) return '';
+                return decodeURIComponent(match.split('=').slice(1).join('='));
+            }
+
+            function setStatus(message) {
+                if (!statusEl) return;
+                if (message) {
+                    statusEl.textContent = message;
+                    statusEl.style.display = 'block';
+                    statusEl.dataset.state = 'info';
+                } else {
+                    statusEl.style.display = 'none';
+                }
+            }
+
+            function setError(message) {
+                if (!errorEl) return;
+                if (message) {
+                    errorEl.textContent = message;
+                    errorEl.style.display = 'block';
+                } else {
+                    errorEl.textContent = '';
+                    errorEl.style.display = 'none';
+                }
+            }
+
+            function setButtonsDisabled(disabled) {
+                if (!optionsEl) return;
+                optionsEl.querySelectorAll('button').forEach((btn) => {
+                    btn.disabled = disabled;
+                    btn.classList.toggle('is-disabled', disabled);
+                });
+            }
+
+            function focusFirstButton() {
+                if (!optionsEl) return;
+                const target = optionsEl.querySelector('button:not([disabled])');
+                if (target) {
+                    target.focus({ preventScroll: true });
+                }
+            }
+
+            async function selectEnvironment(envId) {
+                setError('');
+                setStatus('Switching environment…');
+                setButtonsDisabled(true);
+                try {
+                    const response = await fetch('/driver-env/switch', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRFToken': csrfToken()
+                        },
+                        body: JSON.stringify({ driverSponsorId: envId })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || data?.ok === false) {
+                        throw new Error(data?.message || 'Unable to switch environment. Please try again.');
+                    }
+
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Environment selection failed:', error);
+                    setError(error.message || 'Unable to select environment. Please try again.');
+                    setButtonsDisabled(false);
+                    setStatus('Select a sponsor environment to continue.');
+                    focusFirstButton();
+                }
+            }
+
+            function renderOptions(envs) {
+                if (!optionsEl) return;
+                optionsEl.innerHTML = '';
+
+                envs.forEach((env) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'driver-env-option auth-modal__submit';
+                    button.textContent = env.sponsorName || `Sponsor ${env.sponsorId}`;
+                    button.setAttribute('data-env-id', env.driverSponsorId);
+                    button.addEventListener('click', () => selectEnvironment(env.driverSponsorId));
+                    optionsEl.appendChild(button);
+                });
+            }
+
+            function handleBackdrop(event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+
+            backdrop?.addEventListener('click', handleBackdrop, true);
+            modal.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                }
+            });
+
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            setBodyLocked(true);
+
+            fetch('/driver-env/list?only=active', { credentials: 'same-origin' })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load sponsor environments.');
+                    }
+                    return response.json();
+                })
+                .then((envs) => {
+                    if (!Array.isArray(envs) || !envs.length) {
+                        setStatus('No active sponsor environments are available.');
+                        setButtonsDisabled(true);
+                        return;
+                    }
+                    setStatus('Select a sponsor environment to continue.');
+                    setError('');
+                    renderOptions(envs);
+                    focusFirstButton();
+                })
+                .catch((error) => {
+                    console.error('Environment load failed:', error);
+                    setError('Unable to load sponsor environments. Please refresh the page.');
+                    setStatus('');
+                    setButtonsDisabled(true);
+                });
+        });
+    </script>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+</body>
+<script>
+// Heartbeat to invalidate revoked sessions quickly and keep LastActivity fresh
+(function(){
+  if (!window.fetch) return;
+  function check(){
+    fetch('/sessions/api/validate-me', {credentials:'same-origin'})
+      .then(function(r){ return r.json().catch(function(){ return {valid:true}; }); })
+      .then(function(data){ if (data && data.valid === false) { window.location = '/'; } });
+  }
+  setInterval(check, 10000); // every 10s
+  setTimeout(check, 3000);   // first check quickly
+})();
+</script>
+</html>

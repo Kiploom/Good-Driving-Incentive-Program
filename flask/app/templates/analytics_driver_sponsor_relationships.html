@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Driver-Sponsor Relationships{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      {% if selected_sponsor %}
+        <h1>{{ selected_sponsor.CompanyName }} Driver-Sponsor Relationships</h1>
+        <p class="admin-page-description">
+          View and manage driver assignments, point balances, and relationship status for {{ selected_sponsor.CompanyName }}.
+        </p>
+      {% else %}
+        <h1>Driver-Sponsor Relationships</h1>
+        <p class="admin-page-description">
+          Review driver-sponsor assignments, statuses, and balances across the entire platform.
+        </p>
+      {% endif %}
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('admin.analytics') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Analytics</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-stat-grid">
+    <div class="admin-stat-card">
+      <h3>Total Relationships</h3>
+      <p class="value">{{ relationships|length }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Active Relationships</h3>
+      <p class="value">{{ relationships|selectattr('0.Status', 'equalto', 'ACTIVE')|list|length }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Unique Drivers</h3>
+      <p class="value">{{ relationships|map(attribute='1.DriverID')|unique|list|length }}</p>
+    </div>
+    <div class="admin-stat-card">
+      <h3>Unique Sponsors</h3>
+      <p class="value">{{ relationships|map(attribute='3.SponsorID')|unique|list|length }}</p>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-form">
+      <div class="form-grid">
+        <div>
+          <label for="company-filter">Filter by Company</label>
+          <select id="company-filter" onchange="updateFilters()">
+            <option value="">All companies</option>
+            {% for company_id, company_name in sponsors %}
+              <option value="{{ company_name }}" {% if company_filter == company_name %}selected{% endif %}>{{ company_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="driver-name-filter">Filter by Driver Name</label>
+          <input type="text" id="driver-name-filter" placeholder="Enter driver name..." value="{{ driver_name_filter }}" onchange="updateFilters()">
+        </div>
+        <div>
+          <label for="sort-by">Sort by</label>
+          <select id="sort-by" onchange="updateFilters()">
+            <option value="sponsor_company" {% if sort_by == 'sponsor_company' %}selected{% endif %}>Sponsor Company</option>
+            <option value="driver_name" {% if sort_by == 'driver_name' %}selected{% endif %}>Driver Name</option>
+            <option value="points_balance" {% if sort_by == 'points_balance' %}selected{% endif %}>Points Balance</option>
+            <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+            <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Created Date</option>
+          </select>
+        </div>
+        <div>
+          <label for="sort-order">Order</label>
+          <select id="sort-order" onchange="updateFilters()">
+            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_sponsor_relationships_pdf', company_filter=company_filter, driver_name_filter=driver_name_filter, sort_by=sort_by, sort_order=sort_order) }}" target="_blank">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.analytics_driver_sponsor_relationships_csv', company_filter=company_filter, driver_name_filter=driver_name_filter, sort_by=sort_by, sort_order=sort_order) }}">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <h2>Relationships</h2>
+      <p class="admin-muted">Detailed roster of driver connections and current status.</p>
+    </header>
+    <div class="table-wrapper">
+      {% if relationships %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="sortable {% if sort_by == 'sponsor_company' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('sponsor_company')">Sponsor Company</th>
+              <th class="sortable {% if sort_by == 'driver_name' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('driver_name')">Driver Name</th>
+              <th class="sortable {% if sort_by == 'points_balance' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('points_balance')">Points Balance</th>
+              <th class="sortable {% if sort_by == 'status' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('status')">Status</th>
+              <th class="sortable {% if sort_by == 'created_at' %}sort-{{ sort_order }}{% endif %}" onclick="sortTable('created_at')">Created Date</th>
+              <th>Driver Email</th>
+              <th>Driver Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for driver_sponsor, driver, account, sponsor, sponsor_account, sponsor_company in relationships %}
+              <tr>
+                <td class="table-strong">{{ sponsor_company.CompanyName }}</td>
+                <td class="table-strong">{{ account.FirstName }} {{ account.LastName }}</td>
+                <td class="table-strong">{{ "{:,}".format(driver_sponsor.PointsBalance) }}</td>
+                <td>
+                  <span class="admin-status-badge admin-status-badge--{{ driver_sponsor.Status|lower if driver_sponsor.Status else 'unknown' }}">
+                    {{ driver_sponsor.Status or 'Unknown' }}
+                  </span>
+                </td>
+                <td>{{ driver_sponsor.CreatedAt.strftime('%Y-%m-%d %H:%M') if driver_sponsor.CreatedAt else 'N/A' }}</td>
+                <td>{{ account.Email }}</td>
+                <td>{{ account.phone_plain if account.phone_plain else 'N/A' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="admin-empty-state">
+          <i class="fas fa-users-slash"></i>
+          <p>No driver-sponsor relationships match your current filters.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function updateFilters() {
+    const companyFilter = document.getElementById('company-filter').value;
+    const driverNameFilter = document.getElementById('driver-name-filter').value;
+    const sortBy = document.getElementById('sort-by').value;
+    const sortOrder = document.getElementById('sort-order').value;
+    
+    const url = new URL(window.location);
+    
+    if (companyFilter) {
+        url.searchParams.set('company_filter', companyFilter);
+    } else {
+        url.searchParams.delete('company_filter');
+    }
+    
+    if (driverNameFilter) {
+        url.searchParams.set('driver_name_filter', driverNameFilter);
+    } else {
+        url.searchParams.delete('driver_name_filter');
+    }
+    
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('sort_order', sortOrder);
+    
+    window.location.href = url.toString();
+}
+
+function sortTable(sortBy) {
+    const currentSortBy = '{{ sort_by }}';
+    const currentSortOrder = '{{ sort_order }}';
+    
+    let newSortOrder = 'asc';
+    if (currentSortBy === sortBy && currentSortOrder === 'asc') {
+        newSortOrder = 'desc';
+    }
+    
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('sort_order', newSortOrder);
+    
+    window.location.href = url.toString();
+}
+
+function clearFilters() {
+    const url = new URL(window.location);
+    url.searchParams.delete('company_filter');
+    url.searchParams.delete('driver_name_filter');
+    url.searchParams.set('sort_by', 'sponsor_company');
+    url.searchParams.set('sort_order', 'asc');
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

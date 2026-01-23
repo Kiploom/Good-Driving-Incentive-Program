@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">Rewards</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_catalog">Catalog</string>
+    <string name="title_favorites">Favorites</string>
+    <string name="title_cart">Cart</string>
+    <string name="title_orders">Orders</string>
+    <string name="title_profile">Profile</string>
+    <string name="title_notifications">Notifications</string>
+
+    <string name="share_product_button">Share</string>
+    <string name="share_product_default_subject">Driver Rewards Product</string>
+    <string name="share_product_chooser_title">Share product</string>
+    <string name="share_product_message_template">Check out this reward: %1$s</string>
+    <string name="share_product_points_line">Points: %1$s</string>
+    <string name="share_product_no_apps">No compatible apps installed to share this reward.</string>
+    <string name="share_product_missing_data">Product details unavailable to share right now.</string>
+
+    <string name="notification_settings">Notification Preferences</string>
+    <string name="notifications_mark_all">Mark all read</string>
+    <string name="notifications_unread_only">Show unread only</string>
+    <string name="notifications_empty_title">You\'re all caught up</string>
+    <string name="notifications_empty_message">Account activity and alerts will appear here. Pull down to refresh at any time.</string>
+    <string name="notification_type_generic">General</string>
+    <string name="notification_type_points">Points</string>
+    <string name="notification_type_order">Order</string>
+    <string name="notification_type_account">Account</string>
+    <string name="notification_view_details">View details</string>
+    <string name="notification_mark_read">Mark as read</string>
+    <string name="notification_error_loading">Unable to load notifications. Pull to refresh.</string>
+    <string name="notification_pref_updated">Notification preferences updated</string>
+    <string name="notifications_pref_email">Email notifications</string>
+    <string name="notifications_pref_inapp">In-app notifications</string>
+    <string name="notifications_pref_types">Notification types</string>
+    <string name="notifications_pref_applications">Application updates</string>
+    <string name="notifications_pref_tickets">Support ticket updates</string>
+    <string name="notifications_pref_refunds">Refund window alerts</string>
+    <string name="notifications_pref_sensitive">Security &amp; sensitive changes</string>
+    <string name="notifications_pref_quiet_hours">Quiet hours</string>
+    <string name="notifications_pref_lowpoints">Low balance alert</string>
+    <string name="notifications_quiet_start">Start</string>
+    <string name="notifications_quiet_end">End</string>
+    <string name="notifications_test_low_points">Send test low balance alert</string>
+    <string name="notifications_low_points_label">Alert me when balance falls below %1$d points</string>
+    <string name="notifications_quiet_placeholder">--:--</string>
+    <string name="save">Save</string>
+    <string name="notification_sponsor_label">Sponsor: %1$s</string>
+</resources>

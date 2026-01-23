@@ -1,0 +1,455 @@
+<nav class="navbar" role="navigation" aria-label="Main">
+  <div class="nav-container">
+    {% set is_driver = (
+      current_user.is_authenticated
+      and (
+        session.get('role') == 'DRIVER'
+        or (session.get('role') is none and session.get('driver_id'))
+        or (session.get('role') is none and not session.get('sponsor_id') and not session.get('admin_id'))
+      )
+    ) %}
+    {% set driver_envs = driver_env_options if driver_env_options is defined else [] %}
+    {% set current_sponsor_label = current_sponsor_name if current_sponsor_name is defined else None %}
+    <!-- Hamburger Menu (Mobile Only) -->
+    <button id="nav-hamburger" class="nav-hamburger" aria-controls="mobile-drawer" aria-expanded="false" aria-label="Toggle navigation menu">
+      <span class="hamburger-icon"></span>
+      <span class="sr-only">Menu</span>
+    </button>
+
+    <!-- Brand / Home -->
+    <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('catalog_home') }}{% endif %}" class="nav-brand">
+      <i class="fas fa-home" aria-hidden="true"></i>
+      {% if current_user.is_authenticated %}
+        <span>Dashboard</span>
+      {% else %}
+        <span>Team 10 Portal</span>
+      {% endif %}
+    </a>
+
+    {% if current_user.is_authenticated and (
+          session.get('role') == 'SPONSOR'
+          or (session.get('role') is none and session.get('sponsor_id'))
+    ) %}
+      {% set sponsor_display = current_sponsor_label or 'No company assigned' %}
+      {% set sponsor_debug = nav_sponsor_debug if nav_sponsor_debug is defined else {} %}
+      <div
+        class="nav-sponsor-pill nav-sponsor-pill--single nav-sponsor-pill--sponsor"
+        role="text"
+        aria-label="Selected company"
+        data-debug-current="{{ sponsor_display }}"
+        data-debug-session-company="{{ sponsor_debug.get('session_company') or 'None' }}"
+        data-debug-resolved-company="{{ sponsor_debug.get('resolved_company') or 'None' }}"
+        data-debug-sponsor-id="{{ sponsor_debug.get('sponsor_id') or 'None' }}"
+        {% if sponsor_debug.get('lookup_error') %}
+          data-debug-error="{{ sponsor_debug.get('lookup_error') }}"
+        {% endif %}
+      >
+        <span class="nav-sponsor-pill-icon" aria-hidden="true">
+          <i class="fas fa-building"></i>
+        </span>
+        <div class="nav-sponsor-pill-text">
+          <span class="nav-sponsor-pill-label">COMPANY NAME</span>
+          <span class="nav-sponsor-pill-value">{{ sponsor_display }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if is_driver %}
+      {% set has_multiple_envs = driver_envs|length > 1 %}
+      {% set sponsor_display = None %}
+      {% if driver_envs %}
+        {% for env in driver_envs %}
+          {% if env.is_selected %}
+            {% set sponsor_display = env.label %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if not sponsor_display %}
+        {% set sponsor_display = current_sponsor_label %}
+      {% endif %}
+      <div class="nav-sponsor-switch" data-has-multiple="{{ 'true' if has_multiple_envs else 'false' }}">
+        {% if has_multiple_envs %}
+          <form class="nav-sponsor-form" method="post" action="{{ url_for('driver_env.switch') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <label class="sr-only" for="nav-sponsor-select">Switch sponsor environment</label>
+            <div class="nav-sponsor-pill nav-sponsor-pill--select" data-variant="multi">
+              <span class="nav-sponsor-pill-icon" aria-hidden="true">
+                <i class="fas fa-building"></i>
+              </span>
+              <div class="nav-sponsor-pill-text">
+                <span id="nav-sponsor-select-label" class="nav-sponsor-pill-label">Selected Sponsor</span>
+                <span class="nav-sponsor-pill-value">{{ sponsor_display or 'No sponsor assigned' }}</span>
+              </div>
+              <span class="nav-sponsor-pill-chevron" aria-hidden="true">
+                <i class="fas fa-chevron-down"></i>
+              </span>
+              <select
+                id="nav-sponsor-select"
+                name="driverSponsorId"
+                class="nav-sponsor-pill-trigger"
+                aria-labelledby="nav-sponsor-select-label"
+                onchange="this.form.submit()">
+                {% for env in driver_envs %}
+                  <option value="{{ env.id }}" {% if env.is_selected %}selected{% endif %}>
+                    {{ env.label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+        {% else %}
+          <div class="nav-sponsor-pill nav-sponsor-pill--single" role="text" aria-label="Selected sponsor">
+            <span class="nav-sponsor-pill-icon" aria-hidden="true">
+              <i class="fas fa-building"></i>
+            </span>
+            <div class="nav-sponsor-pill-text">
+              <span class="nav-sponsor-pill-label">Selected Sponsor</span>
+              <span class="nav-sponsor-pill-value">{{ sponsor_display or 'No sponsor assigned' }}</span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- Primary Navigation (Desktop) -->
+    <div class="nav-primary">
+      {% if current_user.is_authenticated %}
+        {# ───────────── DRIVER ───────────── #}
+        {% if is_driver %}
+          <a href="{{ url_for('driver_points_catalog.browse') }}" class="nav-item" title="Catalog">
+            <i class="fas fa-th"></i>
+            <span class="nav-text">Catalog</span>
+          </a>
+          <a href="{{ url_for('driver_points_catalog.favorites_page') }}" class="nav-item" title="Favorites">
+            <i class="fas fa-heart"></i>
+            <span class="nav-text">Favorites</span>
+          </a>
+          <a href="{{ url_for('leaderboard.view') }}" class="nav-item" title="Leaderboard">
+            <i class="fas fa-trophy"></i>
+            <span class="nav-text">Leaderboard</span>
+          </a>
+          <a href="{{ url_for('orders.view_orders') }}" class="nav-item" title="Orders">
+            <i class="fas fa-receipt"></i>
+            <span class="nav-text">Orders</span>
+          </a>
+          <a href="{{ url_for('apply.apply_form') }}" class="nav-item" title="Sponsor Applications">
+            <i class="fas fa-briefcase"></i>
+            <span class="nav-text">Sponsor Applications</span>
+          </a>
+
+        {# ───────────── SPONSOR ───────────── #}
+        {% elif session.get('role') == 'SPONSOR'
+              or (session.get('role') is none and session.get('sponsor_id')) %}
+          <a href="{{ url_for('sponsor_catalog.index') }}" class="nav-item" title="Product Management">
+            <i class="fas fa-boxes"></i>
+            <span class="nav-text">Product Management</span>
+          </a>
+          <a href="{{ url_for('sponsor.manage_drivers') }}" class="nav-item" title="Driver Management">
+            <i class="fas fa-users"></i>
+            <span class="nav-text">Driver Management</span>
+          </a>
+          <a href="{{ url_for('sponsor.points_settings') }}" class="nav-item" title="Points Settings">
+            <i class="fas fa-coins"></i>
+            <span class="nav-text">Points Settings</span>
+          </a>
+          <a href="{{ url_for('sponsor.audit_log') }}" class="nav-item" title="Audit Log">
+            <i class="fas fa-clipboard-list"></i>
+            <span class="nav-text">Audit Log</span>
+          </a>
+          <a href="{{ url_for('sponsor.sponsor_analytics') }}" class="nav-item" title="Analytics and Reporting">
+            <i class="fas fa-chart-line"></i>
+            <span class="nav-text">Analytics/Reporting</span>
+          </a>
+
+        {# ───────────── ADMIN ───────────── #}
+        {% elif session.get('role') == 'ADMIN'
+              or (session.get('role') is none and session.get('admin_id')) %}
+          <a href="{{ url_for('admin.manage_users') }}" class="nav-item" title="User Management">
+            <i class="fas fa-users-cog"></i>
+            <span class="nav-text">User Management</span>
+          </a>
+          <a href="{{ url_for('support_ui.admin_support_hub') }}" class="nav-item" title="Support Tickets">
+            <i class="fas fa-life-ring"></i>
+            <span class="nav-text">Support Tickets</span>
+          </a>
+          <a href="{{ url_for('admin.audit_log') }}" class="nav-item" title="Audit Logs">
+            <i class="fas fa-clipboard-list"></i>
+            <span class="nav-text">Audit Logs</span>
+          </a>
+          <a href="{{ url_for('admin.analytics') }}" class="nav-item" title="Analytics &amp; Reporting">
+            <i class="fas fa-chart-line"></i>
+            <span class="nav-text">Analytics/Reporting</span>
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Right Side Actions -->
+    <div class="nav-actions">
+      {% if current_user.is_authenticated %}
+        {% if is_driver %}
+          <a href="{{ url_for('cart.view_cart') }}" class="nav-icon" title="Cart">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="sr-only">Cart</span>
+            <span id="cart-count" class="nav-badge" style="display:none;">0</span>
+          </a>
+          <a href="{{ url_for('about.about_page') }}" class="nav-icon" title="About">
+            <i class="fas fa-info-circle"></i>
+            <span class="sr-only">About</span>
+          </a>
+        {% else %}
+          <a href="{{ url_for('about.about_page') }}" class="nav-icon" title="About">
+            <i class="fas fa-info-circle"></i>
+            <span class="sr-only">About</span>
+          </a>
+        {% endif %}
+
+        {% if is_driver and driver_points_balance is not none %}
+          <a href="{{ url_for('driver.points_history') }}" class="nav-points" title="View your points history">
+            <strong>{{ driver_points_balance }}</strong>
+            <span class="nav-points-suffix">pts</span>
+          </a>
+        {% endif %}
+
+        {% set acct_url = url_for('driver.driver_account') %}
+        {% if session.get('role') == 'ADMIN' or (session.get('role') is none and session.get('admin_id')) %}
+          {% set acct_url = url_for('admin.admin_account') %}
+        {% elif session.get('role') == 'SPONSOR' or (session.get('role') is none and session.get('sponsor_id')) %}
+          {% set acct_url = url_for('sponsor.sponsor_account') %}
+        {% endif %}
+        {% set avatar = get_avatar_display_url(current_user.ProfileImageURL) %}
+        {% set user_name = current_user.WholeName or current_user.Username %}
+        {% set user_initial = (user_name[0] if user_name else 'U')|upper %}
+        <a href="{{ acct_url }}" class="nav-profile" title="Account">
+          {% if avatar and avatar != '/static/default-avatar.png' %}
+            <img src="{{ avatar }}" alt="{{ user_name }}">
+          {% else %}
+            <div class="nav-profile-initial">{{ user_initial }}</div>
+          {% endif %}
+          <span class="nav-profile-name">{{ user_name[:24] }}</span>
+        </a>
+
+      {% endif %}
+
+      <!-- Theme Toggle -->
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light/dark mode">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+  </div>
+
+</nav>
+
+<!-- Mobile Drawer -->
+<div id="mobile-drawer" class="nav-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+  <div class="drawer-overlay"></div>
+  <div class="drawer-content">
+    <div class="drawer-header">
+      <h2>Menu</h2>
+      <button class="drawer-close" aria-label="Close menu">×</button>
+    </div>
+    <nav class="drawer-nav">
+      {% if current_user.is_authenticated %}
+        {# ───────────── DRIVER ───────────── #}
+        {% if is_driver %}
+          {% set has_multiple_envs = driver_envs|length > 1 %}
+          {% set drawer_sponsor_display = None %}
+          {% if driver_envs %}
+            {% for env in driver_envs %}
+              {% if env.is_selected %}
+                {% set drawer_sponsor_display = env.label %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {% if not drawer_sponsor_display %}
+            {% set drawer_sponsor_display = current_sponsor_label %}
+          {% endif %}
+
+          <div class="drawer-section">
+            <h3>Sponsor</h3>
+            {% if has_multiple_envs %}
+              <form class="drawer-sponsor-form" method="post" action="{{ url_for('driver_env.switch') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <label class="sr-only" for="nav-sponsor-select-drawer">Switch sponsor environment</label>
+                <div class="nav-sponsor-pill nav-sponsor-pill--select nav-sponsor-pill--drawer" data-variant="multi">
+                  <span class="nav-sponsor-pill-icon" aria-hidden="true">
+                    <i class="fas fa-building"></i>
+                  </span>
+                  <div class="nav-sponsor-pill-text">
+                    <span id="nav-sponsor-select-drawer-label" class="nav-sponsor-pill-label">Selected Sponsor</span>
+                    <span class="nav-sponsor-pill-value">{{ drawer_sponsor_display or sponsor_display or 'No sponsor assigned' }}</span>
+                  </div>
+                  <span class="nav-sponsor-pill-chevron" aria-hidden="true">
+                    <i class="fas fa-chevron-down"></i>
+                  </span>
+                  <select
+                    id="nav-sponsor-select-drawer"
+                    name="driverSponsorId"
+                    class="nav-sponsor-pill-trigger"
+                    aria-labelledby="nav-sponsor-select-drawer-label"
+                    onchange="this.form.submit()">
+                    {% for env in driver_envs %}
+                      <option value="{{ env.id }}" {% if env.is_selected %}selected{% endif %}>
+                        {{ env.label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </form>
+            {% else %}
+              <div class="nav-sponsor-pill nav-sponsor-pill--single nav-sponsor-pill--drawer" role="text" aria-label="Selected sponsor">
+                <span class="nav-sponsor-pill-icon" aria-hidden="true">
+                  <i class="fas fa-building"></i>
+                </span>
+                <div class="nav-sponsor-pill-text">
+                  <span class="nav-sponsor-pill-label">Selected Sponsor</span>
+                  <span class="nav-sponsor-pill-value">{{ drawer_sponsor_display or 'No sponsor assigned' }}</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Primary Items -->
+          <div class="drawer-section">
+            <h3>Main</h3>
+            <a href="{{ url_for('dashboard') }}" class="drawer-item">
+              <i class="fas fa-home"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('driver_points_catalog.browse') }}" class="drawer-item">
+              <i class="fas fa-th"></i>
+              <span>Catalog</span>
+            </a>
+            <a href="{{ url_for('driver_points_catalog.favorites_page') }}" class="drawer-item">
+              <i class="fas fa-heart"></i>
+              <span>Favorites</span>
+            </a>
+            <a href="{{ url_for('leaderboard.view') }}" class="drawer-item">
+              <i class="fas fa-trophy"></i>
+              <span>Leaderboard</span>
+            </a>
+            <a href="{{ url_for('cart.view_cart') }}" class="drawer-item">
+              <i class="fas fa-shopping-cart"></i>
+              <span>Cart</span>
+              <span id="cart-count-drawer" class="drawer-item-badge" style="display:none;">0</span>
+            </a>
+            <a href="{{ url_for('orders.view_orders') }}" class="drawer-item">
+              <i class="fas fa-receipt"></i>
+              <span>Orders</span>
+            </a>
+            <a href="{{ url_for('apply.apply_form') }}" class="drawer-item">
+              <i class="fas fa-briefcase"></i>
+              <span>Sponsor Applications</span>
+            </a>
+            <a href="{{ url_for('about.about_page') }}" class="drawer-item">
+              <i class="fas fa-info-circle"></i>
+              <span>About</span>
+            </a>
+          </div>
+
+          <!-- Secondary Items -->
+          <div class="drawer-section">
+            <h3>More</h3>
+            <a href="{{ url_for('driver.points_history') }}" class="drawer-item">
+              <i class="fas fa-coins"></i>
+              <span>{{ driver_points_balance }} pts</span>
+            </a>
+            <a href="{{ url_for('driver.notification_settings') }}" class="drawer-item">
+              <i class="fas fa-bell"></i>
+              <span>Notifications</span>
+              <span id="notification-count-drawer" class="drawer-item-badge" style="display:none;">0</span>
+            </a>
+          </div>
+
+        {# ───────────── SPONSOR ───────────── #}
+        {% elif session.get('role') == 'SPONSOR'
+              or (session.get('role') is none and session.get('sponsor_id')) %}
+          <div class="drawer-section">
+            <h3>Main</h3>
+            <a href="{{ url_for('sponsor_catalog.index') }}" class="drawer-item">
+              <i class="fas fa-boxes"></i>
+              <span>Product Management</span>
+            </a>
+            <a href="{{ url_for('sponsor.manage_drivers') }}" class="drawer-item">
+              <i class="fas fa-users"></i>
+            <span>Driver Management</span>
+            </a>
+            <a href="{{ url_for('sponsor.points_settings') }}" class="drawer-item">
+              <i class="fas fa-coins"></i>
+              <span>Points Settings</span>
+            </a>
+            <a href="{{ url_for('sponsor.audit_log') }}" class="drawer-item">
+              <i class="fas fa-clipboard-list"></i>
+              <span>Audit Log</span>
+            </a>
+            <a href="{{ url_for('sponsor.sponsor_analytics') }}" class="drawer-item">
+              <i class="fas fa-chart-line"></i>
+              <span>Analytics/Reporting</span>
+            </a>
+          </div>
+          <div class="drawer-section">
+            <h3>More</h3>
+            <a href="{{ url_for('support_ui.support_hub') }}" class="drawer-item">
+              <i class="fas fa-life-ring"></i>
+              <span>Support</span>
+            </a>
+            <a href="{{ url_for('about.about_page') }}" class="drawer-item">
+              <i class="fas fa-info-circle"></i>
+              <span>About</span>
+            </a>
+            <a href="{{ url_for('auth.logout_api') }}" class="drawer-item">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+
+        {# ───────────── ADMIN ───────────── #}
+        {% elif session.get('role') == 'ADMIN'
+              or (session.get('role') is none and session.get('admin_id')) %}
+          <div class="drawer-section">
+            <h3>Main</h3>
+            <a href="{{ url_for('admin.manage_users') }}" class="drawer-item">
+              <i class="fas fa-users-cog"></i>
+              <span>User Management</span>
+            </a>
+            <a href="{{ url_for('support_ui.admin_support_hub') }}" class="drawer-item">
+              <i class="fas fa-life-ring"></i>
+              <span>Support Tickets</span>
+            </a>
+            <a href="{{ url_for('admin.audit_log') }}" class="drawer-item">
+              <i class="fas fa-clipboard-list"></i>
+              <span>Audit Logs</span>
+            </a>
+            <a href="{{ url_for('admin.analytics') }}" class="drawer-item">
+              <i class="fas fa-chart-line"></i>
+              <span>Analytics &amp; Reporting</span>
+            </a>
+          </div>
+          <div class="drawer-section">
+            <h3>More</h3>
+            <a href="{{ url_for('about.about_page') }}" class="drawer-item">
+              <i class="fas fa-info-circle"></i>
+              <span>About</span>
+            </a>
+            <a href="{{ url_for('auth.logout_api') }}" class="drawer-item">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="drawer-section">
+          <h3>Main</h3>
+          <a href="{{ url_for('about.about_page') }}" class="drawer-item">
+            <i class="fas fa-info-circle"></i>
+            <span>About</span>
+          </a>
+          <a href="{{ url_for('auth.login_page') }}" class="drawer-item">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+          </a>
+        </div>
+      {% endif %}
+    </nav>
+  </div>
+</div>

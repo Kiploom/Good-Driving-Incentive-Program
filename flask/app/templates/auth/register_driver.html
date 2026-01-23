@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Driver Registration · Team10{% endblock %}
+{% block body_class %}auth-page auth-page--register{% endblock %}
+{% block head %}
+  {{ super() }}
+  <style>
+    .auth-page--register {
+      overflow-y: auto;
+    }
+
+    .auth-page--register #app-content {
+      align-items: flex-start;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    .auth-card.auth-card--wide {
+      max-width: 960px;
+      padding: 2.5rem 2.25rem;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .auth-form__section {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 14px;
+      padding: 1.75rem 1.5rem;
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    [data-theme="light"] .auth-form__section {
+      background: rgba(249, 250, 251, 0.85);
+      border-color: rgba(148, 163, 184, 0.4);
+    }
+
+    .auth-form__section-title {
+      margin: 0 0 1rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary, #f8fafc);
+    }
+
+    [data-theme="light"] .auth-form__section-title {
+      color: #111827;
+    }
+
+    .auth-form__section-desc {
+      margin: 0 0 1.5rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    [data-theme="light"] .auth-form__section-desc {
+      color: #4b5563;
+    }
+
+    .auth-form__grid {
+      display: grid;
+      gap: 1rem 1.25rem;
+    }
+
+    .auth-form__grid--two {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .auth-form__grid--three {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .auth-help {
+      margin: 0.35rem 0 0;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    [data-theme="light"] .auth-help {
+      color: #6b7280;
+    }
+
+    .auth-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: var(--text-primary, #f8fafc);
+    }
+
+    .auth-checkbox span {
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .auth-checkbox input {
+      margin-top: 0.25rem;
+    }
+
+    .auth-form__agreements {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .auth-links {
+      margin-top: 2rem;
+      justify-content: flex-end;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card auth-card--wide" role="dialog" aria-labelledby="registerTitle" aria-describedby="registerDesc">
+    <header class="auth-header">
+      <h1 id="registerTitle">Create Your Driver Account</h1>
+      <p id="registerDesc" class="auth-sub">Apply to a sponsor and get ready to earn rewards.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p class="auth-error" role="alert">{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if form.errors %}
+      <div class="auth-error" role="alert">
+        <ul class="auth-error__list">
+          {% for field, errors in form.errors.items() %}
+            {% for error in errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('auth.register_driver') }}" class="auth-form" novalidate>
+      {{ form.csrf_token }}
+
+      <section class="auth-form__section" aria-labelledby="section-account">
+        <h2 id="section-account" class="auth-form__section-title">Account Details</h2>
+        <p class="auth-form__section-desc">Create your login credentials and tell us who you are.</p>
+
+        <div class="auth-form__grid auth-form__grid--two">
+          <div class="auth-form__group">
+            <label class="auth-label" for="first_name">First Name</label>
+            <input id="first_name" name="first_name" type="text" class="auth-input" value="{{ form.first_name.data or '' }}" required>
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="last_name">Last Name</label>
+            <input id="last_name" name="last_name" type="text" class="auth-input" value="{{ form.last_name.data or '' }}" required>
+          </div>
+        </div>
+
+        <label class="auth-label" for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" class="auth-input" value="{{ form.email.data or '' }}" required>
+
+        <label class="auth-label" for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" class="auth-input" value="{{ form.username.data or '' }}" required>
+
+        <label class="auth-label" for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" class="auth-input" required>
+        <p class="auth-help">Use at least 8 characters and include uppercase, lowercase, number, and special character.</p>
+
+        <label class="auth-label" for="confirm_password">Confirm Password</label>
+        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" class="auth-input" required>
+      </section>
+
+      <section class="auth-form__section" aria-labelledby="section-contact">
+        <h2 id="section-contact" class="auth-form__section-title">Contact & Sponsor</h2>
+        <p class="auth-form__section-desc">Tell us how to reach you and which sponsor should review your application.</p>
+
+        <label class="auth-label" for="phone">Phone (optional)</label>
+        <input id="phone" name="phone" type="text" class="auth-input" value="{{ form.phone.data or '' }}">
+
+        <label class="auth-label" for="sponsor_company_id">Sponsor Company</label>
+        <div class="auth-select">
+          <select id="sponsor_company_id" name="sponsor_company_id" class="auth-input" required>
+            <option value="">Select a sponsor company</option>
+            {% for company in sponsor_companies %}
+              <option value="{{ company.SponsorCompanyID }}" {% if form.sponsor_company_id.data == company.SponsorCompanyID %}selected{% endif %}>{{ company.CompanyName }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </section>
+
+      <section class="auth-form__section" aria-labelledby="section-experience">
+        <h2 id="section-experience" class="auth-form__section-title">Driving Experience</h2>
+        <p class="auth-form__section-desc">Share your professional driving background so sponsors can evaluate your fit.</p>
+
+        <div class="auth-form__grid auth-form__grid--three">
+          <div class="auth-form__group">
+            <label class="auth-label" for="cdl_class">CDL Class (optional)</label>
+            <div class="auth-select">
+              <select id="cdl_class" name="cdl_class" class="auth-input">
+                {% for value, label in form.cdl_class.choices %}
+                  <option value="{{ value }}" {% if form.cdl_class.data == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="experience_years">Experience – Full Years</label>
+            <input id="experience_years" name="experience_years" type="number" min="0" max="80" class="auth-input" value="{{ form.experience_years.data if form.experience_years.data is not none else '' }}">
+            <p class="auth-help">Enter complete years of CDL/commercial driving experience.</p>
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="experience_months">Experience – Additional Months</label>
+            <input id="experience_months" name="experience_months" type="number" min="0" max="11" class="auth-input" value="{{ form.experience_months.data if form.experience_months.data is not none else '' }}">
+            <p class="auth-help">Use 0–11 months beyond the full years listed above.</p>
+          </div>
+        </div>
+
+        <div class="auth-form__grid auth-form__grid--three">
+          <div class="auth-form__group">
+            <label class="auth-label" for="transmission">Preferred Transmission (optional)</label>
+            <div class="auth-select">
+              <select id="transmission" name="transmission" class="auth-input">
+                {% for value, label in form.transmission.choices %}
+                  <option value="{{ value }}" {% if form.transmission.data == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="preferred_weekly_hours">Preferred Weekly Hours</label>
+            <input id="preferred_weekly_hours" name="preferred_weekly_hours" type="number" min="0" max="100" class="auth-input" value="{{ form.preferred_weekly_hours.data if form.preferred_weekly_hours.data is not none else '' }}">
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="violations_count">Violations (last 3 years)</label>
+            <input id="violations_count" name="violations_count" type="number" min="0" max="25" class="auth-input" value="{{ form.violations_count.data if form.violations_count.data is not none else '' }}">
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-form__section" aria-labelledby="section-license">
+        <h2 id="section-license" class="auth-form__section-title">License Details</h2>
+        <p class="auth-form__section-desc">Provide your current license information. Dates must use YYYY-MM-DD format.</p>
+
+        <div class="auth-form__grid auth-form__grid--three">
+          <div class="auth-form__group">
+            <label class="auth-label" for="license_number">License Number</label>
+            <input id="license_number" name="license_number" type="text" class="auth-input" value="{{ form.license_number.data or '' }}">
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="license_issue_date">License Issue Date</label>
+            <input id="license_issue_date" name="license_issue_date" type="text" placeholder="YYYY-MM-DD" class="auth-input" value="{{ form.license_issue_date.data or '' }}">
+          </div>
+          <div class="auth-form__group">
+            <label class="auth-label" for="license_expiration_date">License Expiration Date</label>
+            <input id="license_expiration_date" name="license_expiration_date" type="text" placeholder="YYYY-MM-DD" class="auth-input" value="{{ form.license_expiration_date.data or '' }}">
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-form__section" aria-labelledby="section-agreements">
+        <h2 id="section-agreements" class="auth-form__section-title">Agreements & Signature</h2>
+        <p class="auth-form__section-desc">Confirm your consent and certify the information you provide.</p>
+
+        <div class="auth-form__agreements">
+          <label class="auth-checkbox">
+            <input type="checkbox" name="consent_data" value="y" {% if form.consent_data.data %}checked{% endif %} required>
+            <span>I consent to the collection and use of my data for application review.</span>
+          </label>
+
+          <label class="auth-checkbox">
+            <input type="checkbox" name="agree_terms" value="y" {% if form.agree_terms.data %}checked{% endif %} required>
+            <span>I agree to the Driver Rewards terms and conditions.</span>
+          </label>
+        </div>
+
+        <label class="auth-label" for="signature">Signature</label>
+        <input id="signature" name="signature" type="text" class="auth-input" placeholder="Type your full name" value="{{ form.signature.data or '' }}" required>
+      </section>
+
+      <button type="submit" class="auth-submit">Submit Application</button>
+
+      <div class="auth-links">
+        <a class="auth-link auth-link--muted" href="{{ url_for('auth.login_page') }}">Back to login</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+

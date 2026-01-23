@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Applications Audit Log{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">Applications Audit Log</h1>
+      <p class="page-description">
+        Review driver applications, track decisions, and filter by status, company, or reviewer.
+      </p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search applicant, email, company…">
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All statuses</option>
+      <option value="pending"  {% if status=='pending' %}selected{% endif %}>Pending</option>
+      <option value="accepted" {% if status=='accepted' %}selected{% endif %}>Accepted</option>
+      <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Rejected</option>
+      <option value="reviewed" {% if status=='reviewed' %}selected{% endif %}>Reviewed</option>
+    </select>
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn" type="submit">Apply Filters</button>
+      <a href="{{ url_for('admin.audit_applications') }}" class="btn btn-ghost">Reset</a>
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>Applicant</th>
+          <th>Email</th>
+          <th>Sponsor</th>
+          <th>Status</th>
+          <th>Reviewed</th>
+          <th>Decision By</th>
+          <th>Decision Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for app, acct, spon, reviewer in rows %}
+            {% set submitted = app.SubmittedAt %}
+            {% set reviewed  = app.ReviewedAt %}
+            {% set decision  = (app.Decision or ('pending' if not reviewed else 'reviewed'))|lower %}
+
+            {% set applicant_name = (acct.WholeName
+                                     or ((acct.FirstName or '') ~ (' ' if (acct.FirstName or acct.LastName) else '') ~ (acct.LastName or ''))).strip() %}
+            {% set reviewer_name = reviewer and (
+                  reviewer.WholeName
+                  or ((reviewer.FirstName or '') ~ (' ' if (reviewer.FirstName or reviewer.LastName) else '') ~ (reviewer.LastName or ''))
+                ) %}
+            {% set reviewer_display = (reviewer_name and reviewer_name.strip())
+                                       or (reviewer and (reviewer.Username or reviewer.Email or reviewer.AccountID))
+                                       or (app.DecisionByAccountID) %}
+
+            <tr>
+              <td class="text-muted">
+                {{ submitted.strftime('%Y-%m-%d %H:%M') if submitted else '—' }}
+              </td>
+
+              <td>
+                <div class="table-strong">
+                  {{ applicant_name if applicant_name else ('Applicant #' ~ app.ApplicationID) }}
+                </div>
+                <div class="table-meta">ApplicationID: {{ app.ApplicationID }}</div>
+              </td>
+
+              <td class="text-muted">{{ acct.Email or '—' }}</td>
+              <td>
+                <div class="table-strong">{{ spon.Company or '—' }}</div>
+              </td>
+
+              <td>
+                {% if decision == 'pending' %}
+                  <span class="chip chip-warning">Pending</span>
+                {% elif decision == 'accepted' %}
+                  <span class="chip chip-success">Accepted</span>
+                {% elif decision == 'rejected' %}
+                  <span class="chip chip-error">Rejected</span>
+                {% else %}
+                  <span class="chip">{{ decision|capitalize }}</span>
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {{ reviewed.strftime('%Y-%m-%d %H:%M') if reviewed else '—' }}
+              </td>
+
+              <td class="text-muted">
+                {{ reviewer_display or '—' }}
+              </td>
+
+              <td class="text-muted">
+                {{ app.DecisionReason or '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="table-empty">No applications found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

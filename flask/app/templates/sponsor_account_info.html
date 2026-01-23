@@ -1,0 +1,1118 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="account-container driver-profile-page sponsor-profile-page">
+    <div class="account-card driver-profile-card sponsor-profile-card">
+        <header class="driver-profile-header">
+            <div class="driver-profile-heading">
+                <h1>Sponsor Profile</h1>
+                <p class="driver-profile-subtitle">Manage your account details, billing information, and security settings.</p>
+                {% set join_date = account.CreatedAt.strftime('%B %d, %Y') if account and account.CreatedAt else None %}
+                <p class="driver-profile-meta">
+                    {% if join_date %}
+                        Joined {{ join_date }}
+                    {% else %}
+                        Member since date unavailable
+                    {% endif %}
+                </p>
+            </div>
+            <div class="driver-profile-avatar-block">
+                {% set avatar_path = get_avatar_display_url(account.ProfileImageURL) %}
+                <img src="{{ avatar_path }}" alt="Profile avatar" class="account-avatar driver-avatar">
+                <form method="POST" enctype="multipart/form-data" class="avatar-form driver-avatar-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="upload_avatar"/>
+                    <label class="form-label" for="profile_image">Update profile picture</label>
+                    <input id="profile_image" type="file" name="profile_image" accept="image/*" class="form-control file-input">
+                    <p class="file-hint text-muted">PNG, JPG, or GIF up to 5&nbsp;MB.</p>
+                    <div class="form-actions">
+                        <button type="submit" class="driver-secondary-btn">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </header>
+
+        <nav class="account-quick-links driver-quick-actions" aria-label="Sponsor quick actions">
+            <a href="{{ url_for('sponsor.notification_settings') }}" class="driver-quick-link">
+                <span class="driver-quick-icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
+                <span class="driver-quick-text">Notifications</span>
+            </a>
+            <a href="{{ url_for('support_ui.support_hub') }}" class="driver-quick-link">
+                <span class="driver-quick-icon"><i class="fas fa-life-ring" aria-hidden="true"></i></span>
+                <span class="driver-quick-text">Support</span>
+            </a>
+            <a href="{{ url_for('auth.logout_api') }}" class="driver-quick-link danger">
+                <span class="driver-quick-icon"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></span>
+                <span class="driver-quick-text">Log Out</span>
+            </a>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="account-alerts driver-alerts">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <section class="driver-metrics account-metrics" aria-label="Sponsor account status">
+            {% if last_success %}
+            <article class="metric-card driver-metric-card">
+                <span class="metric-label">Last Successful Login</span>
+                <span class="metric-value">{{ last_success.AttemptedAt.strftime('%b %d, %Y') }}</span>
+                <span class="metric-caption">{{ last_success.AttemptedAt.strftime('%I:%M %p') }} · {{ last_success.IPAddress or 'IP unavailable' }}</span>
+            </article>
+            {% else %}
+            <article class="metric-card driver-metric-card">
+                <span class="metric-label">Last Successful Login</span>
+                <span class="metric-value">No record</span>
+                <span class="metric-caption text-muted">We have not logged a successful sign-in yet.</span>
+            </article>
+            {% endif %}
+        </section>
+
+        <form method="POST" enctype="multipart/form-data" class="driver-details-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="save_info"/>
+
+            <section class="driver-section">
+                <div class="driver-section-header">
+                    <h2>Personal Info</h2>
+                </div>
+                <div class="form-grid form-grid--two driver-field-grid">
+                    <div class="driver-field-group">
+                        <label for="username">Username</label>
+                        <input id="username" type="text" name="username" value="{{ (account.Username or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="first_name">First Name</label>
+                        <input id="first_name" type="text" name="first_name" value="{{ (account.FirstName or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="last_name">Last Name</label>
+                        <input id="last_name" type="text" name="last_name" value="{{ (account.LastName or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="email">Email</label>
+                        <input id="email" type="email" name="email" value="{{ (account.Email or '')|e }}" readonly aria-readonly="true">
+                        <p class="driver-readonly-note">Use the Change Email button in the security section to update this address.</p>
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="phone">Phone</label>
+                        <input id="phone" type="text" name="phone" value="{{ (account.phone_plain or '')|e }}">
+                    </div>
+                </div>
+            </section>
+
+            {% if sponsor %}
+            <section class="driver-section">
+                <div class="driver-section-header">
+                    <h2>Sponsor Info</h2>
+                </div>
+                <div class="form-grid form-grid--two driver-field-grid">
+                    <div class="driver-field-group">
+                        <label for="company">Company Name</label>
+                        <input id="company" type="text" name="company" value="{{ (sponsor.Company or '')|e }}" readonly aria-readonly="true">
+                        <p class="driver-readonly-note">Contact support if you need to update your company name.</p>
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="billing_email">Billing Email</label>
+                        <input id="billing_email" type="email" name="billing_email" value="{{ (sponsor.BillingEmail or '')|e }}">
+                    </div>
+                </div>
+            </section>
+
+            <section class="driver-section">
+                <div class="driver-section-header">
+                    <h2>Billing Address</h2>
+                </div>
+                <div class="form-grid driver-field-grid billing-address-fields">
+                    <div class="driver-field-group">
+                        <label for="billing_street">Street</label>
+                        <input id="billing_street" type="text" name="billing_street" value="{{ (sponsor.BillingStreet or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="billing_city">City</label>
+                        <input id="billing_city" type="text" name="billing_city" value="{{ (sponsor.BillingCity or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="billing_state">State</label>
+                        <input id="billing_state" type="text" name="billing_state" value="{{ (sponsor.BillingState or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="billing_country">Country</label>
+                        <input id="billing_country" type="text" name="billing_country" value="{{ (sponsor.BillingCountry or '')|e }}">
+                    </div>
+                    <div class="driver-field-group">
+                        <label for="billing_postal">Postal Code</label>
+                        <input id="billing_postal" type="text" name="billing_postal" value="{{ (sponsor.BillingPostal or '')|e }}">
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <div class="driver-form-actions">
+                <button type="submit" class="driver-primary-btn">Save Account Info</button>
+            </div>
+        </form>
+
+        {% set mfa_label = 'Manage MFA' if account.MFAEnabled else 'Set up MFA' %}
+
+        <section class="driver-security-card">
+            <div class="driver-security-header">
+                <div>
+                    <h2>Security</h2>
+                    <p class="driver-security-subtitle">
+                        Manage your email address, password, multi-factor authentication, account deactivation requests, active sessions, and magic link access without leaving this page.
+                    </p>
+                </div>
+                <div class="driver-security-actions" data-mfa-enabled="{{ 'true' if account.MFAEnabled else 'false' }}">
+                    <div class="driver-security-column">
+                        <button type="button" class="driver-security-btn" data-modal-open="emailModal">
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                            <span>Change Email</span>
+                        </button>
+                        <button type="button" class="driver-security-btn" data-modal-open="passwordModal">
+                            <i class="fas fa-lock" aria-hidden="true"></i>
+                            <span>Change Password</span>
+                        </button>
+                        <button type="button" class="driver-security-btn" data-modal-open="mfaModal">
+                            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                            <span>{{ mfa_label }}</span>
+                        </button>
+                    </div>
+                    <div class="driver-security-column">
+                        <button type="button" class="driver-security-btn" data-modal-open="deactivateModal">
+                            <i class="fas fa-user-slash" aria-hidden="true"></i>
+                            <span>Account Deactivation</span>
+                        </button>
+                        <button type="button" class="driver-security-btn" data-modal-open="sessionsModal">
+                            <i class="fas fa-desktop" aria-hidden="true"></i>
+                            <span>Manage Sessions</span>
+                        </button>
+                        <button type="button" class="driver-security-btn" data-modal-open="magicLinkModal">
+                            <i class="fas fa-link" aria-hidden="true"></i>
+                            <span>Send Magic Link</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<div id="emailModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="emailModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close change email dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="emailModalTitle">Change email</h2>
+                    <p>Enter your new email address and confirm with your password{{ ' and MFA code' if account.MFAEnabled else '' }}.</p>
+                </header>
+                <div class="driver-modal-feedback" id="emailFeedback" role="status"></div>
+                <form id="emailForm" class="auth-modal__form" action="{{ url_for('sponsor.sponsor_account') }}" method="post" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="change_email"/>
+                    <label class="auth-modal__label" for="emailNew">New email</label>
+                    <input class="auth-modal__input" type="email" id="emailNew" name="new_email" autocomplete="email" required>
+                    <label class="auth-modal__label" for="emailConfirm">Confirm new email</label>
+                    <input class="auth-modal__input" type="email" id="emailConfirm" name="confirm_email" autocomplete="email" required>
+                    <label class="auth-modal__label" for="emailCurrent">Current password</label>
+                    <input class="auth-modal__input" type="password" id="emailCurrent" name="current_password" autocomplete="current-password" required>
+                    {% if account.MFAEnabled %}
+                    <label class="auth-modal__label" for="emailMfa">MFA code</label>
+                    <input class="auth-modal__input" type="text" id="emailMfa" name="mfa_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+                    {% endif %}
+                    <div class="auth-modal__actions">
+                        <button type="submit" class="auth-modal__submit">Update email</button>
+                        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="passwordModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="passwordModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close change password dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="passwordModalTitle">Change password</h2>
+                    <p>Update your password without leaving the page.</p>
+                </header>
+                <div class="driver-modal-feedback" id="passwordFeedback" role="status"></div>
+                <form id="passwordForm" class="auth-modal__form" action="{{ url_for('account_password.change_password') }}" method="post" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <label class="auth-modal__label" for="passwordCurrent">Current password</label>
+                    <input class="auth-modal__input" type="password" id="passwordCurrent" name="current_password" autocomplete="current-password" required>
+                    <label class="auth-modal__label" for="passwordNew">New password</label>
+                    <input class="auth-modal__input" type="password" id="passwordNew" name="new_password" autocomplete="new-password" required>
+                    <label class="auth-modal__label" for="passwordConfirm">Confirm new password</label>
+                    <input class="auth-modal__input" type="password" id="passwordConfirm" name="confirm_password" autocomplete="new-password" required>
+                    <div class="auth-modal__actions">
+                        <button type="submit" class="auth-modal__submit">Save password</button>
+                        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="mfaModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mfaModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close MFA dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="mfaModalTitle">Multi-factor authentication</h2>
+                    <p id="mfaStatusText">
+                        {% if account.MFAEnabled %}
+                            MFA is currently enabled. You can disable it below.
+                        {% else %}
+                            Add an extra layer of protection by enabling MFA.
+                        {% endif %}
+                    </p>
+                </header>
+
+                <div class="driver-mfa-views">
+                    <div id="mfaOverview" class="driver-mfa-view" data-active="true">
+                        <div class="driver-modal-feedback" id="mfaFeedback" role="status"></div>
+
+                        <div class="driver-mfa-state driver-mfa-state--enabled">
+                        <form id="mfaDisableForm" class="auth-modal__form" action="{{ url_for('auth.disable_mfa') }}" method="post" novalidate>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <label class="auth-modal__label" for="disablePassword">Confirm your password to disable MFA</label>
+                                <input class="auth-modal__input" type="password" id="disablePassword" name="current_password" autocomplete="current-password" required>
+                            <label class="auth-modal__label" for="disableMfaCode">MFA code (optional)</label>
+                            <input class="auth-modal__input" type="text" id="disableMfaCode" name="token" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+                                <div class="auth-modal__actions">
+                                    <button type="submit" class="auth-modal__submit">Disable MFA</button>
+                                    <button type="button" class="auth-modal__secondary" data-modal-close>Close</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="driver-mfa-state driver-mfa-state--disabled">
+                            <form id="mfaEnableForm" class="auth-modal__form" action="{{ url_for('auth.enable_mfa') }}" method="post" novalidate>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <label class="auth-modal__label" for="enablePassword">Confirm your password to begin</label>
+                                <input class="auth-modal__input" type="password" id="enablePassword" name="current_password" autocomplete="current-password" required>
+                                <div class="auth-modal__actions">
+                                    <button type="submit" class="auth-modal__submit">Generate setup code</button>
+                                    <button type="button" class="auth-modal__secondary" data-modal-close>Close</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="mfaSetup" class="driver-mfa-view" hidden>
+                        <div class="driver-mfa-qr">
+                            <img id="mfaQrImage" src="" alt="MFA QR code">
+                            <p class="driver-mfa-secret">Manual key: <code id="mfaSecretDisplay"></code></p>
+                        </div>
+                        <form id="mfaConfirmForm" class="auth-modal__form" action="{{ url_for('auth.confirm_mfa') }}" method="post" novalidate>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <label class="auth-modal__label" for="mfaTokenInput">Enter 6-digit code</label>
+                            <input class="auth-modal__input" id="mfaTokenInput" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+                            <div class="auth-modal__actions">
+                                <button type="submit" class="auth-modal__submit">Confirm MFA</button>
+                                <button type="button" class="auth-modal__secondary" id="mfaBackButton">Back</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="mfaRecovery" class="driver-mfa-view" hidden>
+                        <div class="driver-modal-feedback" data-state="info">
+                            Save these recovery codes now. They will not be shown again.
+                        </div>
+                        <ul id="mfaRecoveryList" class="driver-mfa-recovery-list"></ul>
+                        <div class="driver-mfa-recovery-actions">
+                            <button type="button" class="driver-secondary-btn" id="mfaDownloadCodes">
+                                <i class="fas fa-download" aria-hidden="true"></i>
+                                <span>Download codes</span>
+                            </button>
+                            <button type="button" class="driver-primary-btn" id="mfaDoneButton">Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="deactivateModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="deactivateModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close account deactivation dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="deactivateModalTitle">Request account deactivation</h2>
+                    <p>Submit a deactivation request for review.</p>
+                </header>
+                <div class="driver-modal-feedback" id="deactivateFeedback" role="status"></div>
+                <form id="deactivateForm" class="auth-modal__form" action="{{ url_for('account_deactivation.request_page') }}" method="post" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="submit"/>
+                    <label class="auth-modal__label" for="deactivateReason">Reason</label>
+                    <select id="deactivateReason" name="reason_code" class="auth-modal__input" required>
+                        <option value="">Select a reason</option>
+                        <option value="no_longer_needed">I no longer need the account</option>
+                        <option value="switching">I'm switching organizations</option>
+                        <option value="privacy">I have privacy or security concerns</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <label class="auth-modal__label" for="deactivateDetails">Additional details (optional)</label>
+                    <textarea id="deactivateDetails" name="reason_details" class="auth-modal__input driver-textarea" rows="3" placeholder="Provide extra context (optional)"></textarea>
+                    <div class="auth-modal__actions">
+                        <button type="submit" class="auth-modal__submit">Submit request</button>
+                        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="sessionsModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sessionsModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close sessions dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="sessionsModalTitle">Active sessions</h2>
+                    <p>Review devices that are currently signed in.</p>
+                </header>
+                <div class="driver-modal-feedback" id="sessionsFeedback" role="status"></div>
+                <div id="sessionsList" class="driver-sessions-list" aria-live="polite"></div>
+                <div class="driver-sessions-controls">
+                    <button type="button" class="driver-secondary-btn" id="refreshSessions">
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <button type="button" class="driver-danger-btn" id="revokeAllSessions">
+                        <i class="fas fa-ban" aria-hidden="true"></i>
+                        <span>Sign out of other sessions</span>
+                    </button>
+                    <button type="button" class="driver-secondary-btn" data-modal-close>Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="magicLinkModal" class="auth-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="magicLinkModalTitle">
+            <div class="auth-modal__backdrop" data-modal-close></div>
+            <div class="auth-modal__dialog" role="document">
+                <button type="button" class="auth-modal__close" data-modal-close aria-label="Close magic link dialog">×</button>
+                <header class="auth-modal__header">
+                    <h2 id="magicLinkModalTitle">Send a magic login link</h2>
+                    <p>Send yourself a temporary login link (available only when MFA is disabled).</p>
+                </header>
+                <div class="driver-modal-feedback" id="magicLinkFeedback" role="status"></div>
+                <form id="magicLinkForm" class="auth-modal__form" action="{{ url_for('auth_reset.magic_link_request') }}" method="post" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <label class="auth-modal__label" for="magicLinkEmail">Email address</label>
+                    <input id="magicLinkEmail" name="email" class="auth-modal__input" type="email" value="{{ account.Email }}" autocomplete="email" required>
+                    <div class="auth-modal__actions">
+                        <button type="submit" class="auth-modal__submit">Send link</button>
+                        <button type="button" class="auth-modal__secondary" data-modal-close>Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const focusTrapSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const modals = document.querySelectorAll('.auth-modal');
+  let scrollPosition = 0;
+
+  function getCsrfToken() {
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function syncCsrfToken(form) {
+    if (!form) return;
+    const token = getCsrfToken();
+    if (!token) return;
+    const input = form.querySelector('input[name="csrf_token"]');
+    if (input) {
+      input.value = token;
+    }
+  }
+
+  function openModal(modal) {
+    if (!document.body.classList.contains('modal-open')) {
+      scrollPosition = window.pageYOffset || document.documentElement.scrollTop || 0;
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${scrollPosition}px`;
+      document.body.classList.add('modal-open');
+    }
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.dataset.open = 'true';
+
+    const focusTarget = modal.querySelector('[data-modal-focus]') || modal.querySelector(focusTrapSelector);
+    if (focusTarget) {
+      setTimeout(() => focusTarget.focus({ preventScroll: true }), 50);
+    }
+  }
+
+  function closeModal(modal) {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.dataset.open = 'false';
+    if (!document.querySelector('.auth-modal.is-open')) {
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('width');
+      const top = document.body.style.top;
+      document.body.style.removeProperty('top');
+      const previousScroll = top ? Math.abs(parseInt(top, 10)) : scrollPosition;
+      window.scrollTo(0, previousScroll || 0);
+    }
+  }
+
+  function trapFocus(event, modal) {
+    if (event.key !== 'Tab') return;
+    const focusable = modal.querySelectorAll(focusTrapSelector);
+    if (!focusable.length) return;
+    const elements = Array.prototype.slice.call(focusable);
+    const first = elements[0];
+    const last = elements[elements.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  modals.forEach((modal) => {
+    modal.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeModal(modal);
+        return;
+      }
+      trapFocus(event, modal);
+    });
+    modal.querySelectorAll('[data-modal-close]').forEach((button) => {
+      button.addEventListener('click', () => closeModal(modal));
+    });
+  });
+
+  const scheduleFocus = (element) => {
+    if (!element) return;
+    setTimeout(() => element.focus({ preventScroll: true }), 80);
+  };
+
+  document.querySelectorAll('[data-modal-open]').forEach((trigger) => {
+    const targetId = trigger.getAttribute('data-modal-open');
+    const modal = document.getElementById(targetId);
+    if (!modal) return;
+
+    trigger.addEventListener('click', () => {
+      if (targetId === 'sessionsModal') {
+        loadSessions();
+      }
+      if (targetId === 'mfaModal') {
+        resetMfaViews();
+        setMfaEnabled(securityActions?.dataset.mfaEnabled === 'true');
+      }
+      if (targetId === 'emailModal') {
+        resetForm(emailForm);
+        setFeedback(emailFeedback);
+      }
+      if (targetId === 'magicLinkModal') {
+        resetForm(magicLinkForm);
+        setFeedback(magicLinkFeedback);
+      }
+      openModal(modal);
+
+      if (targetId === 'passwordModal') {
+        scheduleFocus(document.getElementById('passwordCurrent'));
+      } else if (targetId === 'emailModal') {
+        scheduleFocus(document.getElementById('emailNew'));
+      } else if (targetId === 'mfaModal') {
+        const targetInput = (securityActions?.dataset.mfaEnabled === 'true')
+          ? document.getElementById('disablePassword')
+          : document.getElementById('enablePassword');
+        scheduleFocus(targetInput);
+      } else if (targetId === 'deactivateModal') {
+        scheduleFocus(document.getElementById('deactivateReason'));
+      } else if (targetId === 'sessionsModal') {
+        scheduleFocus(document.getElementById('refreshSessions'));
+      } else if (targetId === 'magicLinkModal') {
+        scheduleFocus(document.getElementById('magicLinkEmail'));
+      }
+    });
+  });
+
+  function serializeForm(form) {
+    syncCsrfToken(form);
+    return new URLSearchParams(new FormData(form));
+  }
+
+  function setFeedback(el, message = '', type = '') {
+    if (!el) return;
+    el.textContent = message;
+    el.dataset.state = type;
+  }
+
+  function resetForm(form) {
+    if (!form) return;
+    form.reset();
+    form.querySelectorAll('[data-reset]').forEach((input) => {
+      input.value = input.dataset.reset || '';
+    });
+  }
+
+  async function requestJson(url, options = {}) {
+    const { method = 'GET', headers = {}, ...rest } = options;
+    const mergedHeaders = { ...headers };
+    if (/^(POST|PUT|PATCH|DELETE)$/i.test(method) && !mergedHeaders['X-CSRFToken']) {
+      const token = getCsrfToken();
+      if (token) {
+        mergedHeaders['X-CSRFToken'] = token;
+      }
+    }
+
+    let response;
+    try {
+      response = await fetch(url, {
+        credentials: 'same-origin',
+        method,
+        headers: mergedHeaders,
+        ...rest
+      });
+    } catch (networkError) {
+      console.error('requestJson network failure:', networkError, { url, method });
+      throw networkError;
+    }
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const payload = data && typeof data === 'object' ? data : {};
+      const message = payload.message || 'Unexpected error. Please try again.';
+      const error = new Error(message);
+      error.responseData = { status: response.status, ...payload };
+      console.error('requestJson HTTP error:', error.responseData, { url, method });
+      throw error;
+    }
+
+    return data;
+  }
+
+  function downloadText(filename, lines) {
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // Password change
+  const passwordForm = document.getElementById('passwordForm');
+  const passwordFeedback = document.getElementById('passwordFeedback');
+  const emailForm = document.getElementById('emailForm');
+  const emailFeedback = document.getElementById('emailFeedback');
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(passwordFeedback, 'Saving password…', 'info');
+      try {
+        const actionUrl = passwordForm.getAttribute('action');
+        const body = serializeForm(passwordForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        setFeedback(passwordFeedback, data?.message || 'Password changed successfully.', 'success');
+        resetForm(passwordForm);
+      } catch (error) {
+        setFeedback(passwordFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  if (emailForm) {
+    emailForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const newEmailValue = (emailForm.querySelector('#emailNew')?.value || '').trim();
+      const confirmEmailValue = (emailForm.querySelector('#emailConfirm')?.value || '').trim();
+      if (!newEmailValue || !confirmEmailValue) {
+        setFeedback(emailFeedback, 'Please enter and confirm your new email address.', 'error');
+        return;
+      }
+      if (newEmailValue.toLowerCase() !== confirmEmailValue.toLowerCase()) {
+        setFeedback(emailFeedback, 'Email addresses do not match. Please try again.', 'error');
+        return;
+      }
+      const newEmailInput = emailForm.querySelector('#emailNew');
+      const confirmEmailInput = emailForm.querySelector('#emailConfirm');
+      if (newEmailInput) newEmailInput.value = newEmailValue;
+      if (confirmEmailInput) confirmEmailInput.value = confirmEmailValue;
+      setFeedback(emailFeedback, 'Updating email…', 'info');
+      try {
+        const actionUrl = emailForm.getAttribute('action');
+        const body = serializeForm(emailForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        const updatedEmail = data?.email || newEmailValue;
+        const profileEmailField = document.getElementById('email');
+        if (profileEmailField) {
+          profileEmailField.value = updatedEmail;
+        }
+        setFeedback(emailFeedback, data?.message || 'Email updated successfully.', 'success');
+        resetForm(emailForm);
+        emailForm.querySelector('#emailNew')?.focus();
+      } catch (error) {
+        setFeedback(emailFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  // MFA management
+  const securityActions = document.querySelector('.driver-security-actions');
+  const mfaModal = document.getElementById('mfaModal');
+  const mfaOverview = document.getElementById('mfaOverview');
+  const mfaSetup = document.getElementById('mfaSetup');
+  const mfaRecovery = document.getElementById('mfaRecovery');
+  const mfaStatusText = document.getElementById('mfaStatusText');
+  const mfaFeedback = document.getElementById('mfaFeedback');
+  const mfaEnableForm = document.getElementById('mfaEnableForm');
+  const mfaDisableForm = document.getElementById('mfaDisableForm');
+  const mfaConfirmForm = document.getElementById('mfaConfirmForm');
+  const mfaSecretDisplay = document.getElementById('mfaSecretDisplay');
+  const mfaQrImage = document.getElementById('mfaQrImage');
+  const mfaRecoveryList = document.getElementById('mfaRecoveryList');
+  const mfaDownloadCodes = document.getElementById('mfaDownloadCodes');
+  const mfaBackButton = document.getElementById('mfaBackButton');
+  const mfaDoneButton = document.getElementById('mfaDoneButton');
+
+  function showMfaView(target) {
+    [mfaOverview, mfaSetup, mfaRecovery].forEach((view) => {
+      if (!view) return;
+      view.hidden = view !== target;
+      view.dataset.active = view === target ? 'true' : 'false';
+    });
+  }
+
+  function setMfaEnabled(enabled) {
+    if (!securityActions) return;
+    securityActions.dataset.mfaEnabled = enabled ? 'true' : 'false';
+    if (enabled) {
+      mfaModal?.querySelectorAll('.driver-mfa-state--enabled').forEach((section) => section.style.display = 'block');
+      mfaModal?.querySelectorAll('.driver-mfa-state--disabled').forEach((section) => section.style.display = 'none');
+      mfaStatusText.textContent = 'MFA is currently enabled. You can disable it below.';
+    } else {
+      mfaModal?.querySelectorAll('.driver-mfa-state--enabled').forEach((section) => section.style.display = 'none');
+      mfaModal?.querySelectorAll('.driver-mfa-state--disabled').forEach((section) => section.style.display = 'block');
+      mfaStatusText.textContent = 'Add an extra layer of protection by enabling MFA.';
+    }
+  }
+
+  function resetMfaViews() {
+    showMfaView(mfaOverview);
+    setFeedback(mfaFeedback);
+    resetForm(mfaEnableForm);
+    resetForm(mfaDisableForm);
+    resetForm(mfaConfirmForm);
+    setMfaEnabled(securityActions?.dataset.mfaEnabled === 'true');
+  }
+
+  setMfaEnabled(securityActions?.dataset.mfaEnabled === 'true');
+
+  if (mfaEnableForm) {
+    mfaEnableForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(mfaFeedback, 'Generating QR code…', 'info');
+      try {
+        const actionUrl = mfaEnableForm.getAttribute('action');
+        const body = serializeForm(mfaEnableForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        setFeedback(mfaFeedback, 'Scan the code with your authenticator app, then enter the code below.', 'info');
+        if (mfaSecretDisplay && data?.raw_secret) {
+          mfaSecretDisplay.textContent = data.raw_secret;
+        }
+        if (mfaQrImage && data?.qr_uri) {
+          mfaQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qr_uri)}`;
+        }
+        showMfaView(mfaSetup);
+        mfaConfirmForm?.querySelector('[name="token"]')?.focus();
+      } catch (error) {
+        setFeedback(mfaFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  if (mfaDisableForm) {
+    mfaDisableForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(mfaFeedback, 'Disabling MFA…', 'info');
+      try {
+        const actionUrl = mfaDisableForm.getAttribute('action');
+        const body = serializeForm(mfaDisableForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        setFeedback(mfaFeedback, data?.message || 'MFA disabled.', 'success');
+        setMfaEnabled(false);
+        showMfaView(mfaOverview);
+        resetForm(mfaDisableForm);
+      } catch (error) {
+        console.error('MFA disable failed:', error);
+        const response = error.responseData;
+        if (response?.message) {
+          setFeedback(mfaFeedback, response.message, 'error');
+        } else {
+          setFeedback(mfaFeedback, error.message, 'error');
+        }
+        if (response) {
+          console.groupCollapsed?.('MFA disable diagnostic');
+          console.log('status:', response.status);
+          console.log('payload:', response);
+          console.groupEnd?.();
+        }
+      }
+    });
+  }
+
+  if (mfaConfirmForm) {
+    mfaConfirmForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(mfaFeedback, 'Verifying code…', 'info');
+      try {
+        const actionUrl = mfaConfirmForm.getAttribute('action');
+        const body = serializeForm(mfaConfirmForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        if (Array.isArray(data?.codes) && mfaRecoveryList) {
+          mfaRecoveryList.innerHTML = '';
+          data.codes.forEach((code) => {
+            const li = document.createElement('li');
+            li.textContent = code;
+            li.className = 'driver-mfa-recovery-code';
+            mfaRecoveryList.appendChild(li);
+          });
+        }
+        setFeedback(mfaFeedback, 'MFA enabled. Save your recovery codes before closing.', 'success');
+        setMfaEnabled(true);
+        showMfaView(mfaRecovery);
+      } catch (error) {
+        setFeedback(mfaFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  if (mfaBackButton) {
+    mfaBackButton.addEventListener('click', () => {
+      showMfaView(mfaOverview);
+      resetForm(mfaConfirmForm);
+      setFeedback(mfaFeedback);
+    });
+  }
+
+  if (mfaDoneButton) {
+    mfaDoneButton.addEventListener('click', () => {
+      showMfaView(mfaOverview);
+      resetForm(mfaConfirmForm);
+      setFeedback(mfaFeedback, 'MFA is enabled and your recovery codes were generated.', 'success');
+    });
+  }
+
+  if (mfaDownloadCodes) {
+    mfaDownloadCodes.addEventListener('click', () => {
+      const codes = Array.from(mfaRecoveryList?.children || []).map((item) => item.textContent.trim()).filter(Boolean);
+      if (!codes.length) return;
+      downloadText('recovery-codes.txt', codes);
+    });
+  }
+
+  // Account deactivation
+  const deactivateForm = document.getElementById('deactivateForm');
+  const deactivateFeedback = document.getElementById('deactivateFeedback');
+  if (deactivateForm) {
+    deactivateForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(deactivateFeedback, 'Submitting request…', 'info');
+      try {
+        const actionUrl = deactivateForm.getAttribute('action');
+        const body = serializeForm(deactivateForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        setFeedback(deactivateFeedback, data?.message || 'Your deactivation request has been submitted.', 'success');
+        resetForm(deactivateForm);
+      } catch (error) {
+        setFeedback(deactivateFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  // Sessions
+  const sessionsList = document.getElementById('sessionsList');
+  const sessionsFeedback = document.getElementById('sessionsFeedback');
+  const refreshSessions = document.getElementById('refreshSessions');
+  const revokeAllSessions = document.getElementById('revokeAllSessions');
+
+  function renderSessions(sessions) {
+    if (!sessionsList) return;
+    if (!Array.isArray(sessions) || !sessions.length) {
+      sessionsList.innerHTML = '<p class="driver-modal-empty">No other active sessions were found.</p>';
+      return;
+    }
+    sessionsList.innerHTML = '';
+    sessions.forEach((session) => {
+      const card = document.createElement('article');
+      card.className = 'driver-session-card';
+      card.innerHTML = `
+        <header class="driver-session-header">
+            <span class="driver-session-device">${session.device_name}</span>
+            ${session.is_current ? '<span class="driver-session-pill">Current session</span>' : ''}
+        </header>
+        <ul class="driver-session-meta">
+            <li><i class="fas fa-desktop" aria-hidden="true"></i>${session.operating_system}</li>
+            <li><i class="fas fa-globe-americas" aria-hidden="true"></i>${session.ip_address || 'Unknown IP'}</li>
+            <li><i class="fas fa-clock" aria-hidden="true"></i>${session.time_since_activity || 'Just now'}</li>
+        </ul>
+        ${session.is_current ? '' : '<button type="button" class="driver-danger-btn driver-session-revoke" data-session-id="' + session.session_id + '"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Sign this device out</span></button>'}
+      `;
+      sessionsList.appendChild(card);
+    });
+  }
+
+  async function loadSessions() {
+    setFeedback(sessionsFeedback, 'Loading sessions…', 'info');
+    try {
+      const data = await requestJson('/sessions/api/sessions', { headers: { 'Accept': 'application/json' } });
+      renderSessions(data?.sessions || []);
+      setFeedback(sessionsFeedback);
+    } catch (error) {
+      setFeedback(sessionsFeedback, error.message, 'error');
+      if (sessionsList) {
+        sessionsList.innerHTML = '<p class="driver-modal-empty">Unable to load sessions.</p>';
+      }
+    }
+  }
+
+  if (refreshSessions) {
+    refreshSessions.addEventListener('click', loadSessions);
+  }
+
+  if (revokeAllSessions) {
+    revokeAllSessions.addEventListener('click', async () => {
+      setFeedback(sessionsFeedback, 'Revoking sessions…', 'info');
+      try {
+        const data = await requestJson('/sessions/revoke-all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        setFeedback(
+          sessionsFeedback,
+          data?.revoked ? `Revoked ${data.revoked} other session(s).` : 'No other sessions to revoke.',
+          'success'
+        );
+        loadSessions();
+      } catch (error) {
+        setFeedback(sessionsFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  if (sessionsList) {
+    sessionsList.addEventListener('click', async (event) => {
+      const button = event.target.closest('.driver-session-revoke');
+      if (!button) return;
+      const sessionId = button.getAttribute('data-session-id');
+      if (!sessionId) return;
+      setFeedback(sessionsFeedback, 'Revoking session…', 'info');
+      try {
+        await requestJson(`/sessions/revoke/${sessionId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        setFeedback(sessionsFeedback, 'Session revoked.', 'success');
+        loadSessions();
+      } catch (error) {
+        setFeedback(sessionsFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  // Magic link
+  const magicLinkForm = document.getElementById('magicLinkForm');
+  const magicLinkFeedback = document.getElementById('magicLinkFeedback');
+  if (magicLinkForm) {
+    magicLinkForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setFeedback(magicLinkFeedback, 'Sending magic link…', 'info');
+      try {
+        const actionUrl = magicLinkForm.getAttribute('action');
+        const body = serializeForm(magicLinkForm);
+        const data = await requestJson(actionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body
+        });
+        setFeedback(magicLinkFeedback, data?.message || 'If eligible, a magic link has been sent.', 'success');
+      } catch (error) {
+        setFeedback(magicLinkFeedback, error.message, 'error');
+      }
+    });
+  }
+
+  // Profile picture upload debugging
+  const avatarForm = document.querySelector('.driver-avatar-form');
+  const profileImageInput = document.getElementById('profile_image');
+  
+  if (profileImageInput) {
+    profileImageInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // Validate file size
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+          alert('File size exceeds 5MB limit');
+          event.target.value = '';
+          return;
+        }
+        
+        // Validate file type
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/x-icon'];
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'];
+        
+        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+          alert('Invalid file type. Please select an image file.');
+          event.target.value = '';
+          return;
+        }
+      }
+    });
+  }
+  
+  if (avatarForm) {
+    avatarForm.addEventListener('submit', async (event) => {
+      const fileInput = avatarForm.querySelector('#profile_image');
+      const file = fileInput?.files[0];
+      const csrfToken = avatarForm.querySelector('input[name="csrf_token"]')?.value;
+      
+      if (!file) {
+        event.preventDefault();
+        alert('Please select a file to upload');
+        return;
+      }
+      
+      if (!csrfToken) {
+        event.preventDefault();
+        alert('Security token missing. Please refresh the page.');
+        return;
+      }
+      
+      const formData = new FormData(avatarForm);
+      event.preventDefault();
+      
+      // Get the form action URL - use pathname if action is not a valid URL
+      let formAction = avatarForm.action;
+      if (!formAction || typeof formAction !== 'string' || formAction.includes('[object')) {
+        formAction = window.location.pathname;
+      }
+      
+      try {
+        const response = await fetch(formAction, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const responseText = await response.text();
+        
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          let errorMessage = 'Failed to upload profile picture';
+          if (responseText.includes('Failed to upload')) {
+            const match = responseText.match(/Failed to upload[^<]*/);
+            if (match) errorMessage = match[0];
+          }
+          alert(errorMessage);
+        }
+      } catch (error) {
+        alert('Error uploading profile picture: ' + error.message);
+      }
+    });
+  }
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import Errors{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Bulk Import Errors</h1>
+      <p>Review the rows that failed during the import session to correct data issues and retry.</p>
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('admin.bulk_import_audit_log') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Logs</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Import Summary</h2>
+    <div class="admin-summary">
+      <div class="admin-summary-item">
+        <div class="label">Company</div>
+        <div class="value" style="font-size:1rem;">{{ company_name or '—' }}</div>
+      </div>
+      <div class="admin-summary-item">
+        <div class="label">File Name</div>
+        <div class="value" style="font-size:1rem; word-break:break-word;">{{ bulk_log.FileName }}</div>
+      </div>
+      <div class="admin-summary-item">
+        <div class="label">Imported At</div>
+        <div class="value" style="font-size:1rem;">{{ bulk_log.ImportedAt.strftime('%Y-%m-%d %H:%M') }}</div>
+      </div>
+      <div class="admin-summary-item">
+        <div class="label">Total Rows</div>
+        <div class="value">{{ bulk_log.TotalRows }}</div>
+      </div>
+      <div class="admin-summary-item success">
+        <div class="label">Success</div>
+        <div class="value">{{ bulk_log.SuccessCount }}</div>
+      </div>
+      <div class="admin-summary-item error">
+        <div class="label">Errors</div>
+        <div class="value">{{ bulk_log.ErrorCount }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <div class="admin-floating-actions">
+        <h2>Error Details</h2>
+        <span class="admin-muted">{{ errors|length }} rows with issues</span>
+      </div>
+    </header>
+    {% if errors %}
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Row #</th>
+              <th>CSV Data</th>
+              <th>Error Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for error in errors %}
+            <tr>
+              <td><strong>{{ error.RowNumber }}</strong></td>
+              <td><div class="admin-code-block">{{ error.CSVRowData }}</div></td>
+              <td>
+                <div class="admin-error-text">{{ error.ErrorMessage }}</div>
+                <div class="admin-muted" style="font-size:0.8rem; margin-top:4px;">{{ error.ErroredAt.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="admin-empty-state">
+        <i class="fas fa-check-circle"></i>
+        <p>No errors found for this import.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

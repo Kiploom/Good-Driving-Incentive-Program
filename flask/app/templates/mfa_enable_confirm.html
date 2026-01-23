@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Confirm MFA{% endblock %}
+
+{% block head %}
+<style>
+  .mfa-shell {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .mfa-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 12px 32px var(--shadow-lg);
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  [data-theme="dark"] .mfa-card {
+    background: var(--glass-bg);
+    border-color: var(--accent-border);
+    backdrop-filter: blur(12px);
+  }
+
+  .mfa-card h2 {
+    margin: 0;
+    text-align: center;
+    color: var(--text-primary);
+  }
+
+  .mfa-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .mfa-card .alert {
+    margin: 0;
+  }
+
+  .mfa-card .qrcode {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+  }
+
+  .mfa-card code {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-family: 'Courier New', monospace;
+  }
+
+  .mfa-card label {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .mfa-card input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    letter-spacing: 0.5rem;
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mfa-card input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+  }
+
+  .mfa-card button {
+    width: 100%;
+    padding: 0.9rem;
+  }
+
+  @media (max-width: 640px) {
+    .mfa-shell {
+      padding: 2rem 1rem;
+    }
+
+    .mfa-card {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mfa-shell">
+  <div class="mfa-card card">
+    <h2>Scan &amp; Verify</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="status">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <p>Scan this QR code with your authenticator app, or enter the secret key manually.</p>
+
+    <div class="qrcode">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ qr_uri|urlencode }}" alt="QR Code">
+    </div>
+
+    <p class="text-muted">Manual key: <code>{{ raw_secret }}</code></p>
+
+    <form method="POST" action="{{ url_for('auth.confirm_mfa') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <label for="token">Enter the 6-digit code from your app</label>
+      <input type="text" name="token" id="token" pattern="\d{6}" maxlength="6" required autocomplete="one-time-code" placeholder="000000">
+      <button type="submit" class="btn btn-info">Confirm MFA</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const tokenInput = document.getElementById('token');
+  if (tokenInput) {
+    tokenInput.addEventListener('paste', (event) => event.preventDefault());
+    tokenInput.addEventListener('drop', (event) => event.preventDefault());
+    tokenInput.addEventListener('input', () => {
+      tokenInput.value = tokenInput.value.replace(/\D/g, '').slice(0, 6);
+    });
+  }
+</script>
+{% endblock %}

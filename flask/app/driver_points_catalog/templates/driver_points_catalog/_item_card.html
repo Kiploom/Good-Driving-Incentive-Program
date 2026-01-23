@@ -1,0 +1,17 @@
+{% macro item_card(it) -%}
+<div class="card">
+    <img src="{{ it.image or '' }}" class="thumb" alt="">
+    <div class="pad">
+        {% if it.low_stock %}<span class="badge low">Low stock</span>{% endif %}
+        <div style="font-weight:600; margin-top:6px;">{{ it.title or '' }}</div>
+        <div class="muted">
+            {{ it.condition or '' }}{% if it.brand %} · {{ it.brand }}{% endif %}
+            {% if it.stock_qty is not none %} · Stock: {{ it.stock_qty }}{% endif %}
+        </div>
+        <div class="muted" style="font-size: 11px; margin-top: 4px; color: #999;">
+            DEBUG: qty={{ it.estimated_quantity }}, threshold={{ it.availability_threshold }}, low={{ it.low_stock }}, none={{ it.no_stock }}
+        </div>
+        <div style="margin-top:6px; font-weight:700;">{{ (it.points|string) ~ ' pts' }}</div>
+    </div>
+</div>
+{%- endmacro %}

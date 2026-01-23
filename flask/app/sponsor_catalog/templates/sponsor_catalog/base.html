@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Product Management{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
+    <link rel="stylesheet" href="{{ url_for('sponsor_catalog.static', filename='sponsor_catalog.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    {% block head %}{% endblock %}
+  </head>
+  <body class="pm-body h-full" data-driver-role="{{ nav_role | default('') }}" data-driver-env-pending="{{ 'true' if driver_env_pending and (nav_role or '') == 'driver' else 'false' }}">
+    {% if session.get('impersonating') %}
+    <div class="alert alert-danger impersonation-banner" role="status">
+        <div class="impersonation-banner__message">
+            <i class="fas fa-user-secret" aria-hidden="true"></i>
+            {% if session.get('original_admin_account_id') %}
+                Admin impersonation active. You are acting as another user.
+            {% elif session.get('original_sponsor_account_id') %}
+                Sponsor impersonation active. You are acting as a driver.
+            {% else %}
+                Impersonation active. You are acting as another account.
+            {% endif %}
+        </div>
+        <div class="impersonation-banner__hint">
+            To end impersonation, please <strong>log out</strong> and sign back in with your own account.
+        </div>
+    </div>
+    {% endif %}
+    {% include "_navbar.html" %}
+    <div class="pm-page">
+      <div class="pm-shell">
+        <div class="pm-hero">
+          <div class="pm-heading">
+            {% block hero_tagline %}{% endblock %}
+            <h1 class="pm-title">{% block page_title %}Product Management{% endblock %}</h1>
+            {% set _subtitle %}{% block page_subtitle %}{% endblock %}{% endset %}
+            {% if _subtitle.strip() %}
+              <p class="pm-subtitle">{{ _subtitle | safe }}</p>
+            {% endif %}
+          </div>
+          <div class="pm-actions">
+            {% block hero_actions %}{% endblock %}
+          </div>
+        </div>
+
+        {% set current = request.endpoint or '' %}
+        <nav class="pm-tabs" aria-label="Product management sections">
+          {% set nav_items = [
+            ('sponsor_catalog.index', 'Overview', '🧭', url_for('sponsor_catalog.index')),
+            ('sponsor_catalog.preview_page', 'Preview', '🔍', url_for('sponsor_catalog.preview_page')),
+            ('sponsor_catalog.filter_sets', 'Filter Sets', '🔧', url_for('sponsor_catalog.filter_sets')),
+            ('sponsor_catalog.product_reports_page', 'Reports', '⚠️', url_for('sponsor_catalog.product_reports_page')),
+            ('sponsor_catalog.blacklisted_products_page', 'Blacklisted', '🚫', url_for('sponsor_catalog.blacklisted_products_page')),
+            ('sponsor_catalog.recommended_products_page', 'Recommended', '⭐', url_for('sponsor_catalog.recommended_products_page')),
+            ('sponsor_catalog.filter_sets_audit_history', 'Audit Log', '📋', url_for('sponsor_catalog.filter_sets_audit_history'))
+          ] %}
+          {% for endpoint, label, icon, href in nav_items %}
+            {% set active = 'active' if current == endpoint else '' %}
+            <a href="{{ href }}" class="pm-tab {{ active }}" {% if active %}aria-current="page"{% endif %}>
+              <span class="pm-tab-icon">{{ icon }}</span>
+              <span>{{ label }}</span>
+            </a>
+          {% endfor %}
+        </nav>
+
+        <div class="pm-content">
+          {% block body %}{% endblock %}
+        </div>
+      </div>
+    </div>
+    <script>
+      (function() {
+        const themeKey = 'theme-preference';
+        const html = document.documentElement;
+
+        function getInitialTheme() {
+          const saved = localStorage.getItem(themeKey);
+          if (saved) return saved;
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        }
+
+        function setTheme(theme) {
+          html.setAttribute('data-theme', theme);
+          localStorage.setItem(themeKey, theme);
+
+          const toggle = document.getElementById('theme-toggle');
+          if (toggle) {
+            const icon = toggle.querySelector('i');
+            if (icon) {
+              icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+          }
+        }
+
+        setTheme(getInitialTheme());
+
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem(themeKey)) {
+              setTheme(e.matches ? 'dark' : 'light');
+            }
+          });
+        }
+
+        window.toggleTheme = function() {
+          const current = html.getAttribute('data-theme') || 'light';
+          setTheme(current === 'light' ? 'dark' : 'light');
+        };
+      })();
+    </script>
+    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

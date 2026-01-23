@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Report Details{% endblock %}
+
+{% block body %}
+<div class="container">
+  <div class="header">
+    <h1>Report Details</h1>
+    <a href="{{ url_for('product_reports.reports_list') }}" class="btn secondary">← Back to Reports</a>
+  </div>
+
+  <div class="report-detail">
+    <div class="report-info">
+      <div class="info-section">
+        <h2>Report Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Status:</label>
+            <span class="status {{ report.Status }}">{{ report.Status.title() }}</span>
+          </div>
+          <div class="info-item">
+            <label>Item Title:</label>
+            <span>{{ report.ItemTitle or 'Unknown Item' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Item ID:</label>
+            <span class="mono">{{ report.ExternalItemID }}</span>
+          </div>
+          <div class="info-item">
+            <label>Reason:</label>
+            <span>{{ report.ReportReason.replace('_', ' ').title() }}</span>
+          </div>
+          <div class="info-item">
+            <label>Reported Date:</label>
+            <span>{{ report.CreatedAt.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+          </div>
+          {% if report.ReviewedAt %}
+          <div class="info-item">
+            <label>Reviewed Date:</label>
+            <span>{{ report.ReviewedAt.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if report.ReportDescription %}
+      <div class="info-section">
+        <h2>Report Description</h2>
+        <div class="description">
+          {{ report.ReportDescription }}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="info-section">
+        <h2>Driver Information</h2>
+        <div class="info-grid">
+          {% if driver_account %}
+          <div class="info-item">
+            <label>Driver Name:</label>
+            <span>{{ driver_account.WholeName or driver_account.Username }}</span>
+          </div>
+          <div class="info-item">
+            <label>Driver Email:</label>
+            <span>{{ driver_account.Email }}</span>
+          </div>
+          {% else %}
+          <div class="info-item">
+            <label>Driver:</label>
+            <span class="error">Driver account not found</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if report.ReviewedByAccountID %}
+      <div class="info-section">
+        <h2>Review Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Reviewed By:</label>
+            <span>{{ reviewer_account.WholeName or reviewer_account.Username if reviewer_account else 'Unknown' }}</span>
+          </div>
+          {% if report.ReviewNotes %}
+          <div class="info-item full-width">
+            <label>Review Notes:</label>
+            <div class="review-notes">
+              {{ report.ReviewNotes }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if report.Status == 'pending' %}
+    <div class="review-actions">
+      <h2>Review Actions</h2>
+      <form id="review-form">
+        <div class="form-group">
+          <label for="review-notes">Review Notes:</label>
+          <textarea id="review-notes" rows="4" placeholder="Add notes about your review decision..."></textarea>
+        </div>
+        <div class="action-buttons">
+          <button type="button" class="btn resolve-btn" onclick="reviewReport('resolve')">
+            ✓ Resolve Report
+          </button>
+          <button type="button" class="btn dismiss-btn" onclick="reviewReport('dismiss')">
+            ✗ Dismiss Report
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .report-detail {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+  }
+
+  .info-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .info-section h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #374151;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .info-item {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .info-item.full-width {
+    grid-template-columns: 1fr;
+  }
+
+  .info-item label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+  }
+
+  .info-item span {
+    color: #6b7280;
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .status.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status.resolved {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status.dismissed {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .mono {
+    font-family: monospace;
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .description {
+    background: #f9fafb;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    white-space: pre-wrap;
+    color: #374151;
+  }
+
+  .review-notes {
+    background: #f9fafb;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    white-space: pre-wrap;
+    color: #374151;
+  }
+
+  .error {
+    color: #ef4444;
+  }
+
+  .review-actions {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+  }
+
+  .review-actions h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #374151;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .btn.secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .btn.secondary:hover {
+    background: #4b5563;
+  }
+
+  .resolve-btn {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .resolve-btn:hover {
+    background: #059669;
+  }
+
+  .dismiss-btn {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .dismiss-btn:hover {
+    background: #4b5563;
+  }
+
+  @media (max-width: 768px) {
+    .report-detail {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  async function reviewReport(action) {
+    const notes = document.getElementById('review-notes').value;
+    
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                     document.querySelector('meta[name="csrf-token"]')?.content ||
+                     null;
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add CSRF token to headers if available
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    try {
+      const response = await fetch(`{{ url_for('product_reports.review_report', report_id=report.ID) }}`, {
+        method: 'POST',
+        headers: headers,
+        credentials: 'same-origin',  // Include cookies for CSRF
+        body: JSON.stringify({
+          action: action,
+          notes: notes
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        alert(`Report ${action}d successfully!`);
+        window.location.reload();
+      } else {
+        alert('Error: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error reviewing report:', error);
+      alert('Error reviewing report. Please try again.');
+    }
+  }
+</script>
+{% endblock %}

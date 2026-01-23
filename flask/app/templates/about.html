@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}About • Good Driver Incentive Program{% endblock %}
+{% block head %}
+<style>
+  .about-page {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    justify-content: center;
+    padding: clamp(32px, 6vw, 64px);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .about-shell {
+    width: min(100%, 75vw);
+    max-width: 1100px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: clamp(24px, 4vw, 40px);
+    box-shadow: 0 24px 60px var(--shadow-lg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  [data-theme="dark"] .about-shell {
+    background: rgba(30, 41, 59, 0.82);
+    border-color: rgba(245, 158, 11, 0.32);
+    box-shadow: 0 28px 60px rgba(2, 6, 23, 0.58);
+  }
+
+  .about-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .about-title {
+    font-size: clamp(28px, 3vw, 36px);
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .about-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  [data-theme="dark"] .about-meta {
+    background: rgba(17, 24, 39, 0.6);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+
+  .about-meta b {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+  }
+
+  .about-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .about-btn {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: .02em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .about-btn:hover {
+    transform: translateY(-1px);
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+  }
+
+  .about-btn.primary {
+    background: var(--accent);
+    color: var(--text-on-accent, #0f172a);
+    border-color: var(--accent-border);
+  }
+
+  .about-btn.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .about-description {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    padding: clamp(18px, 3vw, 26px);
+  }
+
+  [data-theme="dark"] .about-description {
+    background: rgba(17, 24, 39, 0.55);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+
+  .about-empty {
+    text-align: center;
+    padding: 32px;
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--warning);
+  }
+
+  @media (max-width: 768px) {
+    .about-shell {
+      width: min(100%, 90vw);
+      padding: 24px;
+      gap: 24px;
+    }
+
+    .about-description {
+      padding: 18px;
+    }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<section class="about-page">
+  <div class="about-shell">
+    <div class="about-header">
+      <div>
+        <h1 class="about-title">
+          {% if row %}{{ row.ProductName }}{% else %}About Team 10{% endif %}
+        </h1>
+        {% if row %}
+        <div class="about-meta">
+          <div>
+            <b>Team</b>
+            <span>{{ row.TeamNumber }}</span>
+          </div>
+          <div>
+            <b>Version</b>
+            <span>{{ row.VersionNumber }}</span>
+          </div>
+          <div>
+            <b>Release</b>
+            <span>{{ row.ReleaseDate.strftime('%Y-%m-%d') if row.ReleaseDate else '—' }}</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="about-actions">
+        <a class="about-btn" href="{{ url_for('about.about_history') }}">Release History</a>
+        {% if is_admin %}
+        <a class="about-btn primary" href="{{ url_for('about.about_new_release') }}">+ Create New Release</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if not row %}
+      <div class="about-empty">
+        No About info found in Team10_DB.AboutPage.
+      </div>
+    {% else %}
+      <article class="about-description">
+        {{ row.ProductDescription }}
+      </article>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

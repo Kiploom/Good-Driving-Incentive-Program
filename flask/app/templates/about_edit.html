@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ 'New' if mode=='create' else 'Edit' }} About Release{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>{{ 'Create New Release' if mode=='create' else 'Edit Release' }}</h1>
+      <p>Publish release notes for the About page, including product details and version history.</p>
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('about.about_history') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Release History</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <form method="post" class="admin-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-grid">
+        <div>
+          <label for="team-number">Team Number</label>
+          <input id="team-number" name="TeamNumber" required value="{{ row.TeamNumber if row else '' }}">
+        </div>
+        <div>
+          <label for="version-number">Version Number</label>
+          <input id="version-number" name="VersionNumber" required value="{{ row.VersionNumber if row else '' }}">
+        </div>
+        <div>
+          <label for="release-date">Release Date (YYYY-MM-DD)</label>
+          <input id="release-date" name="ReleaseDate" required value="{{ row.ReleaseDate.strftime('%Y-%m-%d') if row and row.ReleaseDate else '' }}">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div style="grid-column: 1 / -1;">
+          <label for="product-name">Product Name</label>
+          <input id="product-name" name="ProductName" required value="{{ row.ProductName if row else '' }}">
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <label for="product-description">Product Description</label>
+          <textarea id="product-description" rows="10" name="ProductDescription" required>{{ row.ProductDescription if row else '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a class="btn btn-secondary" href="{{ url_for('about.about_history') }}">Cancel</a>
+        <button class="btn btn-primary" type="submit">{{ 'Create' if mode=='create' else 'Save Changes' }}</button>
+      </div>
+    </form>
+
+    {% if mode == 'edit' and row %}
+    <form method="post" action="{{ url_for('about.about_delete_release', about_id=row.AboutPageID) }}" onsubmit="return confirm('Delete this release? This cannot be undone.');" class="admin-form" style="margin-top: 16px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-actions">
+        <button class="btn btn-danger" type="submit">Delete Release</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

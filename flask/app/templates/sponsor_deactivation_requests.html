@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Driver Deactivation Requests{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/deactivation-requests.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="deactivation-header-icon">
+        <i class="fas fa-user-shield" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Driver Deactivation Requests</h1>
+        <p>Review notes from your drivers, document decisions, and close the loop without leaving the sponsor workspace.</p>
+      </div>
+      <div class="settings-header-actions">
+        <a href="{{ url_for('sponsor.manage_drivers') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to Driver Ops
+        </a>
+      </div>
+    </header>
+
+    <section class="settings-card">
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+          <h2>Requests awaiting your decision</h2>
+        </div>
+        <p class="settings-section-description">
+          Decisions are logged instantly and visible to administrators. Add context in the notes field before approving or denying a request.
+        </p>
+      </div>
+
+      <div class="settings-table-wrapper deactivation-table-wrapper">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Submitted</th>
+              <th scope="col">Driver</th>
+              <th scope="col">Email</th>
+              <th scope="col">Reason</th>
+              <th scope="col">Status</th>
+              <th scope="col">Processed</th>
+              <th scope="col" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if requests %}
+              {% for row in requests %}
+              {% set status = (row.request.Status or '').lower() %}
+              {% set status_class = 'pending' %}
+              {% if status == 'approved' %}
+                {% set status_class = 'approved' %}
+              {% elif status == 'denied' %}
+                {% set status_class = 'denied' %}
+              {% elif status == 'cancelled' %}
+                {% set status_class = 'cancelled' %}
+              {% endif %}
+              <tr>
+                <td>
+                  {{ row.request.CreatedAt.strftime('%b %d, %Y • %I:%M %p') }}
+                </td>
+                <td>
+                  <div>{{ row.account_display }}</div>
+                  <div class="text-muted small">Driver #{{ row.request.AccountID }}</div>
+                </td>
+                <td>{{ row.account_email or '—' }}</td>
+                <td>{{ row.reason }}</td>
+                <td>
+                  <span class="deactivation-badge {{ status_class }}">
+                    {% if status_class == 'approved' %}
+                    <i class="fas fa-check-circle" aria-hidden="true"></i>
+                    {% elif status_class == 'denied' %}
+                    <i class="fas fa-times-circle" aria-hidden="true"></i>
+                    {% elif status_class == 'cancelled' %}
+                    <i class="fas fa-minus-circle" aria-hidden="true"></i>
+                    {% else %}
+                    <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                    {% endif %}
+                    {{ row.status_label }}
+                  </span>
+                </td>
+                <td>
+                  {% if row.request.ProcessedAt %}
+                    {{ row.request.ProcessedAt.strftime('%b %d, %Y • %I:%M %p') }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {% if row.request.is_pending and row.request.AccountID != current_user.AccountID %}
+                  <form method="post" action="{{ url_for('account_deactivation.sponsor_decide', request_id=row.request.RequestID) }}" class="deactivation-decision-form" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="decision_notes" placeholder="Decision notes (optional)"></textarea>
+                    <div class="deactivation-decision-actions">
+                      <button type="submit" name="decision" value="approve" class="btn btn-success btn-sm">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        Approve
+                      </button>
+                      <button type="submit" name="decision" value="deny" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                        Deny
+                      </button>
+                    </div>
+                  </form>
+                  {% elif row.request.is_pending %}
+                  <span class="text-muted small">You cannot process your own request.</span>
+                  {% else %}
+                  <span class="text-muted small">No action available</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+            <tr>
+              <td colspan="7">
+                <div class="deactivation-empty">
+                  <i class="fas fa-check-double" aria-hidden="true"></i>
+                  <div>No driver deactivation requests found.</div>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

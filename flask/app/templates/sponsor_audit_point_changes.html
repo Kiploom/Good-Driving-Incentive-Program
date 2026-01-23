@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Point Changes Audit Log{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <div class="page-toolbar">
+    <div>
+      <h1 class="page-title">Point Changes Audit Log &mdash; {{ sponsor.Company }}</h1>
+      <p class="page-description">Monitor adjustments to driver point balances, including manual updates and redemptions.</p>
+    </div>
+    <div class="page-toolbar__actions">
+      <a class="btn btn-ghost" href="{{ url_for('sponsor.audit_log') }}">Back to Audit Menu</a>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search driver, reason…">
+    <select name="change_type" onchange="this.form.submit()">
+      <option value="">All changes</option>
+      <option value="positive" {% if change_type=='positive' %}selected{% endif %}>Positive (+)</option>
+      <option value="negative" {% if change_type=='negative' %}selected{% endif %}>Negative (-)</option>
+    </select>
+    <select name="reason" id="reason-select" onchange="this.form.submit()">
+      <option value="">All reasons</option>
+      {% if change_type == 'positive' or change_type == '' %}
+        {% for reason in default_positive_reasons %}
+          <option value="{{ reason }}" {% if reason_filter==reason %}selected{% endif %}>{{ reason }}</option>
+        {% endfor %}
+      {% endif %}
+      {% if change_type == 'negative' or change_type == '' %}
+        {% for reason in default_negative_reasons %}
+          <option value="{{ reason }}" {% if reason_filter==reason %}selected{% endif %}>{{ reason }}</option>
+        {% endfor %}
+      {% endif %}
+      <option value="Manual adjustment (correction)" {% if reason_filter=='Manual adjustment (correction)' %}selected{% endif %}>Manual adjustment (correction)</option>
+      <option value="Other" {% if reason_filter=='Other' %}selected{% endif %}>Other</option>
+      {% for reason in reasons %}
+        {% set is_default = reason in default_positive_reasons or reason in default_negative_reasons or reason == 'Manual adjustment (correction)' %}
+        {% if not is_default %}
+          <option value="{{ reason }}" {% if reason_filter==reason %}selected{% endif %}>{{ reason }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From date" onchange="this.form.submit()" title="From Date">
+    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To date" onchange="this.form.submit()" title="To Date">
+    <select name="sort" onchange="this.form.submit()">
+      <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Most Recent</option>
+      <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Least Recent</option>
+    </select>
+    <div class="filter-actions">
+      <button class="btn btn-secondary" type="submit">Apply Filters</button>
+      <a href="{{ url_for('sponsor.audit_point_changes') }}" class="btn btn-ghost">Reset</a>
+    </div>
+  </form>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Driver</th>
+          <th class="text-right">Points Change</th>
+          <th class="text-right">Balance After</th>
+          <th>Reason</th>
+          <th>Initiated By</th>
+          <th>Transaction ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows and rows|length %}
+          {% for pc, driver_acct, initiator_acct, driver in rows %}
+            {% set driver_name = (driver_acct.WholeName
+                                 or ((driver_acct.FirstName or '') ~ (' ' if (driver_acct.FirstName or driver_acct.LastName) else '') ~ (driver_acct.LastName or ''))).strip() %}
+            {% set initiator_name = initiator_acct and (
+                  initiator_acct.WholeName
+                  or ((initiator_acct.FirstName or '') ~ (' ' if (initiator_acct.FirstName or initiator_acct.LastName) else '') ~ (initiator_acct.LastName or ''))
+                ) %}
+            {% set initiator_display = (initiator_name and initiator_name.strip())
+                                       or (initiator_acct and (initiator_acct.Username or initiator_acct.Email or initiator_acct.AccountID))
+                                       or (pc.InitiatedByAccountID) %}
+
+            <tr>
+              <td class="text-muted">
+                {{ pc.CreatedAt.strftime('%Y-%m-%d %H:%M') if pc.CreatedAt else '—' }}
+              </td>
+
+              <td>
+                <div class="table-strong">
+                  {{ driver_name if driver_name else ('Driver #' ~ driver.DriverID) }}
+                </div>
+                <div class="table-meta">{{ driver_acct.Email or '—' }}</div>
+                <div class="table-meta">DriverID: {{ driver.DriverID }}</div>
+              </td>
+
+              <td class="text-right">
+                {% if pc.DeltaPoints > 0 %}
+                  <span class="delta-positive">+{{ pc.DeltaPoints }}</span>
+                {% elif pc.DeltaPoints < 0 %}
+                  <span class="delta-negative">{{ pc.DeltaPoints }}</span>
+                {% else %}
+                  <span class="delta-neutral">{{ pc.DeltaPoints }}</span>
+                {% endif %}
+              </td>
+
+              <td class="text-right">
+                {% if pc.BalanceAfter is not none %}
+                  <span class="delta-neutral">{{ pc.BalanceAfter }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {% if pc.Reason and pc.Reason.startswith('Order #ORD-') and pc.Reason.endswith('- Points Payment') %}
+                  Points Payment
+                {% else %}
+                  {{ pc.Reason or '—' }}
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {{ initiator_display or '—' }}
+              </td>
+
+              <td class="table-meta">
+                {{ pc.TransactionID or '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="table-empty text-center">No point changes found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="false"
+    android:paddingBottom="100dp"
+    tools:context=".ui.catalog.CatalogFragment">
+
+    <!-- Browsing Indicator -->
+    <LinearLayout
+        android:id="@+id/browsing_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="?attr/colorSurface"
+        android:visibility="gone"
+        android:gravity="center_vertical">
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Browsing: "
+            android:textSize="14sp"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" />
+        
+        <TextView
+            android:id="@+id/browsing_category_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="bold" />
+        
+        <Button
+            android:id="@+id/clear_category_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear"
+            android:textSize="12sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:minWidth="0dp"
+            android:backgroundTint="?attr/colorPrimaryVariant" />
+    </LinearLayout>
+
+    <!-- Skeleton Loading Grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/skeleton_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="8dp"
+        android:clipToPadding="false"
+        android:visibility="gone"
+        tools:listitem="@layout/item_skeleton_product_card" />
+
+    <!-- Product Grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="8dp"
+        android:clipToPadding="false"
+        tools:listitem="@layout/item_product_card" />
+
+    <!-- Debug Info (for testing) -->
+    <TextView
+        android:id="@+id/debug_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="Debug: Ready to load catalog..."
+        android:textSize="10sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="visible" />
+
+</LinearLayout>

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice Detail{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+  .invoice-detail-header h1 {
+    margin-bottom: 0.25rem;
+  }
+  .invoice-detail-meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  .invoice-detail-summary {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .invoice-detail-summary .admin-summary-item {
+    flex: 1;
+    min-width: 150px;
+  }
+  .invoice-detail-table .invoice-line-item-row td {
+    background: var(--bg-secondary);
+    font-size: 0.9rem;
+    border-top: none;
+  }
+  .invoice-detail-table .invoice-line-item-title {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .invoice-detail-table .invoice-line-item-meta {
+    font-size: 0.8rem;
+  }
+  .invoice-detail-table .invoice-total-row td {
+    border-top: 2px solid var(--border);
+    background: var(--bg-card);
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set invoice = invoice_payload.invoice %}
+{% set sponsor = invoice_payload.sponsor %}
+{% set orders = invoice_payload.orders %}
+
+<div class="admin-shell">
+  <div class="admin-header invoice-detail-header">
+    <div>
+      <h1>Invoice {{ invoice.invoice_month }}</h1>
+      <p class="invoice-detail-meta">
+        Company: <strong>{{ sponsor.company }}</strong><br>
+        Period: <strong>{{ invoice.period_start[:10] }} → {{ invoice.period_end[:10] }}</strong><br>
+        Generated At: <strong>{{ invoice.generated_at or "Draft" }}</strong>
+      </p>
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-secondary" href="{{ url_for('sponsor.sponsor_invoices') }}">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Invoice Log</span>
+      </a>
+      {% if invoice.id %}
+      <a class="btn btn-primary" href="{{ url_for('sponsor.sponsor_invoice_pdf', invoice_id=invoice.id) }}">
+        <i class="fas fa-file-pdf"></i>
+        <span>Export PDF</span>
+      </a>
+      <a class="btn btn-primary" href="{{ url_for('sponsor.sponsor_invoice_csv', invoice_id=invoice.id) }}">
+        <i class="fas fa-file-csv"></i>
+        <span>Export CSV</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <div class="invoice-detail-summary admin-summary">
+      <div class="admin-summary-item">
+        <span>Total Orders</span>
+        <strong>{{ invoice.total_orders }}</strong>
+      </div>
+      <div class="admin-summary-item">
+        <span>Total Points</span>
+        <strong>{{ "{:,}".format(invoice.total_points) }}</strong>
+      </div>
+      <div class="admin-summary-item">
+        <span>Total Amount</span>
+        <strong>${{ "{:,.2f}".format(invoice.total_amount) }}</strong>
+      </div>
+      <div class="admin-summary-item">
+        <span>Status</span>
+        <strong>{{ invoice.status }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card admin-table-card">
+    <header>
+      <h2>Orders &amp; Line Items</h2>
+      <p class="admin-muted">All orders captured for this invoice including detailed line items.</p>
+    </header>
+    <div class="table-wrapper">
+      <table class="table invoice-detail-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Order #</th>
+            <th>Driver / Item</th>
+            <th>Points</th>
+            <th>Amount</th>
+            <th>Line Items</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if orders %}
+            {% for order in orders %}
+              <tr class="invoice-order-row">
+                <td data-label="Date">
+                  {% if order.order_created_at %}
+                    {{ order.order_created_at[:10] }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td data-label="Order #">{{ order.order_number or "—" }}</td>
+                <td data-label="Driver">
+                  {{ order.driver_name or "—" }}<br>
+                  <span class="admin-muted">{{ order.driver_email or "" }}</span>
+                </td>
+                <td data-label="Points">{{ "{:,}".format(order.total_points or 0) }}</td>
+                <td data-label="Amount">${{ "{:,.2f}".format(order.total_amount or 0) }}</td>
+                <td data-label="Line Items">{{ order.line_item_count or 0 }}</td>
+              </tr>
+              {% for item in order.line_items %}
+              <tr class="invoice-line-item-row">
+                <td></td>
+                <td colspan="2">
+                  <div class="invoice-line-item-title">{{ item.title or "—" }}</div>
+                  <div class="invoice-line-item-meta admin-muted">
+                    Qty: {{ item.quantity }} • Unit Points: {{ item.unit_points }}
+                  </div>
+                </td>
+                <td data-label="Line Points">{{ "{:,}".format(item.line_total_points or 0) }}</td>
+                <td data-label="Line Amount">${{ "{:,.2f}".format(item.line_total_amount or 0) }}</td>
+                <td></td>
+              </tr>
+              {% endfor %}
+            {% endfor %}
+            <tr class="invoice-total-row">
+              <td colspan="4" style="text-align:right;">Total Invoice Amount</td>
+              <td colspan="2">${{ "{:,.2f}".format(invoice.total_amount) }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center">No orders found for this invoice.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

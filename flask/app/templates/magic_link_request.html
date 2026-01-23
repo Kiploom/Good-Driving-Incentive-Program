@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Request Magic Link{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="settings-header-icon">
+        <i class="fas fa-link" aria-hidden="true"></i>
+      </div>
+      <div class="settings-header-content">
+        <h1>Request a Magic Login Link</h1>
+        <p>
+          We’ll email you a single-use link so you can sign in without your password.
+          Drivers with MFA enabled should continue using their authenticator device.
+        </p>
+      </div>
+    </header>
+
+    <div class="settings-card">
+      <form method="POST" class="settings-section inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-control">
+          <label for="email">Email address</label>
+          <input id="email" type="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="settings-actions">
+          <a class="btn btn-secondary" href="{{ url_for('driver.driver_account') }}">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            Send Magic Link
+          </button>
+        </div>
+      </form>
+      <div class="settings-callout info">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <div>
+          <strong>Need MFA support?</strong> Use the password reset flow or contact support
+          if you no longer have access to your authenticator.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

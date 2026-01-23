@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Apply Points to Multiple Drivers{% endblock %}
+{% block content %}
+<style>
+  .card {
+    max-width: 960px; margin: 32px auto; background:#fff; border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05); padding:28px 34px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { margin: 0 0 1.25rem; font-weight: 800; color:#111; }
+  .field { margin-bottom: 1rem; }
+  .label { display:block; font-weight:600; color:#111; margin-bottom:.4rem; }
+  .hint { color:#6b7280; font-size:.9rem; margin-top:.25rem; }
+  .input, textarea, select {
+    width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:1rem; box-sizing:border-box;
+    background:#fff;
+  }
+  .drivers-box {
+    border:1px solid #e5e7eb; border-radius:8px; padding:10px; background:#f9fafb;
+    max-height: 280px; overflow-y: auto;
+  }
+  .driver-row { display:flex; align-items:center; gap:8px; padding:6px 4px; }
+  .driver-name { font-weight:500; color:#111; }
+  .driver-email { color:#6b7280; font-size:.9rem; margin-left:4px; }
+  .actions { display:flex; gap:12px; margin-top:16px; }
+  .btn {
+    border:1px solid #ddd; border-radius:8px; padding:10px 16px; cursor:pointer; font-weight:600;
+    background:#f9fafb; color:#111; transition:background .2s;
+  }
+  .btn:hover { background:#f3f4f6; }
+  .btn-primary { background:#2563eb; color:#fff; border:none; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+  .count { color:#6b7280; font-size:.9rem; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .col { flex:1 1 260px; }
+  .error { color:#b91c1c; font-size:.9rem; margin-top:.35rem; display:none; }
+</style>
+
+<div class="card">
+  <h1>Apply Points to Multiple Drivers</h1>
+
+  <form method="post" id="multi-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <!-- DRIVERS -->
+    <div class="field">
+      <div class="toolbar">
+        <label class="label" for="driver-list">Select Drivers:</label>
+        <div class="count" id="sel-count">0 selected</div>
+      </div>
+      <div class="drivers-box" id="driver-list">
+        {% if drivers and drivers|length > 0 %}
+          <label class="driver-row" style="border-bottom:1px dashed #e5e7eb; padding-bottom:8px; margin-bottom:8px;">
+            <input type="checkbox" id="select-all">
+            <span class="driver-name">Select All</span>
+          </label>
+          {% for d in drivers %}
+            <label class="driver-row">
+              <input type="checkbox" name="driver_ids" value="{{ d.DriverID }}" class="driver-cb">
+              <span class="driver-name">{{ d.Account.FirstName }} {{ d.Account.LastName }}</span>
+              <span class="driver-email">({{ d.Account.Email }})</span>
+              <span class="driver-email">• {{ d.PointsBalance or 0 }} pts</span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <div class="hint">No drivers found for your company.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- OPERATION + AMOUNT -->
+    <div class="row">
+      <div class="field col" style="max-width:260px;">
+        <label class="label" for="operation">Action:</label>
+        <select class="input" id="operation">
+          <option value="add" selected>Add</option>
+          <option value="deduct">Deduct</option>
+        </select>
+        <div class="hint">This controls whether points are added or deducted.</div>
+      </div>
+
+      <div class="field col" style="max-width:360px;">
+        {% set min_allowed = sponsor.MinPointsPerTxn if sponsor and sponsor.MinPointsPerTxn is not none else 1 %}
+        {% set max_allowed = sponsor.MaxPointsPerTxn if sponsor and sponsor.MaxPointsPerTxn is not none else 1000 %}
+        <label class="label" for="points_amount">
+          Points Amount ({{ min_allowed }}&ndash;{{ max_allowed }}):
+        </label>
+        <input
+          class="input"
+          id="points_amount"
+          type="number"
+          min="{{ min_allowed }}"
+          max="{{ max_allowed }}"
+          step="1"
+          inputmode="numeric"
+          pattern="\d*"
+          placeholder="e.g., {{ min_allowed }}"
+          required
+          data-min="{{ min_allowed }}"
+          data-max="{{ max_allowed }}"
+        >
+        <div class="hint">Your company limits each transaction to {{ min_allowed }}&ndash;{{ max_allowed }} points.</div>
+        <div id="amount-error" class="error">Amount must be between {{ min_allowed }} and {{ max_allowed }}.</div>
+      </div>
+    </div>
+
+    <!-- REASON (dynamic by operation) -->
+    <div class="row">
+      <div class="field col" style="min-width:280px;">
+        <label class="label" for="reason_choice">Reason:</label>
+        <select id="reason_choice" class="input"></select>
+      </div>
+      <div class="field col" style="min-width:280px;">
+        <label class="label" for="reason_other">Other (optional):</label>
+        <input id="reason_other" type="text" class="input" placeholder="Custom reason..." style="display:none;">
+      </div>
+    </div>
+
+    <!-- Hidden fields that backend expects (unchanged route) -->
+    <input id="points_delta" name="points_delta" type="hidden">
+    <input id="reason_final" name="reason" type="hidden">
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Apply Points</button>
+      <a href="{{ url_for('sponsor.points_settings') }}" class="btn">Back to Points Settings</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // --- Select all + count ---
+  const boxes = Array.from(document.querySelectorAll('.driver-cb'));
+  const selCount = document.getElementById('sel-count');
+  const selectAll = document.getElementById('select-all');
+
+  function updateCount() {
+    const n = boxes.filter(b => b.checked).length;
+    selCount.textContent = n + ' selected';
+    if (selectAll) selectAll.checked = (n === boxes.length && boxes.length > 0);
+  }
+  boxes.forEach(b => b.addEventListener('change', updateCount));
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      boxes.forEach(b => b.checked = selectAll.checked);
+      updateCount();
+    });
+  }
+  updateCount();
+
+  // --- Predetermined reasons (kept in template, grouped by operation) ---
+  const ADD_REASONS = [
+    "Safety bonus (no incidents)",
+    "On-time delivery streak",
+    "Positive customer feedback",
+    "Monthly performance bonus",
+    "Training completed",
+    "Referral bonus (driver hired)",
+    "Holiday bonus",
+    "Extra shift / route coverage",
+    "Fuel efficiency target met",
+    "Special project completion",
+    "Attendance milestone",
+    "Manual adjustment (correction)"
+  ];
+  const DEDUCT_REASONS = [
+    "Late delivery",
+    "Missed pickup",
+    "Customer complaint",
+    "Safety violation (minor)",
+    "Safety violation (major)",
+    "Equipment misuse / damage",
+    "Policy non-compliance",
+    "No-show / unapproved absence",
+    "Excessive idling / fuel waste",
+    "Paperwork error / missing docs",
+    "Uniform/branding issue",
+    "Manual adjustment (correction)"
+  ];
+
+  const opSelect     = document.getElementById('operation');
+  const amountInput  = document.getElementById('points_amount');
+  const amountError  = document.getElementById('amount-error');
+  const reasonSelect = document.getElementById('reason_choice');
+  const reasonOther  = document.getElementById('reason_other');
+  const reasonFinal  = document.getElementById('reason_final');
+  const deltaHidden  = document.getElementById('points_delta');
+  const form         = document.getElementById('multi-form');
+
+  const minAllowed = parseInt(amountInput.dataset.min, 10) || 1;
+  const maxAllowed = parseInt(amountInput.dataset.max, 10) || 1000;
+
+  function populateReasons() {
+    const list = opSelect.value === 'deduct' ? DEDUCT_REASONS : ADD_REASONS;
+    reasonSelect.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = '-- Select Reason --';
+    reasonSelect.appendChild(ph);
+
+    list.forEach(txt => {
+      const opt = document.createElement('option');
+      opt.value = txt;
+      opt.textContent = txt;
+      reasonSelect.appendChild(opt);
+    });
+
+    const other = document.createElement('option');
+    other.value = '__other__';
+    other.textContent = 'Other (specify)';
+    reasonSelect.appendChild(other);
+
+    // reset other/custom
+    reasonOther.value = '';
+    reasonOther.style.display = 'none';
+    reasonFinal.value = '';
+  }
+
+  function syncReasonFinal() {
+    const val = reasonSelect.value;
+    if (val === '__other__') {
+      reasonOther.style.display = 'block';
+      reasonFinal.value = reasonOther.value.trim();
+    } else {
+      reasonOther.style.display = 'none';
+      reasonFinal.value = val || '';
+    }
+  }
+
+  // Clamp amount to [min,max] and to integers
+  function normalizeAmount() {
+    let n = parseInt(amountInput.value, 10);
+    if (isNaN(n)) { amountInput.value = ''; hideAmountError(); return null; }
+    if (n < minAllowed) n = minAllowed;
+    if (n > maxAllowed) n = maxAllowed;
+    amountInput.value = n.toString();
+    hideAmountError();
+    return n;
+  }
+
+  function showAmountError() { amountError.style.display = 'block'; }
+  function hideAmountError() { amountError.style.display = 'none'; }
+
+  // Before submit: validate range and compute signed delta
+  form.addEventListener('submit', (e) => {
+    const raw = amountInput.value.trim();
+    if (raw === '') {
+      showAmountError();
+      e.preventDefault();
+      return false;
+    }
+    let n = parseInt(raw, 10);
+    if (isNaN(n) || n < minAllowed || n > maxAllowed) {
+      showAmountError();
+      e.preventDefault();
+      return false;
+    }
+    const sign = opSelect.value === 'deduct' ? -1 : 1;
+    deltaHidden.value = (sign * n).toString();
+
+    // ensure a reason is set
+    syncReasonFinal();
+    if (!reasonFinal.value) {
+      e.preventDefault();
+      alert('Please select or enter a reason.');
+      return false;
+    }
+    
+    // Debug logging
+    console.log('Form submission data:');
+    console.log('Selected drivers:', Array.from(document.querySelectorAll('input[name="driver_ids"]:checked')).map(cb => cb.value));
+    console.log('Points delta:', deltaHidden.value);
+    console.log('Reason:', reasonFinal.value);
+    
+    hideAmountError();
+    return true;
+  });
+
+  opSelect.addEventListener('change', () => { populateReasons(); syncReasonFinal(); });
+  reasonSelect.addEventListener('change', syncReasonFinal);
+  reasonOther.addEventListener('input', syncReasonFinal);
+  amountInput.addEventListener('input', normalizeAmount);
+  amountInput.addEventListener('blur', normalizeAmount);
+
+  // initialize UI on load
+  populateReasons();
+  syncReasonFinal();
+</script>
+{% endblock %}

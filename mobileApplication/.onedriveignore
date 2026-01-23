@@ -1,0 +1,8 @@
+# OneDrive ignore file - exclude build directories
+app/build/
+.gradle/
+build/
+*.class
+*.dex
+*.apk
+*.aar

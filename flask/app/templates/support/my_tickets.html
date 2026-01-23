@@ -1,0 +1,297 @@
+{% extends "support/base.html" %}
+
+{% block title %}My Support Tickets{% endblock %}
+
+{% block content %}
+<div class="user-support-container">
+    <!-- Header Section -->
+    <div class="user-header">
+        <div class="header-content">
+            <h1><i class="fas fa-ticket-alt"></i> My Support Tickets</h1>
+            <p class="header-subtitle">Track and manage your support requests</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h2><i class="fas fa-filter"></i> Filter & Search Tickets</h2>
+            <div class="filter-toggle">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleFilters">
+                    <i class="fas fa-chevron-down"></i> Toggle Filters
+                </button>
+            </div>
+        </div>
+        
+        <div class="filters-content" id="filtersContent">
+            <form method="GET" action="{{ url_for('support_ui.my_tickets') }}" class="filters-form">
+                <div class="filters-grid">
+                    <!-- Search -->
+                    <div class="filter-group">
+                        <label for="q" class="filter-label">
+                            <i class="fas fa-search"></i> Search
+                        </label>
+                        <input type="text" 
+                               id="q" 
+                               name="q" 
+                               value="{{ q_filter }}" 
+                               placeholder="Search by title or content..."
+                               class="form-control">
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="filter-group">
+                        <label for="status" class="filter-label">
+                            <i class="fas fa-flag"></i> Status
+                        </label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="new" {% if status_filter == 'new' %}selected{% endif %}>
+                                <i class="fas fa-plus-circle"></i> New
+                            </option>
+                            <option value="open" {% if status_filter == 'open' %}selected{% endif %}>
+                                <i class="fas fa-clock"></i> Open
+                            </option>
+                            <option value="waiting" {% if status_filter == 'waiting' %}selected{% endif %}>
+                                <i class="fas fa-hourglass-half"></i> Waiting
+                            </option>
+                            <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>
+                                <i class="fas fa-check-circle"></i> Resolved
+                            </option>
+                            <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>
+                                <i class="fas fa-archive"></i> Closed
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label for="category_id" class="filter-label">
+                            <i class="fas fa-tag"></i> Category
+                        </label>
+                        <select id="category_id" name="category_id" class="form-select">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.CategoryID }}" 
+                                    {% if category_filter == category.CategoryID %}selected{% endif %}>
+                                {{ category.Name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Date Range -->
+                    <div class="filter-group">
+                        <label for="from" class="filter-label">
+                            <i class="fas fa-calendar"></i> From Date
+                        </label>
+                        <input type="date" 
+                               id="from" 
+                               name="from" 
+                               value="{{ from_date }}"
+                               class="form-control">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="to" class="filter-label">
+                            <i class="fas fa-calendar"></i> To Date
+                        </label>
+                        <input type="date" 
+                               id="to" 
+                               name="to" 
+                               value="{{ to_date }}"
+                               class="form-control">
+                    </div>
+                    
+                    <!-- Show Closed Toggle -->
+                    <div class="filter-group checkbox-group">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="show_closed" 
+                                   name="show_closed" 
+                                   value="true"
+                                   {% if show_closed %}checked{% endif %}>
+                            <label class="form-check-label" for="show_closed">
+                                <i class="fas fa-archive"></i> Show closed tickets
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('support_ui.my_tickets') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Clear All
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tickets List -->
+    <div class="tickets-section">
+        <div class="tickets-header">
+            <h2><i class="fas fa-ticket-alt"></i> Support Tickets</h2>
+            <div class="tickets-count">
+                <span class="badge bg-primary">{{ tickets|length }} tickets</span>
+            </div>
+        </div>
+        
+        {% if tickets %}
+            <div class="tickets-grid">
+                {% for ticket in tickets %}
+                <div class="ticket-card {{ ticket.Status }}">
+                    <div class="ticket-card-header">
+                        <div class="ticket-priority">
+                            <span class="status-badge {{ ticket.Status }}">
+                                <i class="fas fa-circle"></i> {{ ticket.Status|title }}
+                            </span>
+                        </div>
+                        <div class="ticket-id">
+                            #{{ ticket.TicketID[:8] }}
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-card-body">
+                        <h3 class="ticket-title">
+                            <a href="{{ url_for('support_ui.ticket_detail', ticket_id=ticket.TicketID) }}" 
+                               class="ticket-link">
+                                {{ ticket.Title }}
+                            </a>
+                        </h3>
+                        
+                        <p class="ticket-preview">
+                            {{ ticket.Body[:120] }}{% if ticket.Body|length > 120 %}...{% endif %}
+                        </p>
+                        
+                        <div class="ticket-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span class="meta-label">Created:</span>
+                                <span class="meta-value">{{ ticket.CreatedAt.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                            </div>
+                            
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span class="meta-label">Updated:</span>
+                                <span class="meta-value">{{ ticket.UpdatedAt.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                            </div>
+                            
+                            {% if ticket.category %}
+                            <div class="meta-item">
+                                <i class="fas fa-tag"></i>
+                                <span class="meta-label">Category:</span>
+                                <span class="meta-value">{{ ticket.category.Name }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="meta-item">
+                                <i class="fas fa-comments"></i>
+                                <span class="meta-label">Messages:</span>
+                                <span class="meta-value">{{ ticket.messages.count() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-card-footer">
+                        <div class="ticket-actions">
+                            <a href="{{ url_for('support_ui.ticket_detail', ticket_id=ticket.TicketID) }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            {% if ticket.Status == 'resolved' %}
+                            <form method="POST" action="{{ url_for('support_ui.close_ticket', ticket_id=ticket.TicketID) }}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to close this ticket?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check"></i> Close
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div class="ticket-age">
+                            <i class="fas fa-calendar-alt"></i>
+                            {{ (moment().subtract(ticket.CreatedAt).days) if moment else 'Recently' }} days old
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h3>No tickets found</h3>
+                <p class="empty-message">
+                    {% if q_filter or status_filter or category_filter or from_date or to_date %}
+                        No tickets match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        You haven't created any support tickets yet.
+                    {% endif %}
+                </p>
+                <div class="empty-actions">
+                    {% if not (q_filter or status_filter or category_filter or from_date or to_date) %}
+                    <a href="{{ url_for('support_ui.new_ticket') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Your First Ticket
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('support_ui.my_tickets') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Toggle filters visibility
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersContent = document.getElementById('filtersContent');
+    
+    if (toggleBtn && filtersContent) {
+        // Start with filters collapsed
+        filtersContent.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Show Filters';
+        
+        toggleBtn.addEventListener('click', function() {
+            if (filtersContent.style.display === 'none') {
+                filtersContent.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Hide Filters';
+            } else {
+                filtersContent.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Show Filters';
+            }
+        });
+    }
+    
+    // Auto-submit form when filters change
+    const filterInputs = document.querySelectorAll('#status, #category_id');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+    
+    // Show/hide closed tickets toggle
+    const showClosedCheckbox = document.getElementById('show_closed');
+    if (showClosedCheckbox) {
+        showClosedCheckbox.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,374 @@
+{% extends "support/base.html" %}
+
+{% block title %}Admin Support Hub{% endblock %}
+
+{% block content %}
+<div class="settings-page support-page-shell">
+  <div class="settings-container support-wrapper">
+    <div class="admin-support-container support-theme">
+      <!-- Header Section -->
+      <div class="admin-header">
+        <div class="header-content">
+          <h1><i class="fas fa-headset"></i> Support Administration</h1>
+          <p class="header-subtitle">Manage and respond to support tickets efficiently</p>
+        </div>
+        <div class="header-actions">
+          <a href="{{ url_for('support_ui.admin_categories') }}" class="btn btn-outline-primary">
+            <i class="fas fa-tags"></i> Manage Categories
+          </a>
+        </div>
+      </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="enhanced-stats-grid">
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.total }}</div>
+                <div class="stat-label">Total Tickets</div>
+            </div>
+        </div>
+        
+        <div class="stat-card new">
+            <div class="stat-icon">
+                <i class="fas fa-plus-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.new }}</div>
+                <div class="stat-label">New Tickets</div>
+            </div>
+        </div>
+        
+        <div class="stat-card open">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.open }}</div>
+                <div class="stat-label">Open Tickets</div>
+            </div>
+        </div>
+        
+        <div class="stat-card waiting">
+            <div class="stat-icon">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.waiting }}</div>
+                <div class="stat-label">Waiting</div>
+            </div>
+        </div>
+        
+        <div class="stat-card resolved">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.resolved }}</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </div>
+        
+        <div class="stat-card closed">
+            <div class="stat-icon">
+                <i class="fas fa-archive"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ ticket_counts.closed }}</div>
+                <div class="stat-label">Closed</div>
+            </div>
+        </div>
+        
+        <div class="stat-card sponsor">
+            <div class="stat-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ source_counts.sponsor }}</div>
+                <div class="stat-label">Sponsor Tickets</div>
+            </div>
+        </div>
+        
+        <div class="stat-card driver">
+            <div class="stat-icon">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ source_counts.driver }}</div>
+                <div class="stat-label">Driver Tickets</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h2><i class="fas fa-filter"></i> Filter & Search Tickets</h2>
+            <div class="filter-toggle">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleFilters">
+                    <i class="fas fa-chevron-down"></i> Toggle Filters
+                </button>
+            </div>
+        </div>
+        
+        <div class="filters-content" id="filtersContent">
+            <form method="GET" action="{{ url_for('support_ui.admin_support_hub') }}" class="filters-form">
+                <div class="filters-grid">
+                    <!-- Search -->
+                    <div class="filter-group">
+                        <label for="q" class="filter-label">
+                            <i class="fas fa-search"></i> Search
+                        </label>
+                        <input type="text" 
+                               id="q" 
+                               name="q" 
+                               value="{{ q_filter }}" 
+                               placeholder="Search by title or content..."
+                               class="form-control">
+                    </div>
+                    
+                    <!-- Source Filter -->
+                    <div class="filter-group">
+                        <label for="source" class="filter-label">
+                            <i class="fas fa-users"></i> Source
+                        </label>
+                        <select id="source" name="source" class="form-select">
+                            <option value="">All Sources</option>
+                            <option value="sponsor" {% if source_filter == 'sponsor' %}selected{% endif %}>
+                                <i class="fas fa-building"></i> Sponsor
+                            </option>
+                            <option value="driver" {% if source_filter == 'driver' %}selected{% endif %}>
+                                <i class="fas fa-truck"></i> Driver
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="filter-group">
+                        <label for="status" class="filter-label">
+                            <i class="fas fa-flag"></i> Status
+                        </label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="new" {% if status_filter == 'new' %}selected{% endif %}>
+                                <i class="fas fa-plus-circle"></i> New
+                            </option>
+                            <option value="open" {% if status_filter == 'open' %}selected{% endif %}>
+                                <i class="fas fa-clock"></i> Open
+                            </option>
+                            <option value="waiting" {% if status_filter == 'waiting' %}selected{% endif %}>
+                                <i class="fas fa-hourglass-half"></i> Waiting
+                            </option>
+                            <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>
+                                <i class="fas fa-check-circle"></i> Resolved
+                            </option>
+                            <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>
+                                <i class="fas fa-archive"></i> Closed
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label for="category_id" class="filter-label">
+                            <i class="fas fa-tag"></i> Category
+                        </label>
+                        <select id="category_id" name="category_id" class="form-select">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.CategoryID }}" 
+                                    {% if category_filter == category.CategoryID %}selected{% endif %}>
+                                {{ category.Name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Date Range -->
+                    <div class="filter-group">
+                        <label for="from" class="filter-label">
+                            <i class="fas fa-calendar"></i> From Date
+                        </label>
+                        <input type="date" 
+                               id="from" 
+                               name="from" 
+                               value="{{ from_date }}"
+                               class="form-control">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="to" class="filter-label">
+                            <i class="fas fa-calendar"></i> To Date
+                        </label>
+                        <input type="date" 
+                               id="to" 
+                               name="to" 
+                               value="{{ to_date }}"
+                               class="form-control">
+                    </div>
+                    
+                    <!-- Show Closed Toggle -->
+                    <div class="filter-group checkbox-group">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="show_closed" 
+                                   name="show_closed" 
+                                   value="true"
+                                   {% if show_closed %}checked{% endif %}>
+                            <label class="form-check-label" for="show_closed">
+                                <i class="fas fa-archive"></i> Show closed tickets
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('support_ui.admin_support_hub') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Clear All
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tickets List -->
+    <div class="tickets-section">
+        <div class="tickets-header">
+            <h2><i class="fas fa-ticket-alt"></i> Support Tickets</h2>
+            <div class="tickets-count">
+                <span class="badge bg-primary">{{ recent_tickets|length }} tickets</span>
+            </div>
+        </div>
+        
+        {% if recent_tickets %}
+            <div class="tickets-grid">
+                {% for ticket in recent_tickets %}
+                <div class="ticket-card {{ ticket.Status }}">
+                    <div class="ticket-card-header">
+                        <div class="ticket-priority">
+                            <span class="status-badge {{ ticket.Status }}">
+                                <i class="fas fa-circle"></i> {{ ticket.Status|title }}
+                            </span>
+                        </div>
+                        <div class="ticket-id">
+                            #{{ ticket.TicketID[:8] }}
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-card-body">
+                        <h3 class="ticket-title">
+                            <a href="{{ url_for('support_ui.admin_ticket_detail', ticket_id=ticket.TicketID) }}" 
+                               class="ticket-link">
+                                {{ ticket.Title }}
+                            </a>
+                        </h3>
+                        
+                        <p class="ticket-preview">
+                            {{ ticket.Body[:120] }}{% if ticket.Body|length > 120 %}...{% endif %}
+                        </p>
+                        
+                        <div class="ticket-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-user-circle"></i>
+                                <span class="meta-label">Submitted by:</span>
+                                <span class="meta-value">{{ ticket.owner_name }}</span>
+                            </div>
+                            
+                            <div class="meta-item">
+                                <i class="fas fa-{{ 'building' if ticket.Source == 'sponsor' else 'truck' }}"></i>
+                                <span class="meta-label">Source:</span>
+                                <span class="meta-value">{{ ticket.Source|title }}</span>
+                            </div>
+                            
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span class="meta-label">Created:</span>
+                                <span class="meta-value">{{ ticket.CreatedAt.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                            </div>
+                            
+                            {% if ticket.category %}
+                            <div class="meta-item">
+                                <i class="fas fa-tag"></i>
+                                <span class="meta-label">Category:</span>
+                                <span class="meta-value">{{ ticket.category.Name }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-card-footer">
+                        <div class="ticket-actions">
+                            <a href="{{ url_for('support_ui.admin_ticket_detail', ticket_id=ticket.TicketID) }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                        </div>
+                        <div class="ticket-age">
+                            <i class="fas fa-calendar-alt"></i>
+                            {{ (moment().subtract(ticket.CreatedAt).days) if moment else 'Recently' }} days old
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h3>No tickets found</h3>
+                <p class="empty-message">
+                    {% if q_filter or source_filter or status_filter or category_filter or from_date or to_date %}
+                        No tickets match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        There are no support tickets in the system yet.
+                    {% endif %}
+                </p>
+                <div class="empty-actions">
+                    {% if not (q_filter or source_filter or status_filter or category_filter or from_date or to_date) %}
+                    <a href="{{ url_for('support_ui.admin_categories') }}" class="btn btn-primary">
+                        <i class="fas fa-tags"></i> Set Up Categories
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('support_ui.admin_support_hub') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Toggle filters visibility
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersContent = document.getElementById('filtersContent');
+    
+    if (toggleBtn && filtersContent) {
+        // Start with filters collapsed
+        filtersContent.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Show Filters';
+        
+        toggleBtn.addEventListener('click', function() {
+            if (filtersContent.style.display === 'none') {
+                filtersContent.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Hide Filters';
+            } else {
+                filtersContent.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Show Filters';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
