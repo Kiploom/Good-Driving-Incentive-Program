@@ -25,7 +25,6 @@ __pycache__/
 project_dump.txt
 database_schema.txt
 project_files.txt
-*.txt
 databaseexportmysql.txt
 
 # Ignore virtual environment
@@ -39,7 +38,5 @@ venv/pyvenv.cfg
 .cursorignore
 
 *.sql
-
-*.md
 
 .vscode/
