@@ -153,10 +153,26 @@ def create_app(config_object="config.Config"):
     @app.after_request
     def add_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Configure iframe embedding via environment variable
+        # Set ALLOW_IFRAME_ORIGINS to allow specific origins, or '*' to allow all
+        # Examples:
+        #   ALLOW_IFRAME_ORIGINS=https://gbensoon.com https://www.gbensoon.com
+        #   ALLOW_IFRAME_ORIGINS=*
+        #   Leave unset to deny all iframe embedding (default)
+        allow_iframe_origins = os.getenv('ALLOW_IFRAME_ORIGINS', '').strip()
+        
+        if allow_iframe_origins:
+            # Remove X-Frame-Options when using CSP frame-ancestors (CSP takes precedence)
+            # X-Frame-Options is deprecated in favor of CSP frame-ancestors
+            response.headers.pop('X-Frame-Options', None)
+        else:
+            # Default: deny iframe embedding if not configured
+            response.headers['X-Frame-Options'] = 'DENY'
+        
         # Get S3 bucket domain from config for CSP
         from config import s3_config
         s3_domains = []
@@ -182,6 +198,16 @@ def create_app(config_object="config.Config"):
             f"connect-src 'self' https: {' '.join(s3_domains)}",
             "font-src 'self' https://cdnjs.cloudflare.com"
         ]
+        
+        # Add frame-ancestors directive if iframe embedding is allowed
+        if allow_iframe_origins:
+            if allow_iframe_origins == '*':
+                csp_directives.append("frame-ancestors *")
+            else:
+                # Allow specific origins (space-separated list)
+                origins = ' '.join(origin.strip() for origin in allow_iframe_origins.split() if origin.strip())
+                if origins:
+                    csp_directives.append(f"frame-ancestors {origins}")
         
         response.headers['Content-Security-Policy'] = "; ".join(csp_directives) + ";"
         return response
