@@ -611,6 +611,10 @@ def create_app(config_object="config.Config"):
     app.register_blueprint(account_deactivation_bp)
     app.register_blueprint(account_password_bp)
 
+    # --- CLI commands ---
+    from app.cli_commands import create_admin_cmd
+    app.cli.add_command(create_admin_cmd)
+
     # --- Update session last-activity globally on authenticated requests ---
     from flask import session as flask_session, request
     from app.services.session_management_service import SessionManagementService

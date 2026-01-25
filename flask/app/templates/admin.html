@@ -13,9 +13,9 @@
       <p>Provision a new platform administrator with secure credentials and verified contact details.</p>
     </div>
     <div class="admin-actions">
-      <a href="{{ url_for('admin.account_management') }}" class="btn btn-secondary">
+      <a href="{{ url_for('auth.login_page') }}" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i>
-        <span>Back to Account Management</span>
+        <span>Back to Log In</span>
       </a>
     </div>
   </div>
@@ -41,7 +41,7 @@
   {% endif %}
 
   <div class="admin-card">
-    <form action="{{ url_for('admin.admin_create_admin') }}" method="POST" class="admin-form" novalidate>
+    <form action="{{ url_for('users.admin') }}" method="POST" class="admin-form" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="form-grid">
         <div>
