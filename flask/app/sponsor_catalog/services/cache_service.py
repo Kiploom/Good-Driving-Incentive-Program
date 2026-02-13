@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
-from app.models_sponsor_catalog import SponsorCatalogResultCache
+from app.models import SponsorCatalogResultCache
 
 TTL_SECONDS = 60 * 15  # 15 minutes
 

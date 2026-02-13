@@ -20,16 +20,16 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from ..models import Sponsor
-from ..models_sponsor_catalog import (
+from ..models import (
+    BlacklistedProduct,
+    ProductReports,
+    Sponsor,
+    SponsorActiveFilterSelection,
+    SponsorCatalogExclusion,
     SponsorCatalogFilterSet,
     SponsorCatalogInclusion,
-    SponsorCatalogExclusion,
-    SponsorActiveFilterSelection,
     SponsorPinnedProduct,
-    BlacklistedProduct
 )
-from ..models_favorites import ProductReports
 from .services.preview_service import preview as build_preview
 from .services.audit_service import log
 from ..extensions import db
@@ -1342,8 +1342,7 @@ def filter_sets_audit_history():
         'FILTER_EXPORT_PDF'
     ]
     
-    from ..models_sponsor_catalog import SponsorAuditLog
-    from ..models import Account
+    from ..models import Account, SponsorAuditLog
     
     # Query audit logs with actor information
     audit_logs = (
@@ -2368,7 +2367,7 @@ def get_categories():
     )
     
     # Try to load from the JSON file
-    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+    json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
     
     if not os.path.exists(json_path):
         # Fallback: return a simplified structure from test catalog

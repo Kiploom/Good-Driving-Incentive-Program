@@ -1,6 +1,6 @@
 # app/sponsor_catalog/services/audit_service.py
 from app.extensions import db
-from app.models_sponsor_catalog import SponsorAuditLog
+from app.models import SponsorAuditLog
 from flask import current_app
 
 def log(sponsor_id: str, action: str, actor_user_id: str | None, details: dict | None = None) -> None:

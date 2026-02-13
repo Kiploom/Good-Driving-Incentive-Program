@@ -2,10 +2,12 @@ import os
 import sys
 import uuid
 
+# Ensure app package importable
 TESTS_DIR = os.path.dirname(__file__)
-ROOT_DIR = os.path.abspath(os.path.join(TESTS_DIR, ".."))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+PROJECT_ROOT = os.path.dirname(TESTS_DIR)
+FLASK_DIR = os.path.join(PROJECT_ROOT, "flask")
+if FLASK_DIR not in sys.path:
+    sys.path.insert(0, FLASK_DIR)
 
 import pytest
 from flask import Flask
@@ -106,4 +108,3 @@ def test_serialize_notification_includes_sponsor_context(app_context):
     assert serialized["sponsorContext"]["sponsorId"] == "s-123"
     assert serialized["sponsorContext"]["sponsorName"] == "Acme Logistics"
     assert serialized["sponsorContext"]["isSponsorSpecific"] is True
-

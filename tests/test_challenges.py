@@ -7,11 +7,12 @@ import sys
 import pytest
 from flask import Flask
 
-# Ensure app package importable when running tests directly from this directory
+# Ensure app package importable
 TESTS_DIR = os.path.dirname(__file__)
-ROOT_DIR = os.path.abspath(os.path.join(TESTS_DIR, ".."))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+PROJECT_ROOT = os.path.dirname(TESTS_DIR)
+FLASK_DIR = os.path.join(PROJECT_ROOT, "flask")
+if FLASK_DIR not in sys.path:
+    sys.path.insert(0, FLASK_DIR)
 
 from app.extensions import db
 from app.models import (
@@ -205,4 +206,3 @@ def test_expired_challenge_marks_subscription(app_context):
         assert results == []
         refreshed = DriverChallengeSubscription.query.get(subscription.DriverChallengeSubscriptionID)
         assert refreshed.Status == 'expired'
-

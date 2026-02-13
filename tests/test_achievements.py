@@ -2,11 +2,12 @@ import os
 import sys
 import uuid
 
+# Ensure app package importable (conftest adds flask to path, but keep for direct runs)
 TESTS_DIR = os.path.dirname(__file__)
-ROOT_DIR = os.path.abspath(os.path.join(TESTS_DIR, ".."))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
-
+PROJECT_ROOT = os.path.dirname(TESTS_DIR)
+FLASK_DIR = os.path.join(PROJECT_ROOT, "flask")
+if FLASK_DIR not in sys.path:
+    sys.path.insert(0, FLASK_DIR)
 
 import pytest
 from flask import Flask
@@ -173,4 +174,3 @@ def test_multiple_achievements_handles_mixed_thresholds(app_context):
     assert early.AchievementID in earned_ids
     assert mid.AchievementID in earned_ids
     assert high.AchievementID not in earned_ids
-

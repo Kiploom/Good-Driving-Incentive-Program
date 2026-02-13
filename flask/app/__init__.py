@@ -129,7 +129,9 @@ def create_app(config_object="config.Config"):
 
     # --- Init extensions ---
     db.init_app(app)
-    migrate.init_app(app, db)
+    # Migrations live at project root (outside flask/) for visibility
+    _migrations_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "migrations"))
+    migrate.init_app(app, db, directory=_migrations_dir)
     login_manager.init_app(app)
     bcrypt.init_app(app)
     mail.init_app(app)
@@ -646,6 +648,28 @@ def create_app(config_object="config.Config"):
     from app.services.session_management_service import SessionManagementService
     from app.tasks.session_cleanup import _notify_refund_expirations
 
+    def _recreate_session_for_authenticated_user(flask_session, current_user, request):
+        """Restore role session data (admin_id, driver_id, sponsor_id, driver_sponsor_id) when recreating a session."""
+        from app.routes.auth import _set_role_session
+        _set_role_session(current_user)
+        # Restore driver environment if driver has single active env
+        from app.models import Driver, DriverSponsor
+        driver = Driver.query.filter_by(AccountID=current_user.AccountID).first()
+        if driver and not flask_session.get('driver_sponsor_id'):
+            envs = DriverSponsor.query.filter_by(DriverID=driver.DriverID, Status="ACTIVE").all()
+            if len(envs) == 1:
+                flask_session['driver_sponsor_id'] = str(envs[0].DriverSponsorID)
+                flask_session['sponsor_id'] = str(envs[0].SponsorID)
+                flask_session['driver_env_selection_pending'] = False
+                if envs[0].sponsor:
+                    flask_session['sponsor_company'] = envs[0].sponsor.Company
+            elif len(envs) > 1:
+                flask_session.pop('driver_sponsor_id', None)
+                flask_session['driver_env_selection_pending'] = True
+            else:
+                flask_session.pop('driver_sponsor_id', None)
+                flask_session['driver_env_selection_pending'] = False
+
     @app.before_request
     def _enforce_active_session_and_touch():
         ep = (getattr(request, 'endpoint', None) or '')
@@ -673,91 +697,31 @@ def create_app(config_object="config.Config"):
             
             token = flask_session.get('session_token')
             if not token:
-                # For mobile API, create session if missing (Flask-Login authenticated but session token not in Flask session yet)
-                if is_mobile_api:
-                    try:
-                        # Restore session data for driver accounts
-                        from app.models import Driver
-                        driver = Driver.query.filter_by(AccountID=current_user.AccountID).first()
-                        if driver:
-                            # Set driver_id if not already set
-                            if not flask_session.get('driver_id'):
-                                flask_session['driver_id'] = driver.DriverID
-                            
-                            # Set driver_sponsor_id if not already set and driver has environments
-                            # IMPORTANT: Only set if not already in session to avoid overwriting user's selection
-                            existing_driver_sponsor_id = flask_session.get('driver_sponsor_id')
-                            if not existing_driver_sponsor_id:
-                                from app.models import DriverSponsor
-                                envs = DriverSponsor.query.filter_by(DriverID=driver.DriverID, Status="ACTIVE").all()
-                                if len(envs) == 1:
-                                    flask_session['driver_sponsor_id'] = str(envs[0].DriverSponsorID)
-                                    flask_session['sponsor_id'] = str(envs[0].SponsorID)
-                                    flask_session['driver_env_selection_pending'] = False
-                                    current_app.logger.debug(f"before_request: Set driver_sponsor_id to {envs[0].DriverSponsorID} (single env)")
-                                elif len(envs) > 1:
-                                    flask_session.pop('driver_sponsor_id', None)
-                                    flask_session['driver_env_selection_pending'] = True
-                                    current_app.logger.debug(f"before_request: Multiple envs found, cleared driver_sponsor_id")
-                                else:
-                                    flask_session.pop('driver_sponsor_id', None)
-                                    flask_session['driver_env_selection_pending'] = False
-                                    current_app.logger.debug(f"before_request: No active envs found, cleared driver_sponsor_id")
-                            else:
-                                current_app.logger.debug(f"before_request: driver_sponsor_id already set to {existing_driver_sponsor_id}, not overwriting")
-                        
-                        SessionManagementService.create_session(current_user.AccountID, request)
-                        # Session created successfully, continue with request
-                    except Exception as e:
-                        # If session creation fails, still allow request since Flask-Login authenticated
-                        # The endpoint itself will handle authentication checks
-                        pass
-                else:
-                    return redirect(url_for('auth.logout_api'))
+                # Session token missing (e.g. Flask session expired but Flask-Login remember cookie still valid).
+                # Recreate session for both web and mobile - user is still authenticated.
+                try:
+                    _recreate_session_for_authenticated_user(flask_session, current_user, request)
+                    SessionManagementService.create_session(current_user.AccountID, request)
+                except Exception:
+                    if is_mobile_api:
+                        pass  # Let endpoint handle auth
+                    else:
+                        return redirect(url_for('auth.logout_api'))
             else:
                 # Validate existing session token
                 is_valid, _ = SessionManagementService.validate_session(token)
                 if not is_valid:
                     SessionManagementService.revoke_session(token)
-                    # For mobile API, try to recreate session if Flask-Login still valid
-                    if is_mobile_api:
-                        try:
-                            # Restore session data for driver accounts
-                            from app.models import Driver
-                            driver = Driver.query.filter_by(AccountID=current_user.AccountID).first()
-                            if driver:
-                                # Set driver_id if not already set
-                                if not flask_session.get('driver_id'):
-                                    flask_session['driver_id'] = driver.DriverID
-                                
-                                # Set driver_sponsor_id if not already set and driver has environments
-                                # IMPORTANT: Only set if not already in session to avoid overwriting user's selection
-                                existing_driver_sponsor_id = flask_session.get('driver_sponsor_id')
-                                if not existing_driver_sponsor_id:
-                                    from app.models import DriverSponsor
-                                    envs = DriverSponsor.query.filter_by(DriverID=driver.DriverID, Status="ACTIVE").all()
-                                    if len(envs) == 1:
-                                        flask_session['driver_sponsor_id'] = str(envs[0].DriverSponsorID)
-                                        flask_session['sponsor_id'] = str(envs[0].SponsorID)
-                                        flask_session['driver_env_selection_pending'] = False
-                                        current_app.logger.debug(f"before_request: Set driver_sponsor_id to {envs[0].DriverSponsorID} (single env)")
-                                    elif len(envs) > 1:
-                                        flask_session.pop('driver_sponsor_id', None)
-                                        flask_session['driver_env_selection_pending'] = True
-                                        current_app.logger.debug(f"before_request: Multiple envs found, cleared driver_sponsor_id")
-                                    else:
-                                        flask_session.pop('driver_sponsor_id', None)
-                                        flask_session['driver_env_selection_pending'] = False
-                                        current_app.logger.debug(f"before_request: No active envs found, cleared driver_sponsor_id")
-                                else:
-                                    current_app.logger.debug(f"before_request: driver_sponsor_id already set to {existing_driver_sponsor_id}, not overwriting")
-                            
-                            SessionManagementService.create_session(current_user.AccountID, request)
-                            # Session recreated, continue with request
-                        except Exception as e:
+                    # Session expired/inactive (24h expiry or 30min inactivity) but user still authenticated.
+                    # Recreate session for both web and mobile instead of forcing logout.
+                    try:
+                        _recreate_session_for_authenticated_user(flask_session, current_user, request)
+                        SessionManagementService.create_session(current_user.AccountID, request)
+                    except Exception:
+                        if is_mobile_api:
                             return jsonify({"success": False, "message": "Session expired"}), 401
-                    else:
-                        return redirect(url_for('auth.logout_api'))
+                        else:
+                            return redirect(url_for('auth.logout_api'))
 
             # Enforce account status on every authenticated request
             try:

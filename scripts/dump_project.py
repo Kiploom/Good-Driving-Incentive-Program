@@ -6,25 +6,26 @@ from typing import Dict, List, Tuple
 from collections import defaultdict
 
 # --- Paths / constants ---
-ROOT = Path(__file__).resolve().parent
-APP_DIR = ROOT / "app"
-PROJECT_ROOT = ROOT.parent  # Go up to F25-Team10 directory
-SCHEMA_OUTPUT = ROOT / "database_schema.txt"
-CODE_OUTPUT = ROOT / "project_files.txt"
-MOBILE_OUTPUT = ROOT / "mobile_app_files.txt"
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+FLASK_DIR = PROJECT_ROOT / "flask"
+APP_DIR = FLASK_DIR / "app"
+SCHEMA_OUTPUT = SCRIPT_DIR / "database_schema.txt"
+CODE_OUTPUT = SCRIPT_DIR / "project_files.txt"
+MOBILE_OUTPUT = SCRIPT_DIR / "mobile_app_files.txt"
 EXTS = {".py", ".html"}
 
 # --- DB connection helpers ---
 def _load_env():
     try:
         from dotenv import load_dotenv  # type: ignore
-        load_dotenv(ROOT / ".env")
+        load_dotenv(FLASK_DIR / ".env")
     except Exception:
         pass
 
 def _import_config_uri() -> str | None:
     try:
-        sys.path.insert(0, str(ROOT))
+        sys.path.insert(0, str(FLASK_DIR))
         import config  # type: ignore
         uri = getattr(config, "SQLALCHEMY_DATABASE_URI", None)
         if not uri and hasattr(config, "Config"):
@@ -175,7 +176,7 @@ def render_schema_markdown(schema: Dict[str, Dict], db_name: str) -> str:
             ]
             lines.append("| " + " | ".join(row) + " |")
         lines.append("")
-    return "\n".join(lines)
+    return "\n".join(lines) + "\n"
 
 # --- Code dump ---
 def dump_code_blocks(out):
@@ -183,51 +184,50 @@ def dump_code_blocks(out):
     # include files in app/ recursively
     for p in sorted(APP_DIR.rglob("*")):
         if p.is_file() and p.suffix.lower() in EXTS:
-            rel = p.relative_to(ROOT).as_posix()
+            rel = p.relative_to(FLASK_DIR).as_posix()
             lang = "python" if p.suffix.lower() == ".py" else "html"
             out.write(f"\n\n===== {rel} =====\n\n```{lang}\n")
             out.write(p.read_text(encoding="utf-8", errors="replace"))
             out.write("\n```\n")
             count += 1
-    # include files in the same directory as this script
-    for p in sorted(ROOT.glob("*")):
-        if p.is_file() and p.suffix.lower() in EXTS and p.name != "dump_project.py":
-            rel = p.relative_to(ROOT).as_posix()
-            lang = "python" if p.suffix.lower() == ".py" else "html"
-            out.write(f"\n\n===== {rel} =====\n\n```{lang}\n")
+    # include top-level flask .py files (config, run, etc.)
+    for p in sorted(FLASK_DIR.glob("*.py")):
+        if p.name != "dump_project.py":
+            rel = p.relative_to(FLASK_DIR).as_posix()
+            out.write(f"\n\n===== {rel} =====\n\n```python\n")
             out.write(p.read_text(encoding="utf-8", errors="replace"))
             out.write("\n```\n")
             count += 1
-    
+
     return count
 
 def dump_mobile_files():
     """Dump mobile app files separately"""
     mobile_app_dir = PROJECT_ROOT / "mobileApplication" / "app" / "src" / "main"
-    
+
     if not mobile_app_dir.exists():
         print(f"[WARNING] Mobile app directory not found at: {mobile_app_dir}")
         return 0
-    
+
     count = 0
-    
+
     # Mobile Kotlin source files
     mobile_kotlin_dir = mobile_app_dir / "java" / "com" / "example" / "driverrewards"
     if mobile_kotlin_dir.exists():
         with MOBILE_OUTPUT.open("w", encoding="utf-8") as out:
             out.write("# Mobile Application Files\n\n")
-            
+
             for p in sorted(mobile_kotlin_dir.rglob("*.kt")):
                 rel = p.relative_to(PROJECT_ROOT).as_posix()
                 out.write(f"\n\n===== {rel} =====\n\n```kotlin\n")
                 out.write(p.read_text(encoding="utf-8", errors="replace"))
                 out.write("\n```\n")
                 count += 1
-            
+
             # Mobile XML layout files
             mobile_res_dir = mobile_app_dir / "res"
             important_dirs = ["layout", "menu", "navigation", "xml", "values"]
-            
+
             for dir_name in important_dirs:
                 xml_dir = mobile_res_dir / dir_name
                 if xml_dir.exists():
@@ -237,7 +237,7 @@ def dump_mobile_files():
                         out.write(p.read_text(encoding="utf-8", errors="replace"))
                         out.write("\n```\n")
                         count += 1
-            
+
             # Mobile drawable XML files
             drawable_dir = mobile_res_dir / "drawable"
             if drawable_dir.exists():
@@ -247,7 +247,7 @@ def dump_mobile_files():
                     out.write(p.read_text(encoding="utf-8", errors="replace"))
                     out.write("\n```\n")
                     count += 1
-            
+
             # Mobile gradle files (build configuration)
             mobile_gradle_files = [
                 PROJECT_ROOT / "mobileApplication" / "build.gradle.kts",
@@ -255,7 +255,7 @@ def dump_mobile_files():
                 PROJECT_ROOT / "mobileApplication" / "settings.gradle.kts",
                 PROJECT_ROOT / "mobileApplication" / "gradle" / "libs.versions.toml",
             ]
-            
+
             for gradle_file in mobile_gradle_files:
                 if gradle_file.exists():
                     rel = gradle_file.relative_to(PROJECT_ROOT).as_posix()
@@ -264,7 +264,7 @@ def dump_mobile_files():
                     out.write(gradle_file.read_text(encoding="utf-8", errors="replace"))
                     out.write("\n```\n")
                     count += 1
-    
+
     return count
 
 def main():
@@ -282,7 +282,7 @@ def main():
 
     with SCHEMA_OUTPUT.open("w", encoding="utf-8") as out:
         out.write(schema_md)
-    
+
     print(f"Wrote database schema to {SCHEMA_OUTPUT}")
 
     # Write Flask app file contents to separate file
@@ -291,7 +291,7 @@ def main():
         count = dump_code_blocks(out)
 
     print(f"Wrote {count} Flask files to {CODE_OUTPUT}")
-    
+
     # Write mobile app files to separate file
     mobile_count = dump_mobile_files()
     if mobile_count > 0:

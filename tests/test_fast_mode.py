@@ -9,6 +9,16 @@ Tests verify:
 5. has_more flag is accurate in both modes
 """
 
+import os
+import sys
+
+# Ensure app package importable
+TESTS_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(TESTS_DIR)
+FLASK_DIR = os.path.join(PROJECT_ROOT, "flask")
+if FLASK_DIR not in sys.path:
+    sys.path.insert(0, FLASK_DIR)
+
 import time
 import json
 from flask import Flask
@@ -298,5 +308,4 @@ if __name__ == '__main__':
         pytest.main([__file__, '-v', '--tb=short'])
     except ImportError:
         print("pytest not available, run: pip install pytest")
-        print("Or run with: python -m pytest flask/tests/test_fast_mode.py -v")
-
+        print("Or run with: python -m pytest tests/test_fast_mode.py -v")

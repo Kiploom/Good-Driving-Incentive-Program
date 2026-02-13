@@ -3,7 +3,7 @@ import math, json
 from typing import Any, Dict, Optional, Callable
 
 from ...models import Sponsor
-from ...models_sponsor_catalog import SponsorPointsPolicy
+from ...models import SponsorPointsPolicy
 
 def _get_attr(obj, *candidates):
     for name in candidates:

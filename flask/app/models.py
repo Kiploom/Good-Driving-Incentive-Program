@@ -1,20 +1,34 @@
+"""
+All SQLAlchemy models for the Good-Driving-Incentive-Program.
+
+Place new models in the appropriate section below. Use the section headers
+to find where each model belongs. All models must inherit from db.Model.
+"""
 import uuid
 from datetime import datetime, date
-
-def local_now():
-    """Return current local time (not UTC)."""
-    return datetime.now()
 
 from sqlalchemy import case
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableList
+from sqlalchemy.orm import synonym
 
 from . import db
 from config import fernet
 from flask_login import UserMixin
 
+JSONT = db.JSON
 
-# === Lookup tables ===
+
+def local_now():
+    """Return current local time (not UTC)."""
+    return datetime.now()
+
+
+# =============================================================================
+# LOOKUP TABLES
+# Account types, enums, and other reference data.
+# Add new lookup/reference models here.
+# =============================================================================
 class AccountType(db.Model):
     __tablename__ = "AccountType"
 
@@ -29,7 +43,12 @@ class AccountType(db.Model):
         return f"<AccountType {self.AccountTypeCode}>"
 
 
-# === Core entities ===
+# =============================================================================
+# CORE ENTITIES
+# Account, Driver, Sponsor, Admin, SponsorCompany - the main user/org models.
+# Add new core user or organization models here.
+# =============================================================================
+
 class Account(db.Model, UserMixin):
     __tablename__ = "Account"
 
@@ -272,6 +291,12 @@ class Admin(db.Model):
     UpdatedByAccountID = db.Column(db.String(36))
 
 
+# =============================================================================
+# STATIC CONTENT
+# About page, CMS-like content, etc.
+# Add new static/content models here.
+# =============================================================================
+
 class AboutPage(db.Model):
     __tablename__ = "AboutPage"
 
@@ -284,6 +309,12 @@ class AboutPage(db.Model):
     CreatedAt         = db.Column(db.DateTime)
     UpdatedAt         = db.Column(db.DateTime)
 
+
+# =============================================================================
+# APPLICATIONS & AUTH
+# Driver applications, login attempts, email verification.
+# Add new auth/application-flow models here.
+# =============================================================================
 
 class Application(db.Model):
     __tablename__ = "Application"
@@ -349,7 +380,12 @@ class EmailVerification(db.Model):
     account = db.relationship("Account", backref=db.backref("email_verification", uselist=False))
 
 
-# === Cart Models (for shopping cart functionality) ===
+# =============================================================================
+# CART & ORDERS
+# Shopping cart, cart items, orders, order line items.
+# Add new cart/order models here.
+# =============================================================================
+
 class Cart(db.Model):
     __tablename__ = "Cart"
 
@@ -395,7 +431,6 @@ class CartItem(db.Model):
         return self.PointsPerUnit * self.Quantity
 
 
-# === Existing Order Models (matching database schema) ===
 class Orders(db.Model):
     __tablename__ = "Orders"
 
@@ -439,7 +474,12 @@ class OrderLineItem(db.Model):
         return self.LineTotalPoints
 
 
-# === Sponsor Invoice Models ===
+# =============================================================================
+# INVOICES & POINTS
+# Sponsor invoices, point changes, point disputes.
+# Add new invoice/points models here.
+# =============================================================================
+
 class SponsorInvoice(db.Model):
     __tablename__ = "SponsorInvoice"
 
@@ -493,7 +533,12 @@ class SponsorInvoiceOrder(db.Model):
     driver = db.relationship("Driver", backref=db.backref("SponsorInvoiceOrders", lazy="dynamic"))
 
 
-# === Products Model (matching database schema) ===
+# =============================================================================
+# PRODUCTS
+# Product catalog, external catalog items.
+# Add new product/catalog models here.
+# =============================================================================
+
 class Products(db.Model):
     __tablename__ = "Products"
 
@@ -512,7 +557,6 @@ class Products(db.Model):
     CreatedAt            = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# === Existing MySQL table mapping: PointChanges (with Reason) ===
 class PointChange(db.Model):
     __tablename__ = "PointChanges"
 
@@ -633,6 +677,12 @@ class PointChangeDispute(db.Model):
         return not self.is_pending
 
 
+# =============================================================================
+# ACCOUNT SECURITY & MANAGEMENT
+# Password history, account deactivation, driver-sponsor bridge.
+# Add new account/security models here.
+# =============================================================================
+
 class PasswordHistory(db.Model):
     """Track password changes for security auditing and password reuse prevention"""
     __tablename__ = "PasswordHistory"
@@ -727,6 +777,12 @@ class AccountDeactivationRequest(db.Model):
     def is_resolved(self) -> bool:
         return (self.Status or "").lower() in {"approved", "denied", "cancelled"}
 
+
+# =============================================================================
+# CHALLENGES & ACHIEVEMENTS
+# Challenge templates, sponsor challenges, driver subscriptions, achievements.
+# Add new challenge/achievement models here.
+# =============================================================================
 
 class ChallengeTemplate(db.Model):
     __tablename__ = "ChallengeTemplate"
@@ -852,6 +908,12 @@ class DriverAchievement(db.Model):
     achievement = db.relationship("Achievement", back_populates="driver_achievements")
 
 
+# =============================================================================
+# PRODUCT VIEWS & ANALYTICS
+# Driver product view history, analytics.
+# Add new product-view/analytics models here.
+# =============================================================================
+
 class DriverProductView(db.Model):
     __tablename__ = "DriverProductView"
 
@@ -879,6 +941,12 @@ class DriverProductView(db.Model):
     product = db.relationship("Products", backref=db.backref("driver_views", lazy="dynamic"))
     sponsor = db.relationship("Sponsor", backref=db.backref("driver_product_views", lazy="dynamic"))
 
+
+# =============================================================================
+# SESSIONS
+# User session tracking for security and multi-device management.
+# Add new session models here.
+# =============================================================================
 
 class UserSessions(db.Model):
     """Track active user sessions for security management and auto-logout"""
@@ -918,7 +986,12 @@ class UserSessions(db.Model):
         return datetime.utcnow() - self.LastActivityAt > timedelta(minutes=30)
 
 
-# === Notification Preferences Tables ===
+# =============================================================================
+# NOTIFICATIONS
+# In-app notifications, notification preferences (driver, sponsor, admin).
+# Add new notification models here.
+# =============================================================================
+
 class DriverNotification(db.Model):
     """Individual notification records for drivers"""
     __tablename__ = "DriverNotification"
@@ -1090,7 +1163,12 @@ class AdminNotificationPreferences(db.Model):
         return prefs
 
 
-# === Profile Audit Tables ===
+# =============================================================================
+# PROFILE AUDITS
+# Audit logs for driver, sponsor, and admin profile changes.
+# Add new profile-audit models here.
+# =============================================================================
+
 class DriverProfileAudit(db.Model):
     __tablename__ = "DriverProfileAudit"
 
@@ -1150,7 +1228,12 @@ class AdminProfileAudit(db.Model):
     ChangedBy = db.relationship("Account", foreign_keys=[ChangedByAccountID], backref="admin_profile_modifications")
 
 
-# === Support Tickets Models ===
+# =============================================================================
+# SUPPORT
+# Support categories, tickets, messages.
+# Add new support models here.
+# =============================================================================
+
 class SupportCategory(db.Model):
     __tablename__ = "SupportCategory"
 
@@ -1198,6 +1281,12 @@ class SupportMessage(db.Model):
     def __repr__(self):
         return f"<SupportMessage {self.MessageID}: {self.AuthorRole}>"
 
+
+# =============================================================================
+# BULK IMPORT
+# Bulk import logs and row-level errors.
+# Add new bulk-import models here.
+# =============================================================================
 
 class BulkImportLog(db.Model):
     """Log bulk import operations and errors for auditing and debugging"""
@@ -1252,3 +1341,313 @@ class BulkImportError(db.Model):
     
     def __repr__(self):
         return f"<BulkImportError {self.BulkImportErrorID}: Row {self.RowNumber}>"
+
+
+# =============================================================================
+# DRIVER FAVORITES & PRODUCT REPORTS
+# Driver wishlists/favorites, product reports (inappropriate items).
+# Add new driver-favorites or product-report models here.
+# =============================================================================
+
+class DriverFavorites(db.Model):
+    __tablename__ = "DriverFavorites"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    DriverID = db.Column(db.String(36), db.ForeignKey("Driver.DriverID"), nullable=False, index=True)
+    ExternalItemID = db.Column(db.String(255), nullable=False, index=True)  # eBay item ID
+    ItemTitle = db.Column(db.String(500), nullable=True)
+    ItemImageURL = db.Column(db.String(1000), nullable=True)
+    ItemPoints = db.Column(db.Integer, nullable=True)
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    UpdatedAt = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    driver_id = synonym("DriverID")
+    external_item_id = synonym("ExternalItemID")
+    item_title = synonym("ItemTitle")
+    item_image_url = synonym("ItemImageURL")
+    item_points = synonym("ItemPoints")
+    created_at = synonym("CreatedAt")
+    updated_at = synonym("UpdatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+    __table_args__ = (
+        db.UniqueConstraint("DriverID", "ExternalItemID", name="unique_driver_favorite"),
+    )
+
+
+class ProductReports(db.Model):
+    __tablename__ = "ProductReports"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    DriverID = db.Column(db.String(36), db.ForeignKey("Driver.DriverID"), nullable=False, index=True)
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    ExternalItemID = db.Column(db.String(255), nullable=False, index=True)  # eBay item ID
+    ItemTitle = db.Column(db.String(500), nullable=True)
+    ItemImageURL = db.Column(db.String(1000), nullable=True)
+    ItemURL = db.Column(db.String(1000), nullable=True)
+    ReportReason = db.Column(db.String(50), nullable=False)
+    ReportDescription = db.Column(db.Text, nullable=True)
+    Status = db.Column(db.String(20), nullable=False, default="pending")
+    ReviewedByAccountID = db.Column(db.String(36), db.ForeignKey("Account.AccountID"), nullable=True)
+    ReviewedAt = db.Column(db.DateTime, nullable=True)
+    ReviewNotes = db.Column(db.Text, nullable=True)
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    UpdatedAt = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    driver_id = synonym("DriverID")
+    sponsor_id = synonym("SponsorID")
+    external_item_id = synonym("ExternalItemID")
+    item_title = synonym("ItemTitle")
+    item_image_url = synonym("ItemImageURL")
+    item_url = synonym("ItemURL")
+    report_reason = synonym("ReportReason")
+    report_description = synonym("ReportDescription")
+    status = synonym("Status")
+    reviewed_by_account_id = synonym("ReviewedByAccountID")
+    reviewed_at = synonym("ReviewedAt")
+    review_notes = synonym("ReviewNotes")
+    created_at = synonym("CreatedAt")
+    updated_at = synonym("UpdatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+# =============================================================================
+# SPONSOR CATALOG
+# Filter sets, pinned products, exclusions, cache, points policy, blacklist.
+# Add new sponsor-catalog models here.
+# =============================================================================
+
+class SponsorCatalogFilterSet(db.Model):
+    __tablename__ = "SponsorCatalogFilterSet"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    Name = db.Column(db.String(120), nullable=False)
+    IsActive = db.Column(db.Boolean, nullable=False, default=True)
+    Priority = db.Column(db.Integer, nullable=False, default=100)
+    RulesJSON = db.Column(JSONT, nullable=False, default=dict)
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    UpdatedAt = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    sponsor_id = synonym("SponsorID")
+    name = synonym("Name")
+    is_active = synonym("IsActive")
+    priority = synonym("Priority")
+    rules_json = synonym("RulesJSON")
+    created_at = synonym("CreatedAt")
+    updated_at = synonym("UpdatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorPinnedProduct(db.Model):
+    __tablename__ = "SponsorPinnedProduct"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    Marketplace = db.Column(db.String(32), nullable=False, default="ebay")
+    ItemID = db.Column(db.String(64), nullable=False, index=True)
+    PinRank = db.Column(db.Integer)
+    ItemTitle = db.Column(db.String(512))
+    ItemImageURL = db.Column(db.String(1024))
+    Note = db.Column(db.String(255))
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    UpdatedAt = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    PinnedByAccountID = db.Column(db.String(36), db.ForeignKey("Account.AccountID"))
+
+    __table_args__ = (
+        db.UniqueConstraint("SponsorID", "ItemID", name="uq_sponsor_pinned_item"),
+    )
+
+    sponsor_id = synonym("SponsorID")
+    marketplace = synonym("Marketplace")
+    item_id = synonym("ItemID")
+    pin_rank = synonym("PinRank")
+    item_title = synonym("ItemTitle")
+    item_image_url = synonym("ItemImageURL")
+    note = synonym("Note")
+    created_at = synonym("CreatedAt")
+    updated_at = synonym("UpdatedAt")
+    pinned_by_account_id = synonym("PinnedByAccountID")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorCatalogInclusion(db.Model):
+    __tablename__ = "SponsorCatalogInclusion"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    Marketplace = db.Column(db.String(32), nullable=False, default="ebay")
+    ItemID = db.Column(db.String(64), nullable=False)
+    IsPinned = db.Column(db.Boolean, nullable=False, default=False)
+    PinRank = db.Column(db.Integer)
+    Note = db.Column(db.String(255))
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+
+    sponsor_id = synonym("SponsorID")
+    marketplace = synonym("Marketplace")
+    item_id = synonym("ItemID")
+    is_pinned = synonym("IsPinned")
+    pin_rank = synonym("PinRank")
+    note = synonym("Note")
+    created_at = synonym("CreatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorCatalogExclusion(db.Model):
+    __tablename__ = "SponsorCatalogExclusion"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    Marketplace = db.Column(db.String(32), nullable=False, default="ebay")
+    ItemID = db.Column(db.String(64), nullable=False)
+    Reason = db.Column(db.String(255))
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+
+    sponsor_id = synonym("SponsorID")
+    marketplace = synonym("Marketplace")
+    item_id = synonym("ItemID")
+    reason = synonym("Reason")
+    created_at = synonym("CreatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorCatalogResultCache(db.Model):
+    __tablename__ = "SponsorCatalogResultCache"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    FilterFingerprint = db.Column(db.String(64), nullable=False, index=True)
+    Page = db.Column(db.Integer, nullable=False, default=1)
+    Sort = db.Column(db.String(32), nullable=False, default="best_match")
+    ResultsJSON = db.Column(JSONT, nullable=False, default=dict)
+    ExpiresAt = db.Column(db.DateTime, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("SponsorID", "FilterFingerprint", "Page", "Sort", name="uq_sponsor_cache_key"),
+    )
+
+    sponsor_id = synonym("SponsorID")
+    filter_fingerprint = synonym("FilterFingerprint")
+    page = synonym("Page")
+    sort = synonym("Sort")
+    results_json = synonym("ResultsJSON")
+    expires_at = synonym("ExpiresAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorAuditLog(db.Model):
+    __tablename__ = "SponsorAuditLog"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    ActorUserID = db.Column(db.String(36))
+    Action = db.Column(db.String(64), nullable=False)
+    DetailsJSON = db.Column(JSONT)
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+
+    sponsor_id = synonym("SponsorID")
+    actor_user_id = synonym("ActorUserID")
+    action = synonym("Action")
+    details_json = synonym("DetailsJSON")
+    created_at = synonym("CreatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorPointsPolicy(db.Model):
+    __tablename__ = "SponsorPointsPolicy"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, unique=True, index=True)
+    Strategy = db.Column(db.String(24), nullable=False, default="FLAT_RATE")
+    ConfigJSON = db.Column(JSONT, nullable=False, default=dict)
+    MinPoints = db.Column(db.Integer)
+    MaxPoints = db.Column(db.Integer)
+    Rounding = db.Column(db.String(24), nullable=False, default="NEAREST_10")
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    UpdatedAt = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    sponsor_id = synonym("SponsorID")
+    strategy = synonym("Strategy")
+    config_json = synonym("ConfigJSON")
+    min_points = synonym("MinPoints")
+    max_points = synonym("MaxPoints")
+    rounding = synonym("Rounding")
+    created_at = synonym("CreatedAt")
+    updated_at = synonym("UpdatedAt")
+
+    @property
+    def id(self):
+        return self.ID
+
+
+class SponsorActiveFilterSelection(db.Model):
+    __tablename__ = "SponsorActiveFilterSelection"
+
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), primary_key=True)
+    FilterSetID = db.Column(db.String(36), db.ForeignKey("SponsorCatalogFilterSet.ID"), nullable=True)
+    SelectedAt = db.Column(db.DateTime, server_default=db.func.now())
+    SelectedByAccountID = db.Column(db.String(36), db.ForeignKey("Account.AccountID"))
+
+    sponsor_id = synonym("SponsorID")
+    filter_set_id = synonym("FilterSetID")
+    selected_at = synonym("SelectedAt")
+    selected_by_account_id = synonym("SelectedByAccountID")
+
+
+class BlacklistedProduct(db.Model):
+    __tablename__ = "BlacklistedProduct"
+
+    ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    SponsorID = db.Column(db.String(36), db.ForeignKey("Sponsor.SponsorID"), nullable=False, index=True)
+    Marketplace = db.Column(db.String(32), nullable=False, default="ebay")
+    ItemID = db.Column(db.String(64), nullable=False, index=True)
+    Reason = db.Column(db.String(255))
+    ItemTitle = db.Column(db.String(512))
+    ItemImageURL = db.Column(db.String(1024))
+    ItemURL = db.Column(db.String(1024))
+    CreatedAt = db.Column(db.DateTime, server_default=db.func.now())
+    BlacklistedByAccountID = db.Column(db.String(36), db.ForeignKey("Account.AccountID"))
+    SourceReportID = db.Column(db.String(36), db.ForeignKey("ProductReports.ID"))
+
+    __table_args__ = (
+        db.UniqueConstraint("SponsorID", "ItemID", name="uq_sponsor_blacklisted_item"),
+    )
+
+    sponsor_id = synonym("SponsorID")
+    marketplace = synonym("Marketplace")
+    item_id = synonym("ItemID")
+    reason = synonym("Reason")
+    item_title = synonym("ItemTitle")
+    item_image_url = synonym("ItemImageURL")
+    item_url = synonym("ItemURL")
+    created_at = synonym("CreatedAt")
+    blacklisted_by_account_id = synonym("BlacklistedByAccountID")
+    source_report_id = synonym("SourceReportID")
+
+    @property
+    def id(self):
+        return self.ID

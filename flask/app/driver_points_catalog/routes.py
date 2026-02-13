@@ -8,9 +8,17 @@ from sqlalchemy import text, bindparam
 from app.extensions import db
 
 # Your models
-from ..models import Account, AccountType, Sponsor, Driver, DriverSponsor
-from ..models_favorites import DriverFavorites, ProductReports
-from ..models_sponsor_catalog import SponsorPinnedProduct, BlacklistedProduct
+from ..models import (
+    Account,
+    AccountType,
+    BlacklistedProduct,
+    Driver,
+    DriverFavorites,
+    DriverSponsor,
+    ProductReports,
+    Sponsor,
+    SponsorPinnedProduct,
+)
 from ..sponsor_catalog.providers.ebay_provider import EbayProvider
 from .services.driver_query_service import (
     compose_effective_rules_for_driver,
@@ -276,7 +284,7 @@ def _get_category_name(category_id: str) -> str:
     import os
     import json
     
-    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+    json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
     
     if os.path.exists(json_path):
         try:
@@ -763,7 +771,7 @@ def _extract_parent_category_ids(allowed_category_ids):
     import os
     import json
     
-    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+    json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
     
     parent_map = {}  # Maps parent category name to parent category ID
     
@@ -906,7 +914,7 @@ def get_categories():
         # Load category ID to name mapping
         import os
         import json
-        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+        json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
         
         category_map = {}
         if os.path.exists(json_path):

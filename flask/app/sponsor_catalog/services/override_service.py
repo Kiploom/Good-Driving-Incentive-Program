@@ -5,7 +5,7 @@ from sqlalchemy import case
 import logging
 
 from app.extensions import db
-from app.models_sponsor_catalog import (
+from app.models import (
     SponsorCatalogInclusion,
     SponsorCatalogExclusion,
     BlacklistedProduct,

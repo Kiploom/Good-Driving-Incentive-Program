@@ -700,7 +700,7 @@ def mobile_catalog():
         )
         from app.driver_points_catalog.services.points_service import price_to_points
         from app.sponsor_catalog.providers.ebay_provider import EbayProvider
-        from app.models_sponsor_catalog import SponsorPinnedProduct, BlacklistedProduct
+        from app.models import BlacklistedProduct, SponsorPinnedProduct
         
         # Check if sponsor has enabled driver points and filters
         if not sponsor_enabled_driver_points(sponsor_id) or not sponsor_enabled_filters_first(sponsor_id):
@@ -865,7 +865,7 @@ def mobile_catalog():
         if fav_only:
             # If favorites_only is true and no search query, fetch ALL favorites from database
             if not q:
-                from app.models_favorites import DriverFavorites
+                from app.models import DriverFavorites
                 # Get all favorite item IDs for this driver
                 favorites = DriverFavorites.query.filter_by(
                     DriverID=driver.DriverID
@@ -988,7 +988,7 @@ def mobile_catalog():
 
 def _fetch_pinned_products(sponsor_id: str, provider):
     """Fetch sponsor-pinned products"""
-    from app.models_sponsor_catalog import SponsorPinnedProduct
+    from app.models import SponsorPinnedProduct
     
     pinned = SponsorPinnedProduct.query.filter_by(SponsorID=sponsor_id).order_by(SponsorPinnedProduct.PinRank).all()
     items = []
@@ -1018,7 +1018,7 @@ def _inject_low_stock_flags(items):
 
 def _inject_favorites_data(items, driver_id: str):
     """Add favorites data to items"""
-    from app.models_favorites import DriverFavorites
+    from app.models import DriverFavorites
     
     if not driver_id:
         return
@@ -1099,7 +1099,7 @@ def mobile_catalog_categories():
         # Load category ID to name mapping
         import os
         import json
-        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+        json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
         
         category_map = {}
         if os.path.exists(json_path):
@@ -1148,7 +1148,7 @@ def mobile_catalog_categories():
             import os
             import json
             
-            json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+            json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
             parent_map = {}
             
             if not os.path.exists(json_path):
@@ -1217,7 +1217,7 @@ def mobile_catalog_categories():
         from app.sponsor_catalog.routes import _process_category_tree
         import os
         import json
-        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ebay_categories_tree.json")
+        json_path = __import__("app.utils.ebay_categories_path", fromlist=["get_ebay_categories_path"]).get_ebay_categories_path()
         
         filtered_tree = {}
         if os.path.exists(json_path):
@@ -1297,7 +1297,7 @@ def mobile_add_favorite():
         return jsonify({"success": False, "message": "Item ID is required"}), 400
     
     try:
-        from app.models_favorites import DriverFavorites
+        from app.models import DriverFavorites
         
         item_id = data["item_id"]
         
@@ -1338,7 +1338,7 @@ def mobile_remove_favorite(item_id: str):
         return jsonify({"success": False, "message": "Driver not found"}), 404
     
     try:
-        from app.models_favorites import DriverFavorites
+        from app.models import DriverFavorites
         
         # Find and remove favorite
         favorite = DriverFavorites.query.filter_by(
@@ -1383,7 +1383,7 @@ def mobile_product_detail(item_id: str):
     try:
         from app.sponsor_catalog.providers.ebay_provider import EbayProvider
         from app.driver_points_catalog.services.points_service import price_to_points
-        from app.models_favorites import DriverFavorites
+        from app.models import DriverFavorites
         
         provider = EbayProvider()
         

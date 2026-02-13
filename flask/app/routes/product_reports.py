@@ -3,8 +3,7 @@ from flask import Blueprint, render_template, request, jsonify, abort, flash, re
 from flask_login import login_required, current_user
 from sqlalchemy import desc
 from app.extensions import db
-from app.models import Account, Driver, DriverSponsor, Sponsor
-from app.models_favorites import ProductReports
+from app.models import Account, Driver, DriverSponsor, ProductReports, Sponsor
 
 bp = Blueprint("product_reports", __name__, url_prefix="/product-reports")
 

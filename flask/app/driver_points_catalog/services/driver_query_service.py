@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Set, Optional
 import json
 
 from ...models import Sponsor
-from ...models_sponsor_catalog import SponsorCatalogFilterSet, SponsorActiveFilterSelection
+from ...models import SponsorActiveFilterSelection, SponsorCatalogFilterSet
 from ...sponsor_catalog.services.filter_service import normalize_rules
 from ...sponsor_catalog.services.merge_service import merge
 from ...sponsor_catalog.services.category_service import resolve as resolve_categories

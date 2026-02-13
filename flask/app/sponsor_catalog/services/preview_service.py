@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, Any, List, Tuple, Optional
 
-from app.models_sponsor_catalog import SponsorCatalogFilterSet
+from app.models import SponsorCatalogFilterSet
 from .override_service import compose_with_inclusions_exclusions
 from .cache_service import fingerprint as fp_hash, get_cached, set_cached
 from app.sponsor_catalog.providers.ebay_provider import EbayProvider
