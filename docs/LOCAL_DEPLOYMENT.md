@@ -173,5 +173,6 @@ Follow the prompts for email, username, password, etc.
 ## Troubleshooting
 
 - **Database connection errors:** See [TROUBLESHOOTING_DB.md](TROUBLESHOOTING_DB.md)
+- **AWS / EC2 / production:** See [AWS_OVERVIEW.md](AWS_OVERVIEW.md) for SSH, logs, and production setup
 - **Import errors:** Ensure you run commands from the `flask` directory or that `FLASK_APP=run:app` is set
 - **Port in use:** Change port in `run.py` or use `flask run --port 5001`
