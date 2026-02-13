@@ -187,7 +187,7 @@ object NetworkClient {
     
     // Update this URL to match your Flask server
     // EC2 instance server address
-    const val baseUrl = "http://98.89.178.156:5000"
+    const val baseUrl = "https://gooddriver-app.site"
     
     fun setSessionCookies(cookies: String?) {
         sessionManager?.saveSessionCookies(cookies)
