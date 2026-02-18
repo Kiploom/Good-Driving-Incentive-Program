@@ -233,7 +233,7 @@ The Android app points to the EC2 server:
 | Task | Command |
 |------|---------|
 | SSH into EC2 | `ssh -i key.pem ubuntu@<EC2_IP>` |
-| Live logs | `sudo journalctl -u gunicorn -f` |
-| Restart app | `sudo systemctl restart gunicorn` |
-| App status | `sudo systemctl status gunicorn` |
+| Live logs | `sudo journalctl -u gooddriver -f` |
+| Restart app | `sudo systemctl restart gooddriver` |
+| App status | `sudo systemctl status gooddriver` |
 | DB test | `cd /home/ubuntu/gooddriver && source venv/bin/activate && python tests/test_db_connection.py` |
