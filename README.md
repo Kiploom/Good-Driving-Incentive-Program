@@ -206,4 +206,8 @@ Good-Driving-Incentive-Program/
 
 ## License
 
-See [LICENSE](LICENSE) for details (if applicable).
+This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)**.
+
+You are free to share and adapt the material with attribution for **non-commercial** use only. See the full license: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+
+You don't need to register with Creative Commons—stating the license (here and in [LICENSE](LICENSE)) is enough. You're the rights holder declaring the terms under which you release the work.
