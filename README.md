@@ -4,8 +4,6 @@ A full-stack driver rewards platform that enables sponsor companies to incentivi
 
 ![Home Screen](flask/app/static/img/landing/hero.jpg)
 
-> **Note:** Add `hero.jpg` (1920×1080 or 2560×1440) to `flask/app/static/img/landing/` for the hero image. See [docs/ASSETS_NEEDED.md](docs/ASSETS_NEEDED.md) for the full landing page assets checklist.
-
 ---
 
 ## Features
