@@ -510,6 +510,32 @@
 }
 
 /* Logout Button */
+.nav-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid var(--accent-border);
+  transition: background 0.2s, transform 0.2s;
+}
+.nav-login-btn:hover {
+  background: var(--accent-hover);
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+.nav-login-btn:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nav-login-btn i {
+  font-size: 1rem;
+}
+
 .nav-logout {
   padding: 6px 12px;
   background: var(--bg-secondary);

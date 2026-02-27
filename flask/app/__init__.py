@@ -315,7 +315,7 @@ def create_app(config_object="config.Config"):
             return redirect(url_for("sponsor_catalog.index"))
         if current_user.is_authenticated:
             return redirect(url_for("driver_points_catalog.index"))
-        return redirect(url_for("auth.login_page"))
+        return redirect(url_for("home.home_page"))
 
     @app.get("/dashboard")
     @login_required

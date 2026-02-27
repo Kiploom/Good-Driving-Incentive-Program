@@ -404,7 +404,7 @@ def _ensure_driver_environment():
 # ------------------------------
 # LOGIN PAGE
 # ------------------------------
-@bp.get("/")
+@bp.get("/login")
 def login_page():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))

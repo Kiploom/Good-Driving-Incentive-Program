@@ -1,39 +1,398 @@
 {% extends "base.html" %}
-{% block title %}Home{% endblock %}
+{% block title %}Driver Rewards – Earn Points, Redeem Rewards{% endblock %}
+{% block body_class %}landing-page{% endblock %}
 
 {% block head %}
 <style>
-  .home-wrap {
-    max-width: 960px;
-    margin: 3rem auto;
-    padding: 0 1.5rem;
+  /* ─── Landing overrides ─── */
+  .landing-page .app-content { padding: 0; max-width: none; }
+  .landing-page .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+
+  /* ─── Hero ─── */
+  .landing-hero {
+    min-height: 100vh;
+    padding-top: 60px; /* Clear fixed navbar */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  }
+  [data-theme="light"] .landing-hero {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 50%, #1e3a5f 100%);
+  }
+  .landing-hero__bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(245,158,11,0.15) 0%, transparent 50%);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.35;
+    transition: opacity 0.8s ease;
+  }
+  .landing-hero__bg:hover { opacity: 0.5; }
+  .landing-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15,23,42,0.6) 0%, rgba(15,23,42,0.9) 100%);
+  }
+  [data-theme="light"] .landing-hero__overlay {
+    background: linear-gradient(to bottom, rgba(30,58,95,0.5) 0%, rgba(30,58,95,0.85) 100%);
+  }
+  .landing-hero__content {
+    position: relative;
+    z-index: 2;
+    padding: 2rem 1.5rem;
+    max-width: 900px;
+  }
+  .landing-hero__title {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    animation: heroFadeIn 1s ease-out;
+  }
+  .landing-hero__subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 2rem;
+    font-weight: 400;
+    animation: heroFadeIn 1s ease-out 0.2s both;
+  }
+  .landing-hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 2rem;
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border-radius: 999px;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(245,158,11,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: heroFadeIn 1s ease-out 0.4s both;
+  }
+  .landing-hero__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(245,158,11,0.5);
+    color: #0f172a;
   }
 
-  .home-card {
-    max-width: 560px;
+  /* ─── Feature sections ─── */
+  .landing-section {
+    padding: clamp(4rem, 10vw, 7rem) 1.5rem;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2.5rem 2rem;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
   }
-
-  .home-card h1 {
-    margin: 0 0 1rem;
+  .landing-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .landing-section:nth-child(even) { background: var(--bg-secondary); }
+  .landing-section__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+  @media (max-width: 768px) {
+    .landing-section__inner { grid-template-columns: 1fr; }
+  }
+  .landing-section--reverse .landing-section__inner { direction: rtl; }
+  .landing-section--reverse .landing-section__inner > * { direction: ltr; }
+  .landing-section__media {
+    aspect-ratio: 16/10;
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 1rem;
+  }
+  .landing-section__media img, .landing-section__media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .landing-section__label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .landing-section__title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
     color: var(--text-primary);
+    margin: 0 0 0.75rem;
+  }
+  .landing-section__text {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
   }
 
-  .home-card p {
+  /* ─── Full-width showcase ─── */
+  .landing-showcase {
+    padding: clamp(3rem, 6vw, 5rem) 1.5rem;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .landing-showcase.visible { opacity: 1; transform: translateY(0); }
+  .landing-showcase__media {
+    max-width: 900px;
+    margin: 0 auto 1rem;
+    aspect-ratio: 16/9;
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .landing-showcase__media img, .landing-showcase__media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .landing-showcase__title {
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    font-weight: 600;
+    color: var(--text-primary);
     margin: 0;
-    color: var(--text-secondary);
-    font-size: 1.05rem;
+  }
+
+  /* ─── Role cards ─── */
+  .landing-roles {
+    padding: clamp(4rem, 8vw, 6rem) 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .landing-roles__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  @media (max-width: 768px) { .landing-roles__grid { grid-template-columns: 1fr; } }
+  .landing-role-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.2s;
+  }
+  .landing-role-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .landing-role-card:hover { box-shadow: 0 12px 40px var(--shadow-lg); }
+  .landing-role-card__icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: var(--accent);
+    color: #0f172a;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+  }
+  .landing-role-card__title { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--text-primary); }
+  .landing-role-card__desc { font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+
+  /* ─── Footer CTA ─── */
+  .landing-cta {
+    padding: 4rem 1.5rem;
+    text-align: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  [data-theme="light"] .landing-cta { background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%); }
+  .landing-cta__title { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; color: #fff; margin: 0 0 1rem; }
+  .landing-cta__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 2rem;
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 700;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .landing-cta__btn:hover { transform: translateY(-2px); color: #0f172a; }
+
+  @keyframes heroFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="home-wrap">
-  <div class="card home-card">
-    <h1>Welcome to your account!</h1>
-    <p>You have successfully logged in.</p>
+<!-- Hero -->
+<section class="landing-hero">
+  <div class="landing-hero__bg" style="background-image: url('{{ url_for('static', filename='img/landing/hero.jpg') }}');" role="img" aria-label="Hero background"></div>
+  <div class="landing-hero__overlay"></div>
+  <div class="landing-hero__content">
+    <h1 class="landing-hero__title">Driver Rewards</h1>
+    <p class="landing-hero__subtitle">Earn points. Redeem rewards. Drive better.</p>
+    <a href="{{ url_for('auth.login_page') }}" class="landing-hero__cta">
+      <i class="fas fa-sign-in-alt"></i> Sign In
+    </a>
   </div>
-</div>
+</section>
+
+<!-- Points & Rewards -->
+<section class="landing-section" data-animate>
+  <div class="landing-section__inner">
+    <div class="landing-section__media">
+      <!-- PLACEHOLDER: hero-points.jpg - Screenshot of driver points balance / points history -->
+      <span>📸 hero-points.jpg</span>
+    </div>
+    <div>
+      <div class="landing-section__label">Points System</div>
+      <h2 class="landing-section__title">Earn & Redeem</h2>
+      <p class="landing-section__text">Drivers earn points from sponsors. Redeem them for products from the catalog.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Product Catalog -->
+<section class="landing-section landing-section--reverse" data-animate>
+  <div class="landing-section__inner">
+    <div class="landing-section__media">
+      <!-- PLACEHOLDER: catalog-demo.jpg or catalog-demo.gif - Product grid / browse experience -->
+      <span>📸 catalog-demo.jpg</span>
+    </div>
+    <div>
+      <div class="landing-section__label">Product Catalog</div>
+      <h2 class="landing-section__title">Browse & Shop</h2>
+      <p class="landing-section__text">Thousands of products. Filter, search, and add to cart with your points.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Mobile App -->
+<section class="landing-section" data-animate>
+  <div class="landing-section__inner">
+    <div class="landing-section__media">
+      <!-- PLACEHOLDER: mobile-app.mp4 or mobile-app.gif - Phone mockup showing app screens -->
+      <span>📱 mobile-app.mp4</span>
+    </div>
+    <div>
+      <div class="landing-section__label">Mobile App</div>
+      <h2 class="landing-section__title">On the Go</h2>
+      <p class="landing-section__text">Full experience on Android. Catalog, cart, orders, and notifications.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Orders Flow -->
+<section class="landing-showcase" data-animate>
+  <div class="landing-showcase__media">
+    <!-- PLACEHOLDER: orders-flow.gif - Animated walkthrough of checkout / order confirmation -->
+    <span>📸 orders-flow.gif</span>
+  </div>
+  <h3 class="landing-showcase__title">From cart to delivery — seamless checkout</h3>
+</section>
+
+<!-- Three Roles -->
+<section class="landing-roles">
+  <div class="landing-roles__grid">
+    <div class="landing-role-card" data-animate>
+      <div class="landing-role-card__icon"><i class="fas fa-truck"></i></div>
+      <h3 class="landing-role-card__title">Drivers</h3>
+      <p class="landing-role-card__desc">Earn points, browse catalog, place orders, track achievements.</p>
+    </div>
+    <div class="landing-role-card" data-animate>
+      <div class="landing-role-card__icon"><i class="fas fa-building"></i></div>
+      <h3 class="landing-role-card__title">Sponsors</h3>
+      <p class="landing-role-card__desc">Manage drivers, award points, curate catalog, run challenges.</p>
+    </div>
+    <div class="landing-role-card" data-animate>
+      <div class="landing-role-card__icon"><i class="fas fa-shield-alt"></i></div>
+      <h3 class="landing-role-card__title">Admins</h3>
+      <p class="landing-role-card__desc">User management, support tickets, analytics, audit logs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Sponsor Dashboard -->
+<section class="landing-section landing-section--reverse" data-animate>
+  <div class="landing-section__inner">
+    <div class="landing-section__media">
+      <!-- PLACEHOLDER: sponsor-dashboard.jpg - Sponsor's driver management / analytics view -->
+      <span>📸 sponsor-dashboard.jpg</span>
+    </div>
+    <div>
+      <div class="landing-section__label">For Sponsors</div>
+      <h2 class="landing-section__title">Manage Your Fleet</h2>
+      <p class="landing-section__text">Award points, review applications, and track driver activity.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Leaderboard / Challenges -->
+<section class="landing-section" data-animate>
+  <div class="landing-section__inner">
+    <div class="landing-section__media">
+      <!-- PLACEHOLDER: leaderboard.jpg or challenges.jpg - Leaderboard or challenge completion UI -->
+      <span>📸 leaderboard.jpg</span>
+    </div>
+    <div>
+      <div class="landing-section__label">Gamification</div>
+      <h2 class="landing-section__title">Compete & Achieve</h2>
+      <p class="landing-section__text">Leaderboards and challenges keep drivers engaged.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="landing-cta">
+  <h2 class="landing-cta__title">Ready to get started?</h2>
+  <a href="{{ url_for('auth.login_page') }}" class="landing-cta__btn">
+    <i class="fas fa-sign-in-alt"></i> Sign In
+  </a>
+</section>
+
+<script>
+(function() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+  document.querySelectorAll('[data-animate]').forEach(el => observer.observe(el));
+})();
+</script>
 {% endblock %}

@@ -17,12 +17,12 @@
     </button>
 
     <!-- Brand / Home -->
-    <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('catalog_home') }}{% endif %}" class="nav-brand">
+    <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('home.home_page') }}{% endif %}" class="nav-brand">
       <i class="fas fa-home" aria-hidden="true"></i>
       {% if current_user.is_authenticated %}
         <span>Dashboard</span>
       {% else %}
-        <span>Team 10 Portal</span>
+        <span>Driver Rewards</span>
       {% endif %}
     </a>
 
@@ -229,6 +229,11 @@
           <span class="nav-profile-name">{{ user_name[:24] }}</span>
         </a>
 
+      {% else %}
+        <a href="{{ url_for('auth.login_page') }}" class="nav-login-btn" title="Sign in">
+          <i class="fas fa-sign-in-alt"></i>
+          <span class="nav-text">Login</span>
+        </a>
       {% endif %}
 
       <!-- Theme Toggle -->
