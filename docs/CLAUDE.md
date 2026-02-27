@@ -29,7 +29,7 @@ This ensures the AI isn't guessing — it's following a plan.
 - Composer builds the initial file tree, boilerplate, and folder structure.
 - I then iteratively expand features with small scoped prompts.
 
-This process was heavily used in the Good Driving Incentive Program, where I designed the backend, mobile API, points system, and admin tools using this iterative AI-first approach ([AI_USAGE_IN_THIS_PROJECT](docs/AI_USAGE_IN_THIS_PROJECT.md)).
+This process was heavily used in the Good Driving Incentive Program, where I designed the backend, mobile API, points system, and admin tools using this iterative AI-first approach ([AI_USAGE_IN_THIS_PROJECT](AI_USAGE_IN_THIS_PROJECT.md)).
 
 ---
 
