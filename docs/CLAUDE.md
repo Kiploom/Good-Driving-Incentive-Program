@@ -175,7 +175,7 @@ Working with AI has taught me:
 Using the provided file's analysis, here's the distilled version of how AI drove that project:
 
 - AI helped generate full Flask blueprints, service layers, admin tools, and multi-tenant sponsor logic
-- AI generated documentation: project summaries, deployment guides, AWS diagrams, troubleshooting docs, etc. ([AI_USAGE_IN_THIS_PROJECT](docs/AI_USAGE_IN_THIS_PROJECT.md))
+- AI generated documentation: project summaries, deployment guides, AWS diagrams, troubleshooting docs, etc. ([AI_USAGE_IN_THIS_PROJECT](AI_USAGE_IN_THIS_PROJECT.md))
 - AI scaffolded the entire mobile API and admin panel
 - AI wrote consistent HTML/Jinja templates with accessible modals and responsive layouts
 - AI assisted in complex multi-file refactors (e.g., catalog logic, points system)
