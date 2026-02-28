@@ -6,9 +6,9 @@ This document describes how AI (specifically Cursor and similar AI coding assist
 
 ## 1. Overview
 
-This project was developed with AI-assisted coding, primarily through **Cursor** (an AI-powered IDE). The codebase and documentation exhibit patterns consistent with iterative AI collaboration: structured scaffolding, comprehensive documentation, consistent naming conventions, and modular architecture that AI tools excel at generating.
+This project was developed with AI-assisted coding, primarily through **Cursor** (Composer, Auto) and **ChatGPT**, following the workflow described in [claude.md](claude.md). Prompts were structured with *Goal*, *Tech stack*, *Constraints*, *Context*, and *Output* to ensure consistent, scoped results. The codebase exhibits patterns from this iterative approach: structured scaffolding, comprehensive documentation, consistent naming conventions, and modular architecture.
 
-**Note:** Agent transcripts were not available for analysis. This document is based on codebase patterns, documentation style, and common AI-assisted development practices.
+**Note:** Agent transcripts were not available for analysis. This document is based on codebase patterns, documentation style, and the prompt structure defined in claude.md.
 
 ---
 
@@ -26,11 +26,22 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 | `TROUBLESHOOTING_DB.md` | Error-focused structure, numbered steps, code blocks for diagnostics |
 | `AWS_OVERVIEW.md` | ASCII architecture diagram, component tables, SSH/CLI examples |
 
-**Typical prompts used:**
-- *"Create a comprehensive project summary documenting the architecture, features, and design decisions"*
-- *"Write a troubleshooting guide for [specific error]"*
-- *"Document the AWS setup with an architecture diagram"*
-- *"Create a deployment guide for local development"*
+**Typical prompts used** (structured per [claude.md](claude.md)):
+
+```
+You are my senior engineer.
+Goal: Create a comprehensive project summary documenting architecture, features, and design decisions.
+Tech stack: Flask, MySQL, Kotlin (Android), Jinja2.
+Constraints: Must cover all three roles (driver, sponsor, admin), security measures, and deployment.
+Context: [paste app/__init__.py, models.py, key route files]
+Output: Full markdown file, no placeholders.
+```
+
+```
+Goal: Write a troubleshooting guide for RDS connection errors.
+Context: [paste error log, .env structure, TROUBLESHOOTING_DB.md if exists]
+Output: Numbered steps, code blocks for diagnostics, security group checklist.
+```
 
 ### 2.2 Code Scaffolding & Architecture
 
@@ -44,10 +55,23 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 - **Service layer** – Dedicated `services/` directories with single-responsibility modules (e.g., `password_security_service.py`, `invoice_service.py`, `profile_audit_service.py`)
 - **Type hints** – Used in many modules (e.g., `driver_points_catalog/routes.py`, `driver_query_service.py`)
 
-**Typical prompts used:**
-- *"Create a Flask blueprint for [feature] following the same pattern as the other routes"*
-- *"Add a service layer for [business logic]"*
-- *"Refactor this into a reusable helper function"*
+**Typical prompts used** (structured per [claude.md](claude.md)):
+
+```
+You are my senior engineer.
+Goal: Create a Flask blueprint for [feature] (e.g., support tickets, leaderboard).
+Tech stack: Flask, SQLAlchemy, Blueprints.
+Constraints: Follow same pattern as admin_routes.py and driver_routes.py; use @login_required; include template_folder/static_folder.
+Context: [paste admin_routes.py, driver_routes.py structure]
+Output: Full file, no placeholders.
+```
+
+```
+Goal: Add a service layer for [business logic].
+Constraints: Single responsibility; no DB access in routes for complex logic; match existing services (e.g., password_security_service.py).
+Context: [paste relevant route file, model]
+Output: New service file + minimal route changes.
+```
 
 ### 2.3 Feature Implementation
 
@@ -58,11 +82,24 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 - **Admin panel** – User management, bulk import, PDF/CSV export, support tickets
 - **Mobile API** – RESTful endpoints with session-based auth, CSRF exemption
 
-**Typical prompts used:**
-- *"Implement MFA (TOTP) for user authentication"*
-- *"Add an endpoint to [action] that returns JSON"*
-- *"Integrate the eBay Browse API for product search"*
-- *"Add a PDF export for [report type]"*
+**Typical prompts used** (structured per [claude.md](claude.md)):
+
+```
+You are my senior engineer.
+Goal: Implement MFA (TOTP) for user authentication.
+Tech stack: Flask, Flask-Login, pyotp.
+Constraints: Must work with existing auth flow; store secret encrypted (Fernet); support recovery codes; require MFA for sensitive actions.
+Context: [paste auth.py, models.py Account/MFA fields]
+Output: Full implementation, no placeholders.
+```
+
+```
+Goal: Integrate eBay Browse API for product search.
+Tech stack: Flask, requests, eBay Browse API v1.
+Constraints: Respect rate limits; handle auth (OAuth); return JSON for mobile API; support category filtering.
+Context: [paste config, existing catalog structure]
+Output: Provider class + route integration.
+```
 
 ### 2.4 Bug Fixes & Refactoring
 
@@ -72,10 +109,21 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 - Optimization comments (e.g., `# OPTIMIZATION #1: Load points converter once per request`)
 - Error handling patterns (try/except with logging, user-friendly messages)
 
-**Typical prompts used:**
-- *"Fix the [error message] when [action]"*
-- *"Optimize this query to reduce database calls"*
-- *"Add proper error handling for [edge case]"*
+**Typical prompts used** (structured per [claude.md](claude.md)):
+
+```
+Goal: Fix [error message] when [action].
+Context: [paste full stack trace, relevant code block]
+Constraints: Minimal change; preserve surrounding logic; add logging if appropriate.
+Output: Apply the fix; explain what changed.
+```
+
+```
+Goal: Optimize this query to reduce database calls.
+Context: [paste route/function with N+1 or repeated queries]
+Constraints: Use batch loading, caching, or single query; match existing patterns (e.g., get_points_converter).
+Output: Refactored code with comment explaining optimization.
+```
 
 ### 2.5 Frontend & Styling
 
@@ -86,10 +134,22 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 - Accessibility attributes (`aria-*`, `role="dialog"`)
 - Theme switching (light/dark) with `localStorage`
 
-**Typical prompts used:**
-- *"Add a modal for [action] with proper accessibility"*
-- *"Implement dark mode toggle"*
-- *"Fix the layout on mobile for [component]"*
+**Typical prompts used** (structured per [claude.md](claude.md)):
+
+```
+Goal: Add a modal for [action] (e.g., change email, MFA setup) with proper accessibility.
+Tech stack: Jinja2, Bootstrap 5, vanilla JS.
+Constraints: Use aria-* attributes, role="dialog", focus trap, BEM-like classes (auth-modal__header).
+Context: [paste base.html, existing modal if any]
+Output: Full modal markup + JS; no placeholders.
+```
+
+```
+Goal: Implement dark mode toggle.
+Constraints: Use localStorage; respect prefers-color-scheme; apply to existing theme.css; no flash on load.
+Context: [paste base.html, theme.css]
+Output: Inline script + CSS updates.
+```
 
 ---
 
@@ -97,13 +157,15 @@ This project was developed with AI-assisted coding, primarily through **Cursor**
 
 ### 3.1 Prompting Patterns
 
-| Pattern | Description | Example |
-|---------|-------------|---------|
-| **Task-oriented** | Direct request for a specific outcome | "Add a route that lists all drivers for a sponsor" |
-| **Context-providing** | Includes file/function references | "In `auth.py`, add MFA verification after password check" |
-| **Pattern-matching** | Asks to follow existing conventions | "Follow the same structure as `admin_routes.py`" |
-| **Error-driven** | Prompt triggered by an error | "Fix: Access denied for user 'admin'@'172.31.13.94'" |
-| **Documentation-first** | Request for docs before or after code | "Document the API endpoints for the mobile app" |
+Prompts followed the structured template from [claude.md](claude.md): *Goal*, *Tech stack*, *Constraints*, *Context*, *Output*.
+
+| Pattern | Description | Structured Example |
+|---------|-------------|-------------------|
+| **Task-oriented** | Direct request for a specific outcome | `Goal: Add a route that lists all drivers for a sponsor. Context: [sponsor_routes.py]` |
+| **Context-providing** | Includes file/function references | `Goal: Add MFA verification after password check. Context: [auth.py lines 40–60]` |
+| **Pattern-matching** | Asks to follow existing conventions | `Constraints: Follow same structure as admin_routes.py. Context: [admin_routes.py]` |
+| **Error-driven** | Prompt triggered by an error | `Goal: Fix Access denied for user 'admin'@'172.31.13.94'. Context: [stack trace, .env]` |
+| **Documentation-first** | Request for docs before or after code | `Goal: Document the mobile API endpoints. Output: Markdown with tables, code blocks.` |
 
 ### 3.2 Code Patterns (AI-Generated or AI-Assisted)
 
@@ -139,30 +201,32 @@ The codebase suggests a **generate → review → refine** loop:
 
 ## 4. Types of Prompts Used (Inferred)
 
+Prompts were structured using the [claude.md](claude.md) template to ensure consistent, scoped output.
+
 ### 4.1 By Category
 
-| Category | % of Use (Est.) | Example Prompts |
-|----------|-----------------|-----------------|
-| **Feature implementation** | ~35% | "Add leaderboard for drivers", "Implement checkout flow" |
-| **Bug fixes** | ~25% | "Fix 500 error on login", "Database connection fails on EC2" |
-| **Documentation** | ~15% | "Write README for deployment", "Document the points system" |
-| **Refactoring** | ~15% | "Extract this into a service", "Add type hints" |
-| **Configuration/DevOps** | ~10% | "Add .env example", "Create wsgi.py for Gunicorn" |
+| Category | % of Use (Est.) | Structured Example |
+|----------|-----------------|---------------------|
+| **Feature implementation** | ~35% | `Goal: Add leaderboard for drivers. Tech stack: Flask, SQLAlchemy. Constraints: Sponsor-scoped, points-based. Context: [leaderboard.py, PointChange model]` |
+| **Bug fixes** | ~25% | `Goal: Fix 500 error on login. Context: [stack trace, auth.py]. Constraints: Minimal change, preserve logic.` |
+| **Documentation** | ~15% | `Goal: Document deployment. Output: Step-by-step, env var table, multi-platform commands.` |
+| **Refactoring** | ~15% | `Goal: Extract [logic] into a service. Constraints: Match password_security_service pattern. Context: [route file]` |
+| **Configuration/DevOps** | ~10% | `Goal: Create wsgi.py for Gunicorn. Tech stack: Flask. Constraints: Production-ready, no dev server.` |
 
 ### 4.2 By Specificity
 
-- **High specificity:** "In `flask/app/routes/auth.py`, add a check for MFA after line 45"
-- **Medium specificity:** "Add MFA support to the login flow"
-- **Low specificity:** "Improve the login page"
-
-More specific prompts typically yield better, more targeted results.
+- **High specificity:** `Goal: Add MFA check after password verification. Context: auth.py lines 45–55. Output: Insert block, explain changes.`
+- **Medium specificity:** `Goal: Add MFA support to login flow. Tech stack: Flask, pyotp. Context: [auth.py]`
+- **Low specificity:** `Goal: Improve the login page.` (Avoided when possible; structured prompts yield better results.)
 
 ### 4.3 By Context Provided
 
-- **With file references:** Faster iteration, fewer hallucinations
-- **With error messages:** Effective for debugging
-- **With existing code snippets:** Good for "extend this" or "fix this"
-- **Without context:** May produce generic or incorrect code
+Per [claude.md](claude.md), context was fed strategically:
+
+- **With file references:** Paste relevant files; select multiple for Composer
+- **With error messages:** Full stack trace + relevant code for debugging
+- **With existing code snippets:** "Extend this" or "Apply fix to this block"
+- **Cross-AI workflow:** ChatGPT drafted prompts; Cursor executed with full context
 
 ---
 
@@ -170,10 +234,13 @@ More specific prompts typically yield better, more targeted results.
 
 ### 5.1 Prompting Best Practices
 
-1. **Provide context** – Mention file paths, function names, or relevant code
-2. **Reference existing patterns** – "Follow the same structure as X"
-3. **Include error output** – Paste full tracebacks when debugging
-4. **Break large tasks** – "Add the route" then "Add the template" rather than "Build the entire feature"
+Follow the structured template from [claude.md](claude.md):
+
+1. **Use Goal + Tech stack + Constraints + Context + Output** – Ensures scoped, consistent results
+2. **Provide context** – Paste relevant files, function names, or code blocks
+3. **Reference existing patterns** – Include "Constraints: Follow same structure as X"
+4. **Include error output** – Paste full tracebacks when debugging
+5. **Break large tasks** – Separate "Add the route" from "Add the template" rather than "Build the entire feature"
 
 ### 5.2 Code Review Checklist
 
@@ -205,10 +272,10 @@ If this project is submitted for grading:
 
 | Aspect | Finding |
 |--------|---------|
-| **Primary AI tool** | Cursor (AI-powered IDE) |
+| **Primary AI tool** | Cursor (Composer, Auto), ChatGPT (architecture, debugging) |
+| **Prompt style** | Structured per [claude.md](claude.md): Goal, Tech stack, Constraints, Context, Output |
 | **Most AI-assisted areas** | Documentation, route scaffolding, service layer, bug fixes |
 | **Strongest patterns** | Blueprint structure, helper functions, comprehensive docs |
-| **Prompt style** | Task-oriented, often with file/context references |
 | **Development loop** | Generate → integrate → debug → optimize → document |
 
 ---
